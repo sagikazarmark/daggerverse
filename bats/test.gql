@@ -3,7 +3,7 @@ query test {
         branch(name: "main") {
             tree {
                 bats(args: ["-r"]) {
-                    id
+                    stdout
                 }
             }
         }

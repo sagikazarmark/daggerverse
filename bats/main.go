@@ -10,8 +10,12 @@ func (m *Bats) Bats(ctx context.Context, dir *Directory, args []string) (*Contai
 	return run(dir, args), nil
 }
 
-func (dir *Directory) Bats(ctx context.Context, args []string) (string, error) {
-	return run(dir, args).Stdout(ctx)
+func (m *Bats) Foo(ctx context.Context) (*Directory, error) {
+	return nil, nil
+}
+
+func (dir *Directory) Bats(ctx context.Context, args []string) (*Container, error) {
+	return run(dir, args), nil
 }
 
 func run(dir *Directory, args []string) *Container {
