@@ -1,0 +1,4 @@
+/.devenv/
+/.direnv/
+/build/
+/config.local.yaml
