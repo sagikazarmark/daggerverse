@@ -12,8 +12,9 @@ jobs:
     strategy:
       matrix:
         module:
-          - spectral
+          - bats
           - kafka
+          - spectral
 
     steps:
       - name: Checkout repository
