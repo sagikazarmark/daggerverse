@@ -25,3 +25,9 @@ query test {
     }
 }
 ```
+
+## To Do
+
+- [ ] Custom ruleset parameters
+- [ ] Custom arguments
+- [ ] Lint multiple documents
