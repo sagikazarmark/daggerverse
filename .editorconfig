@@ -19,3 +19,6 @@ indent_style = tab
 
 [{*.yml,*.yaml}]
 indent_size = 2
+
+[dagger.json]
+indent_size = 2
