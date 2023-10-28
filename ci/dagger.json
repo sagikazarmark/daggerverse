@@ -1,0 +1,8 @@
+{
+  "name": "ci",
+  "root": "..",
+  "sdk": "go",
+  "dependencies": [
+    "../spectral"
+  ]
+}
