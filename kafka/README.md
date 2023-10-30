@@ -16,3 +16,7 @@ kafka.Container().
 
 > [!IMPORTANT]
 > Kafka advertises itself as `kafka:9092`. Make sure to attach the service as `kafka` to containers.
+
+## To Do
+
+- [ ] Custom advertise address
