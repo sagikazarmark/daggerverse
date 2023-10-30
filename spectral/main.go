@@ -9,29 +9,33 @@ const defaultImageRepository = "stoplight/spectral"
 
 type Spectral struct{}
 
-// example usage: "dagger call with-version --version 6.11.0"
+// Specify which version of Spectral to use.
 func (m *Spectral) WithVersion(version string) *SpectralContainer {
 	return &SpectralContainer{dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))}
 }
 
-// example usage: "dagger call with-image-ref --ref stoplight/spectral:6.11.0"
+// Specify a custom image reference in "repository:tag" format.
 func (m *Spectral) WithImageRef(ref string) *SpectralContainer {
 	return &SpectralContainer{dag.Container().From(ref)}
 }
 
+// Specify a custom container.
 func (m *Spectral) WithContainer(ctr *Container) *SpectralContainer {
 	return &SpectralContainer{ctr}
 }
 
-// example usage: "dagger call with-source --src ."
+// Mount a source directory.
 func (m *Spectral) WithSource(src *Directory) *SpectralContainerWithSource {
-	return &SpectralContainerWithSource{
-		&SpectralContainer{
-			dag.Container().From(defaultImageRepository).
-				WithWorkdir("/src").
-				WithMountedDirectory("/src", src),
-		},
-	}
+	return defaultContainer().WithSource(src)
+}
+
+// Return the default container.
+func (m *Spectral) Container() *Container {
+	return defaultContainer().Container()
+}
+
+func defaultContainer() *SpectralContainer {
+	return &SpectralContainer{dag.Container().From(defaultImageRepository)}
 }
 
 type SpectralContainer struct {
@@ -42,6 +46,7 @@ func (m *SpectralContainer) Container() *Container {
 	return m.Ctr
 }
 
+// Mount a source directory.
 func (m *SpectralContainer) WithSource(src *Directory) *SpectralContainerWithSource {
 	const workdir = "/src"
 
