@@ -7,16 +7,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1698431605,
-        "narHash": "sha256-P+U9dzQ/TKpgoD1V+8bB8ytGH6qccFc/Yv7ztNV6HKI=",
-        "owner": "sagikazarmark",
-        "repo": "dagger-flake",
-        "rev": "dd1bcc154cda20d660b0e8548a61ec8b3e8a29e1",
+        "lastModified": 1699205500,
+        "narHash": "sha256-9SkJkh1JYiBwlHl2koZIRNyyBAvd9lbF0BjWE/XAcw4=",
+        "owner": "dagger",
+        "repo": "nix",
+        "rev": "a33cef38eda384639fe2629d06137247ad22e5e9",
         "type": "github"
       },
       "original": {
-        "owner": "sagikazarmark",
-        "repo": "dagger-flake",
+        "owner": "dagger",
+        "repo": "nix",
         "type": "github"
       }
     },

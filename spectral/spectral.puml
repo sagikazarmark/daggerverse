@@ -1,0 +1,34 @@
+@startuml
+legend
+<u><b>Legend</b></u>
+Render Aggregations: true
+Render Fields: true
+Render Methods: true
+Pritave Aggregations: false
+end legend
+namespace main {
+    class Spectral << (S,Aquamarine) >> {
+        + WithVersion(version string) *SpectralContainer
+        + WithImageRef(ref string) *SpectralContainer
+        + WithContainer(ctr *Container) *SpectralContainer
+        + WithSource(src *Directory) *SpectralContainerWithSource
+
+    }
+    class SpectralContainer << (S,Aquamarine) >> {
+        + Ctr *Container
+
+        + Container() *Container
+        + WithSource(src *Directory) *SpectralContainerWithSource
+
+    }
+    class SpectralContainerWithSource << (S,Aquamarine) >> {
+        + Lint(document string) *Container
+
+    }
+}
+"main.SpectralContainer" *-- "extends""main.SpectralContainerWithSource"
+
+
+"main.SpectralContainer""uses" o-- "main.Container"
+
+@enduml
