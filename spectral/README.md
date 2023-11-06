@@ -17,13 +17,21 @@ dag.Spectral().
 ```graphql
 query test {
     spectral {
-        withSource(source: {directory: "."}) {
+        fromSource(source: ".") {
             lint(document: "openapi.yaml") {
                 stdout
             }
         }
     }
 }
+```
+
+### Shell
+
+Run the following command to see the command line interface:
+
+```shell
+dagger call -m "github.com/sagikazarmark/daggerverse/spectral@main" --help
 ```
 
 ## To Do
