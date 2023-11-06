@@ -7,7 +7,7 @@ const defaultImageRepository = "golang"
 
 type Go struct{}
 
-// Specify which version (image tag) of Go to use from the official Go image repository on Docker Hub.
+// Specify which version (image tag) of Go to use from the official image repository on Docker Hub.
 func (m *Go) FromVersion(version string) *Base {
 	return &Base{wrapContainer(dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version)))}
 }

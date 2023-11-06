@@ -163,6 +163,13 @@ func (m *Ci) Go(ctx context.Context) error {
 	return group.Wait()
 }
 
+func (m *Ci) GolangciLint() *Container {
+	return dag.GolangciLint().
+		Run(GolangciLintRunOpts{
+			Source: dag.Host().Directory("./testdata/go"),
+		})
+}
+
 func (m *Ci) Kafka() *Container {
 	kafka := dag.Kafka()
 
