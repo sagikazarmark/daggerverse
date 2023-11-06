@@ -8,6 +8,11 @@ func (m *Ci) Bats() *Container {
 		Run([]string{"test.bats"})
 }
 
+func (m *Ci) Golang() *Container {
+	return dag.Golang().
+		Exec([]string{"go", "version"})
+}
+
 func (m *Ci) Kafka() *Container {
 	kafka := dag.Kafka()
 

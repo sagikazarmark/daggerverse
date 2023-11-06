@@ -4,6 +4,7 @@
   "sdk": "go",
   "dependencies": [
     "../bats",
+    "../golang",
     "../kafka",
     "../spectral"
   ]

@@ -13,6 +13,7 @@ jobs:
       matrix:
         module:
           - bats
+          - golang
           - kafka
           - spectral
 
