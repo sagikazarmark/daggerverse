@@ -1,5 +1,7 @@
 # Go
 
+[Daggerverse](https://daggerverse.dev/mod/github.com/sagikazarmark/daggerverse/go)
+
 **Yet another Dagger module for Go**
 
 ## Examples
