@@ -1,5 +1,13 @@
 package main
 
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"golang.org/x/sync/errgroup"
+)
+
 type Ci struct{}
 
 func (m *Ci) Bats() *Container {
@@ -8,9 +16,93 @@ func (m *Ci) Bats() *Container {
 		Run([]string{"test.bats"})
 }
 
-func (m *Ci) Go() *Container {
-	return dag.Go().
-		Exec([]string{"go", "version"})
+func (m *Ci) Go(ctx context.Context) error {
+	var group errgroup.Group
+
+	// Default containe
+	group.Go(func() error {
+		_, err := dag.Go().
+			Exec([]string{"go", "version"}).
+			Sync(ctx)
+
+		return err
+	})
+
+	// Custom version
+	group.Go(func() error {
+		_, err := dag.Go().
+			FromVersion("latest").
+			Exec([]string{"go", "version"}).
+			Sync(ctx)
+
+		return err
+	})
+
+	// Custom image
+	group.Go(func() error {
+		_, err := dag.Go().
+			FromImage("golang:latest").
+			Exec([]string{"go", "version"}).
+			Sync(ctx)
+
+		return err
+	})
+
+	// Custom container
+	group.Go(func() error {
+		_, err := dag.Go().
+			FromContainer(dag.Container().From("golang:latest")).
+			Exec([]string{"go", "version"}).
+			Sync(ctx)
+
+		return err
+	})
+
+	// Build
+	group.Go(func() error {
+		ctr, err := dag.Go().
+			WithSource(dag.Host().Directory("./testdata/go")).
+			Exec([]string{"go", "build", "-o", "/app", "."}).
+			Sync(ctx)
+		if err != nil {
+			return err
+		}
+
+		out, err := ctr.WithExec([]string{"/app"}).Stderr(ctx)
+		if err != nil {
+			return err
+		}
+
+		if out != "hello\n" {
+			return fmt.Errorf("unexpected output: wanted \"hello\", got %q", out)
+		}
+
+		return nil
+	})
+
+	// Test
+	group.Go(func() error {
+		ctr, err := dag.Go().
+			WithSource(dag.Host().Directory("./testdata/go")).
+			Exec([]string{"go", "test", "-v"}).
+			Sync(ctx)
+		if err != nil {
+			return err
+		}
+
+		out, err := ctr.Stdout(ctx)
+		if err != nil {
+			return err
+		}
+
+		if !strings.Contains(out, "hello") {
+			return fmt.Errorf("unexpected output to contain \"hello\", got %q", out)
+		}
+
+		return nil
+	})
+
+	return group.Wait()
 }
 
 func (m *Ci) Kafka() *Container {

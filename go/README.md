@@ -15,4 +15,6 @@ dag.Golang().
 ## To Do
 
 - [ ] Add more tools
-- [ ] Add cache mounts
+- [x] Add cache mounts
+- [ ] Add environment variables
+- [ ] Add more examples
