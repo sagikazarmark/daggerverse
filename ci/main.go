@@ -58,6 +58,64 @@ func (m *Ci) Go(ctx context.Context) error {
 		return err
 	})
 
+	// Env vars
+	group.Go(func() error {
+		var group errgroup.Group
+
+		group.Go(func() error {
+			out, err := dag.Go().
+				WithEnvVariable("FOO", "bar").
+				Exec([]string{"bash", "-c", "echo $FOO"}).
+				Stdout(ctx)
+			if err != nil {
+				return err
+			}
+
+			if out != "bar\n" {
+				return fmt.Errorf("unexpected output: wanted \"bar\", got %q", out)
+			}
+
+			return nil
+		})
+
+		group.Go(func() error {
+			out, err := dag.Go().
+				FromVersion("latest").
+				WithEnvVariable("FOO", "bar").
+				Exec([]string{"bash", "-c", "echo $FOO"}).
+				Stdout(ctx)
+			if err != nil {
+				return err
+			}
+
+			if out != "bar\n" {
+				return fmt.Errorf("unexpected output: wanted \"bar\", got %q", out)
+			}
+
+			return nil
+		})
+
+		group.Go(func() error {
+			out, err := dag.Go().
+				FromVersion("latest").
+				WithSource(dag.Host().Directory("./testdata/go")).
+				WithEnvVariable("FOO", "bar").
+				Exec([]string{"bash", "-c", "echo $FOO"}).
+				Stdout(ctx)
+			if err != nil {
+				return err
+			}
+
+			if out != "bar\n" {
+				return fmt.Errorf("unexpected output: wanted \"bar\", got %q", out)
+			}
+
+			return nil
+		})
+
+		return group.Wait()
+	})
+
 	// Build
 	group.Go(func() error {
 		ctr, err := dag.Go().

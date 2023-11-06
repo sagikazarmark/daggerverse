@@ -7,7 +7,7 @@ const defaultImageRepository = "golang"
 
 type Go struct{}
 
-// Specify which version of Go to use from the official Go image repository on Docker Hub.
+// Specify which version (image tag) of Go to use from the official Go image repository on Docker Hub.
 func (m *Go) FromVersion(version string) *Base {
 	return &Base{wrapContainer(dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version)))}
 }
@@ -22,10 +22,19 @@ func (m *Go) FromContainer(ctr *Container) *Base {
 	return &Base{wrapContainer(ctr)}
 }
 
+func defaultContainer() *Base {
+	return &Base{wrapContainer(dag.Container().From(defaultImageRepository))}
+}
+
 func wrapContainer(c *Container) *Container {
 	return c.
 		WithMountedCache("/root/.cache/go-build", dag.CacheVolume("go-build")).
 		WithMountedCache("/go/pkg/mod", dag.CacheVolume("go-mod"))
+}
+
+// Set an environment variable.
+func (m *Go) WithEnvVariable(name string, value string, expand Optional[bool]) *Base {
+	return defaultContainer().WithEnvVariable(name, value, expand)
 }
 
 // Mount a source directory. The container will use the latest official Go image.
@@ -33,9 +42,7 @@ func (m *Go) WithSource(src *Directory) *BaseWithSource {
 	return defaultContainer().WithSource(src)
 }
 
-// Run a Go command in a container.
-// By default it falls back to using the latest official Go image with no mounted source.
-// You can use --version, --image, --container and --source to customize the container.
+// Run a Go command in a container (default: latest official Go image with no mounted source).
 func (m *Go) Exec(args []string, version Optional[string], image Optional[string], container Optional[*Container], source Optional[*Directory]) *Container {
 	var base *Base
 
@@ -57,26 +64,22 @@ func (m *Go) Container() *Container {
 	return defaultContainer().Container()
 }
 
-func defaultContainer() *Base {
-	return &Base{wrapContainer(dag.Container().From(defaultImageRepository))}
-}
-
 type Base struct {
 	Ctr *Container
 }
 
+// Return the current container.
 func (m *Base) Container() *Container {
 	return m.Ctr
 }
 
-func (m *Base) Exec(args []string, source Optional[*Directory]) *Container {
-	ctr := m.Ctr
-
-	if src, ok := source.Get(); ok {
-		ctr = m.WithSource(src).Ctr
+// Set an environment variable.
+func (m *Base) WithEnvVariable(name string, value string, expand Optional[bool]) *Base {
+	return &Base{
+		m.Ctr.WithEnvVariable(name, value, ContainerWithEnvVariableOpts{
+			Expand: expand.GetOr(false),
+		}),
 	}
-
-	return ctr.WithExec(args)
 }
 
 // Mount a source directory.
@@ -92,8 +95,23 @@ func (m *Base) WithSource(src *Directory) *BaseWithSource {
 	}
 }
 
+func (m *Base) Exec(args []string, source Optional[*Directory]) *Container {
+	ctr := m.Ctr
+
+	if src, ok := source.Get(); ok {
+		ctr = m.WithSource(src).Ctr
+	}
+
+	return ctr.WithExec(args)
+}
+
 type BaseWithSource struct {
 	*Base
+}
+
+// Set an environment variable.
+func (m *BaseWithSource) WithEnvVariable(name string, value string, expand Optional[bool]) *BaseWithSource {
+	return &BaseWithSource{m.Base.WithEnvVariable(name, value, expand)}
 }
 
 func (m *BaseWithSource) Exec(args []string) *Container {
