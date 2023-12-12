@@ -170,6 +170,36 @@ func (m *Ci) GolangciLint() *Container {
 		})
 }
 
+func (m *Ci) Helm(ctx context.Context) error {
+	var group errgroup.Group
+
+	const helmVersion = "3.13.2"
+
+	// Lint
+	// TODO: improve this test
+	group.Go(func() error {
+		_, err := dag.Helm().
+			FromVersion(helmVersion).
+			Lint(dag.Host().Directory("./testdata/helm/charts/package")).
+			Sync(ctx)
+
+		return err
+	})
+
+	// Package
+	// TODO: improve this test
+	group.Go(func() error {
+		_, err := dag.Helm().
+			FromVersion(helmVersion).
+			Package(dag.Host().Directory("./testdata/helm/charts/package")).
+			Sync(ctx)
+
+		return err
+	})
+
+	return group.Wait()
+}
+
 func (m *Ci) HelmDocs(ctx context.Context) error {
 	var group errgroup.Group
 

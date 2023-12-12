@@ -33,6 +33,12 @@ func defaultContainer() *Base {
 	return &Base{dag.Container().From(defaultImageRepository)}
 }
 
+// Return the default container.
+func (m *HelmDocs) Container() *Container {
+	return defaultContainer().Container()
+}
+
+// Generate markdown documentation for Helm charts from requirements and values files.
 func (m *HelmDocs) Generate(ctx context.Context, chart *Directory, templates Optional[[]*File], sortValuesOrder Optional[string]) (*File, error) {
 	return defaultContainer().Generate(
 		ctx,
@@ -46,6 +52,12 @@ type Base struct {
 	Ctr *Container
 }
 
+// Return the underlying container.
+func (m *Base) Container() *Container {
+	return m.Ctr
+}
+
+// Generate markdown documentation for Helm charts from requirements and values files.
 func (m *Base) Generate(ctx context.Context, chart *Directory, templates Optional[[]*File], sortValuesOrder Optional[string]) (*File, error) {
 	chartName, err := getChartName(ctx, chart)
 	if err != nil {
@@ -60,16 +72,12 @@ func (m *Base) Generate(ctx context.Context, chart *Directory, templates Optiona
 
 	args := []string{
 		// Technically this is not needed, but let's add it anyway
-		"--chart-search-root",
-		"/src/charts",
+		"--chart-search-root", "/src/charts",
 
-		"--chart-to-generate",
-		chartPath,
-		"--output-file",
-		"README.out.md",
+		"--chart-to-generate", chartPath,
+		"--output-file", "README.out.md",
 
-		// "--log-level",
-		// "trace",
+		// "--log-level", "trace",
 	}
 
 	if files, ok := templates.Get(); ok {
