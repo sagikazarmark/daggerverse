@@ -205,7 +205,7 @@ func (m *Ci) HelmDocs(ctx context.Context) error {
 		group.Go(func() error {
 			actual := dag.HelmDocs().
 				FromVersion(helmDocsVersion).
-				Generate(chartName, chartDir(chartName), testCase.opts)
+				Generate(chartDir(chartName), testCase.opts)
 
 			_, err := dag.Container().
 				From("alpine").

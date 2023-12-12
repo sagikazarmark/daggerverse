@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"path"
+
+	"helm.sh/helm/v3/pkg/chart"
+	"sigs.k8s.io/yaml"
 )
 
 // defaultImageRepository is used when no image is specified.
@@ -29,9 +33,9 @@ func defaultContainer() *Base {
 	return &Base{dag.Container().From(defaultImageRepository)}
 }
 
-func (m *HelmDocs) Generate(chartName string, chart *Directory, templateFiles Optional[[]*File], sortValuesOrder Optional[string]) *File {
+func (m *HelmDocs) Generate(ctx context.Context, chart *Directory, templateFiles Optional[[]*File], sortValuesOrder Optional[string]) (*File, error) {
 	return defaultContainer().Generate(
-		chartName,
+		ctx,
 		chart,
 		templateFiles,
 		sortValuesOrder,
@@ -42,8 +46,11 @@ type Base struct {
 	Ctr *Container
 }
 
-func (m *Base) Generate(chartName string, chart *Directory, templateFiles Optional[[]*File], sortValuesOrder Optional[string]) *File {
-	// TODO: sanitize chart name
+func (m *Base) Generate(ctx context.Context, chart *Directory, templateFiles Optional[[]*File], sortValuesOrder Optional[string]) (*File, error) {
+	chartName, err := getChartName(ctx, chart)
+	if err != nil {
+		return nil, err
+	}
 
 	chartPath := path.Join("/src/charts", chartName)
 
@@ -75,5 +82,20 @@ func (m *Base) Generate(chartName string, chart *Directory, templateFiles Option
 
 	ctr = ctr.WithExec(args)
 
-	return ctr.File(path.Join(chartPath, "README.out.md"))
+	return ctr.File(path.Join(chartPath, "README.out.md")), nil
+}
+
+func getChartName(ctx context.Context, c *Directory) (string, error) {
+	chartYaml, err := c.File("Chart.yaml").Contents(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	y := new(chart.Metadata)
+	err = yaml.Unmarshal([]byte(chartYaml), y)
+	if err != nil {
+		return "", err
+	}
+
+	return y.Name, nil
 }
