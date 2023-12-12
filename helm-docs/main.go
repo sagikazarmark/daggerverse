@@ -29,11 +29,12 @@ func defaultContainer() *Base {
 	return &Base{dag.Container().From(defaultImageRepository)}
 }
 
-func (m *HelmDocs) Generate(chartName string, chart *Directory, templateFiles Optional[[]*File]) *File {
+func (m *HelmDocs) Generate(chartName string, chart *Directory, templateFiles Optional[[]*File], sortValuesOrder Optional[string]) *File {
 	return defaultContainer().Generate(
 		chartName,
 		chart,
 		templateFiles,
+		sortValuesOrder,
 	)
 }
 
@@ -41,7 +42,7 @@ type Base struct {
 	Ctr *Container
 }
 
-func (m *Base) Generate(chartName string, chart *Directory, templateFiles Optional[[]*File]) *File {
+func (m *Base) Generate(chartName string, chart *Directory, templateFiles Optional[[]*File], sortValuesOrder Optional[string]) *File {
 	// TODO: sanitize chart name
 
 	chartPath := path.Join("/src/charts", chartName)
@@ -66,6 +67,10 @@ func (m *Base) Generate(chartName string, chart *Directory, templateFiles Option
 			args = append(args, "--template-files", fmt.Sprintf("../../templates/template-%d", i))
 			ctr = ctr.WithFile(fmt.Sprint("/src/templates/template-%d", i), file)
 		}
+	}
+
+	if v, ok := sortValuesOrder.Get(); ok {
+		args = append(args, "--sort-values-order", v)
 	}
 
 	ctr = ctr.WithExec(args)
