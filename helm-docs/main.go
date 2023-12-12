@@ -14,7 +14,7 @@ const defaultImageRepository = "jnorwood/helm-docs"
 
 type HelmDocs struct{}
 
-// Specify which version (image tag) of Kafka to use from the official image repository on Docker Hub.
+// Specify which version (image tag) of helm-docs to use from the official image repository on Docker Hub.
 func (m *HelmDocs) FromVersion(version string) *Base {
 	return &Base{dag.Container().From(fmt.Sprintf("%s:v%s", defaultImageRepository, version))}
 }
