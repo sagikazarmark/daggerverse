@@ -38,6 +38,7 @@ func (m *HelmDocs) Container() *Container {
 	return defaultContainer().Container()
 }
 
+// Generate markdown documentation for Helm charts from requirements and values files.
 func (m *HelmDocs) Generate(ctx context.Context, chart *Directory, templates Optional[[]*File], sortValuesOrder Optional[string]) (*File, error) {
 	return defaultContainer().Generate(
 		ctx,
@@ -56,6 +57,7 @@ func (m *Base) Container() *Container {
 	return m.Ctr
 }
 
+// Generate markdown documentation for Helm charts from requirements and values files.
 func (m *Base) Generate(ctx context.Context, chart *Directory, templates Optional[[]*File], sortValuesOrder Optional[string]) (*File, error) {
 	chartName, err := getChartName(ctx, chart)
 	if err != nil {
