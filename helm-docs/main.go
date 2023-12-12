@@ -72,16 +72,12 @@ func (m *Base) Generate(ctx context.Context, chart *Directory, templates Optiona
 
 	args := []string{
 		// Technically this is not needed, but let's add it anyway
-		"--chart-search-root",
-		"/src/charts",
+		"--chart-search-root", "/src/charts",
 
-		"--chart-to-generate",
-		chartPath,
-		"--output-file",
-		"README.out.md",
+		"--chart-to-generate", chartPath,
+		"--output-file", "README.out.md",
 
-		// "--log-level",
-		// "trace",
+		// "--log-level", "trace",
 	}
 
 	if files, ok := templates.Get(); ok {
