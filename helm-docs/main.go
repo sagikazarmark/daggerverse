@@ -33,6 +33,11 @@ func defaultContainer() *Base {
 	return &Base{dag.Container().From(defaultImageRepository)}
 }
 
+// Return the default container.
+func (m *HelmDocs) Container() *Container {
+	return defaultContainer().Container()
+}
+
 func (m *HelmDocs) Generate(ctx context.Context, chart *Directory, templates Optional[[]*File], sortValuesOrder Optional[string]) (*File, error) {
 	return defaultContainer().Generate(
 		ctx,
@@ -44,6 +49,11 @@ func (m *HelmDocs) Generate(ctx context.Context, chart *Directory, templates Opt
 
 type Base struct {
 	Ctr *Container
+}
+
+// Return the underlying container.
+func (m *Base) Container() *Container {
+	return m.Ctr
 }
 
 func (m *Base) Generate(ctx context.Context, chart *Directory, templates Optional[[]*File], sortValuesOrder Optional[string]) (*File, error) {
