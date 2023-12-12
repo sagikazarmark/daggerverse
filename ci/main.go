@@ -19,7 +19,7 @@ func (m *Ci) Bats() *Container {
 func (m *Ci) Go(ctx context.Context) error {
 	var group errgroup.Group
 
-	// Default containe
+	// Default container
 	group.Go(func() error {
 		_, err := dag.Go().
 			Exec([]string{"go", "version"}).
