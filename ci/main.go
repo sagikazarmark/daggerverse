@@ -183,14 +183,29 @@ func (m *Ci) HelmDocs(ctx context.Context) error {
 		return dag.Host().File(fmt.Sprintf("./testdata/helm-docs/charts/%s/expected.md", chartName))
 	}
 
-	testCases := []string{"default"}
+	testCases := []struct {
+		name string
+		opts HelmDocsBaseGenerateOpts
+	}{
+		{
+			name: "default",
+		},
+		{
+			name: "sort-values",
+			opts: HelmDocsBaseGenerateOpts{
+				SortValuesOrder: "file",
+			},
+		},
+	}
 
 	for _, testCase := range testCases {
-		chartName := testCase
+		testCase := testCase
+		chartName := testCase.name
+
 		group.Go(func() error {
 			actual := dag.HelmDocs().
 				FromVersion(helmDocsVersion).
-				Generate(chartName, chartDir(chartName))
+				Generate(chartName, chartDir(chartName), testCase.opts)
 
 			_, err := dag.Container().
 				From("alpine").
