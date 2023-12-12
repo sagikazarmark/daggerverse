@@ -33,11 +33,11 @@ func defaultContainer() *Base {
 	return &Base{dag.Container().From(defaultImageRepository)}
 }
 
-func (m *HelmDocs) Generate(ctx context.Context, chart *Directory, templateFiles Optional[[]*File], sortValuesOrder Optional[string]) (*File, error) {
+func (m *HelmDocs) Generate(ctx context.Context, chart *Directory, templates Optional[[]*File], sortValuesOrder Optional[string]) (*File, error) {
 	return defaultContainer().Generate(
 		ctx,
 		chart,
-		templateFiles,
+		templates,
 		sortValuesOrder,
 	)
 }
@@ -46,7 +46,7 @@ type Base struct {
 	Ctr *Container
 }
 
-func (m *Base) Generate(ctx context.Context, chart *Directory, templateFiles Optional[[]*File], sortValuesOrder Optional[string]) (*File, error) {
+func (m *Base) Generate(ctx context.Context, chart *Directory, templates Optional[[]*File], sortValuesOrder Optional[string]) (*File, error) {
 	chartName, err := getChartName(ctx, chart)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func (m *Base) Generate(ctx context.Context, chart *Directory, templateFiles Opt
 		// "trace",
 	}
 
-	if files, ok := templateFiles.Get(); ok {
+	if files, ok := templates.Get(); ok {
 		for i, file := range files {
 			templatePath := fmt.Sprint("/src/templates/template-%d", i)
 

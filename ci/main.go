@@ -199,7 +199,7 @@ func (m *Ci) HelmDocs(ctx context.Context) error {
 		{
 			name: "template",
 			opts: HelmDocsBaseGenerateOpts{
-				TemplateFiles: []*File{
+				Templates: []*File{
 					dag.Host().File("./testdata/helm-docs/charts/template/template.md"),
 				},
 			},
