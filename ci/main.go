@@ -183,7 +183,7 @@ func (m *Ci) HelmDocs(ctx context.Context) error {
 		return dag.Host().File(fmt.Sprintf("./testdata/helm-docs/charts/%s/expected.md", chartName))
 	}
 
-	testCases := []string{"test"}
+	testCases := []string{"default"}
 
 	for _, testCase := range testCases {
 		chartName := testCase
