@@ -170,6 +170,18 @@ func (m *Ci) GolangciLint() *Container {
 		})
 }
 
+func (m *Ci) HelmDocs(ctx context.Context) *Container {
+	actual := dag.HelmDocs().
+		FromVersion("1.11.3").
+		Generate("test", dag.Host().Directory("./testdata/helm-docs/charts/test"))
+
+	return dag.Container().
+		From("alpine").
+		WithMountedFile("/src/expected", dag.Host().File("./testdata/helm-docs/charts/test/expected.md")).
+		WithMountedFile("/src/actual", actual).
+		WithExec([]string{"diff", "-u", "/src/expected", "/src/actual"})
+}
+
 func (m *Ci) Kafka() *Container {
 	kafka := dag.Kafka()
 
