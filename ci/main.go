@@ -196,6 +196,14 @@ func (m *Ci) HelmDocs(ctx context.Context) error {
 				SortValuesOrder: "file",
 			},
 		},
+		{
+			name: "template",
+			opts: HelmDocsBaseGenerateOpts{
+				TemplateFiles: []*File{
+					dag.Host().File("./testdata/helm-docs/charts/template/template.md"),
+				},
+			},
+		},
 	}
 
 	for _, testCase := range testCases {

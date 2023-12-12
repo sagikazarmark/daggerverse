@@ -67,12 +67,17 @@ func (m *Base) Generate(ctx context.Context, chart *Directory, templateFiles Opt
 		chartPath,
 		"--output-file",
 		"README.out.md",
+
+		// "--log-level",
+		// "trace",
 	}
 
 	if files, ok := templateFiles.Get(); ok {
 		for i, file := range files {
-			args = append(args, "--template-files", fmt.Sprintf("../../templates/template-%d", i))
-			ctr = ctr.WithFile(fmt.Sprint("/src/templates/template-%d", i), file)
+			templatePath := fmt.Sprint("/src/templates/template-%d", i)
+
+			args = append(args, "--template-files", templatePath)
+			ctr = ctr.WithMountedFile(templatePath, file)
 		}
 	}
 
