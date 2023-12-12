@@ -170,16 +170,40 @@ func (m *Ci) GolangciLint() *Container {
 		})
 }
 
-func (m *Ci) HelmDocs(ctx context.Context) *Container {
-	actual := dag.HelmDocs().
-		FromVersion("1.11.3").
-		Generate("test", dag.Host().Directory("./testdata/helm-docs/charts/test"))
+func (m *Ci) HelmDocs(ctx context.Context) error {
+	var group errgroup.Group
 
-	return dag.Container().
-		From("alpine").
-		WithMountedFile("/src/expected", dag.Host().File("./testdata/helm-docs/charts/test/expected.md")).
-		WithMountedFile("/src/actual", actual).
-		WithExec([]string{"diff", "-u", "/src/expected", "/src/actual"})
+	const helmDocsVersion = "1.11.3"
+
+	chartDir := func(chartName string) *Directory {
+		return dag.Host().Directory(fmt.Sprintf("./testdata/helm-docs/charts/%s", chartName))
+	}
+
+	expected := func(chartName string) *File {
+		return dag.Host().File(fmt.Sprintf("./testdata/helm-docs/charts/%s/expected.md", chartName))
+	}
+
+	testCases := []string{"test"}
+
+	for _, testCase := range testCases {
+		chartName := testCase
+		group.Go(func() error {
+			actual := dag.HelmDocs().
+				FromVersion(helmDocsVersion).
+				Generate(chartName, chartDir(chartName))
+
+			_, err := dag.Container().
+				From("alpine").
+				WithMountedFile("/src/expected", expected(chartName)).
+				WithMountedFile("/src/actual", actual).
+				WithExec([]string{"diff", "-u", "/src/expected", "/src/actual"}).
+				Sync(ctx)
+
+			return err
+		})
+	}
+
+	return group.Wait()
 }
 
 func (m *Ci) Kafka() *Container {
