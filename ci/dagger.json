@@ -6,6 +6,7 @@
     "../bats",
     "../go",
     "../golangci-lint",
+    "../helm-docs",
     "../kafka",
     "../spectral"
   ]
