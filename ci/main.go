@@ -197,6 +197,50 @@ func (m *Ci) Helm(ctx context.Context) error {
 		return err
 	})
 
+	// Login & push
+	// TODO: improve this test
+	group.Go(func() error {
+		const zotRepositoryTemplate = "ghcr.io/project-zot/zot-%s-%s"
+		const zotVersion = "v2.0.0"
+
+		platform, err := dag.DefaultPlatform(ctx)
+		if err != nil {
+			return err
+		}
+
+		platformArgs := strings.Split(string(platform), "/")
+
+		zotRepository := fmt.Sprintf(zotRepositoryTemplate, platformArgs[0], platformArgs[1])
+
+		helm := dag.Helm().
+			FromVersion(helmVersion)
+
+		pkg := helm.Package(dag.Host().Directory("./testdata/helm/charts/package"))
+
+		registry := dag.Container().
+			From(fmt.Sprintf("%s:%s", zotRepository, zotVersion)).
+			WithExposedPort(8080).
+			WithMountedDirectory("/etc/zot", dag.Host().Directory("./testdata/helm/zot")).
+			WithExec([]string{"serve", "/etc/zot/config.json"}).
+			AsService()
+
+		password := dag.SetSecret("registry-password", "password")
+
+		_, err = dag.Helm().FromContainer(
+			helm.Container().
+				WithServiceBinding("zot", registry),
+		).
+			Login("zot:8080", "username", password, HelmBaseLoginOpts{
+				Insecure: true,
+			}).
+			Push(pkg, "oci://zot:8080/helm-charts", HelmBasePushOpts{
+				PlainHTTP: true,
+			}).
+			Sync(ctx)
+
+		return err
+	})
+
 	return group.Wait()
 }
 
