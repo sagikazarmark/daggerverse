@@ -86,7 +86,7 @@ func (m *Base) Lint(ctx context.Context, chart *Directory, appVersion Optional[s
 }
 
 // Build a Helm chart package.
-func (m *Base) Package(ctx context.Context, chart *Directory, appVersion Optional[string], version Optional[string]) (*File, error) {
+func (m *Base) Package(ctx context.Context, chart *Directory, appVersion Optional[string], version Optional[string], dependencyUpdate Optional[bool]) (*File, error) {
 	chartMetadata, err := getChartMetadata(ctx, chart)
 	if err != nil {
 		return nil, err
@@ -115,6 +115,10 @@ func (m *Base) Package(ctx context.Context, chart *Directory, appVersion Optiona
 	if v, ok := version.Get(); ok {
 		args = append(args, "--version", v)
 		chartVersion = v
+	}
+
+	if v, ok := dependencyUpdate.Get(); ok && v {
+		args = append(args, "--dependency-update")
 	}
 
 	args = append(args, chartPath)
