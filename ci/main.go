@@ -116,7 +116,7 @@ func (m *Ci) Go(ctx context.Context) error {
 		return group.Wait()
 	})
 
-	// Env vars
+	// Platform
 	group.Go(func() error {
 		var group errgroup.Group
 
@@ -171,6 +171,129 @@ func (m *Ci) Go(ctx context.Context) error {
 			}
 
 			return nil
+		})
+
+		return group.Wait()
+	})
+
+	// CGO
+	group.Go(func() error {
+		var group errgroup.Group
+
+		// Enabled
+		group.Go(func() error {
+			var group errgroup.Group
+
+			group.Go(func() error {
+				out, err := dag.Go().
+					WithCgoEnabled().
+					Exec([]string{"bash", "-c", "echo $CGO_ENABLED"}).
+					Stdout(ctx)
+				if err != nil {
+					return err
+				}
+
+				if out != "1\n" {
+					return fmt.Errorf("unexpected output: wanted \"1\", got %q", out)
+				}
+
+				return nil
+			})
+
+			group.Go(func() error {
+				out, err := dag.Go().
+					FromVersion("latest").
+					WithCgoEnabled().
+					Exec([]string{"bash", "-c", "echo $CGO_ENABLED"}).
+					Stdout(ctx)
+				if err != nil {
+					return err
+				}
+
+				if out != "1\n" {
+					return fmt.Errorf("unexpected output: wanted \"1\", got %q", out)
+				}
+
+				return nil
+			})
+
+			group.Go(func() error {
+				out, err := dag.Go().
+					FromVersion("latest").
+					WithSource(dag.Host().Directory("./testdata/go")).
+					WithCgoEnabled().
+					Exec([]string{"bash", "-c", "echo $CGO_ENABLED"}).
+					Stdout(ctx)
+				if err != nil {
+					return err
+				}
+
+				if out != "1\n" {
+					return fmt.Errorf("unexpected output: wanted \"1\", got %q", out)
+				}
+
+				return nil
+			})
+
+			return group.Wait()
+		})
+
+		// Disabled
+		group.Go(func() error {
+			var group errgroup.Group
+
+			group.Go(func() error {
+				out, err := dag.Go().
+					WithCgoDisabled().
+					Exec([]string{"bash", "-c", "echo $CGO_ENABLED"}).
+					Stdout(ctx)
+				if err != nil {
+					return err
+				}
+
+				if out != "0\n" {
+					return fmt.Errorf("unexpected output: wanted \"0\", got %q", out)
+				}
+
+				return nil
+			})
+
+			group.Go(func() error {
+				out, err := dag.Go().
+					FromVersion("latest").
+					WithCgoDisabled().
+					Exec([]string{"bash", "-c", "echo $CGO_ENABLED"}).
+					Stdout(ctx)
+				if err != nil {
+					return err
+				}
+
+				if out != "0\n" {
+					return fmt.Errorf("unexpected output: wanted \"0\", got %q", out)
+				}
+
+				return nil
+			})
+
+			group.Go(func() error {
+				out, err := dag.Go().
+					FromVersion("latest").
+					WithSource(dag.Host().Directory("./testdata/go")).
+					WithCgoDisabled().
+					Exec([]string{"bash", "-c", "echo $CGO_ENABLED"}).
+					Stdout(ctx)
+				if err != nil {
+					return err
+				}
+
+				if out != "0\n" {
+					return fmt.Errorf("unexpected output: wanted \"0\", got %q", out)
+				}
+
+				return nil
+			})
+
+			return group.Wait()
 		})
 
 		return group.Wait()

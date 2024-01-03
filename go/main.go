@@ -46,6 +46,16 @@ func (m *Go) WithPlatform(platform Platform) *Base {
 	return defaultContainer().WithPlatform(platform)
 }
 
+// Set CGO_ENABLED environment variable to 1.
+func (m *Go) WithCgoEnabled() *Base {
+	return defaultContainer().WithCgoEnabled()
+}
+
+// Set CGO_ENABLED environment variable to 0.
+func (m *Go) WithCgoDisabled() *Base {
+	return defaultContainer().WithCgoDisabled()
+}
+
 // Mount a source directory. The container will use the latest official Go image.
 func (m *Go) WithSource(src *Directory) *BaseWithSource {
 	return defaultContainer().WithSource(src)
@@ -116,6 +126,20 @@ func (m *Base) WithPlatform(platform Platform) *Base {
 	}
 }
 
+// Set CGO_ENABLED environment variable to 1.
+func (m *Base) WithCgoEnabled() *Base {
+	return &Base{
+		m.Ctr.WithEnvVariable("CGO_ENABLED", "1"),
+	}
+}
+
+// Set CGO_ENABLED environment variable to 0.
+func (m *Base) WithCgoDisabled() *Base {
+	return &Base{
+		m.Ctr.WithEnvVariable("CGO_ENABLED", "0"),
+	}
+}
+
 // Mount a source directory.
 func (m *Base) WithSource(src *Directory) *BaseWithSource {
 	const workdir = "/src"
@@ -151,6 +175,16 @@ func (m *BaseWithSource) WithEnvVariable(name string, value string, expand Optio
 // Set GOOS, GOARCH and GOARM environment variables.
 func (m *BaseWithSource) WithPlatform(platform Platform) *BaseWithSource {
 	return &BaseWithSource{m.Base.WithPlatform(platform)}
+}
+
+// Set CGO_ENABLED environment variable to 1.
+func (m *BaseWithSource) WithCgoEnabled() *BaseWithSource {
+	return &BaseWithSource{m.Base.WithCgoEnabled()}
+}
+
+// Set CGO_ENABLED environment variable to 0.
+func (m *BaseWithSource) WithCgoDisabled() *BaseWithSource {
+	return &BaseWithSource{m.Base.WithCgoDisabled()}
 }
 
 func (m *BaseWithSource) Exec(args []string) *Container {
