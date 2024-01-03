@@ -97,6 +97,10 @@ func (m *Base) WithEnvVariable(name string, value string, expand Optional[bool])
 
 // Set GOOS, GOARCH and GOARM environment variables.
 func (m *Base) WithPlatform(platform Platform) *Base {
+	if platform == "" {
+		return m
+	}
+
 	p := platforms.MustParse(string(platform))
 
 	ctr := m.Ctr.
