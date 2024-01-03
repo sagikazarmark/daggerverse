@@ -148,6 +148,11 @@ func (m *BaseWithSource) WithEnvVariable(name string, value string, expand Optio
 	return &BaseWithSource{m.Base.WithEnvVariable(name, value, expand)}
 }
 
+// Set GOOS, GOARCH and GOARM environment variables.
+func (m *BaseWithSource) WithPlatform(platform Platform) *BaseWithSource {
+	return &BaseWithSource{m.Base.WithPlatform(platform)}
+}
+
 func (m *BaseWithSource) Exec(args []string) *Container {
 	return m.Ctr.WithExec(args)
 }
