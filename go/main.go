@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/containerd/containerd/platforms"
 )
@@ -63,6 +64,29 @@ func (m *Go) WithSource(src *Directory) *BaseWithSource {
 
 // Run a Go command in a container (default: latest official Go image with no mounted source).
 func (m *Go) Exec(args []string, version Optional[string], image Optional[string], container Optional[*Container], source Optional[*Directory], platform Optional[Platform]) *Container {
+	base := m.baseFromRoot(version, image, container, platform)
+
+	return base.Exec(args, source)
+}
+
+// Run "go build" in a container (default: latest official Go image).
+func (m *Go) Build(
+	source *Directory,
+	pkg Optional[string],
+	tags Optional[[]string],
+	trimpath Optional[bool],
+	rawArgs Optional[[]string],
+	version Optional[string],
+	image Optional[string],
+	container Optional[*Container],
+	platform Optional[Platform],
+) *File {
+	base := m.baseFromRoot(version, image, container, platform)
+
+	return base.Build(source, pkg, tags, trimpath, rawArgs)
+}
+
+func (m *Go) baseFromRoot(version Optional[string], image Optional[string], container Optional[*Container], platform Optional[Platform]) *Base {
 	var base *Base
 
 	if v, ok := version.Get(); ok {
@@ -79,7 +103,7 @@ func (m *Go) Exec(args []string, version Optional[string], image Optional[string
 		base = base.WithPlatform(p)
 	}
 
-	return base.Exec(args, source)
+	return base
 }
 
 // Return the default container.
@@ -163,6 +187,10 @@ func (m *Base) Exec(args []string, source Optional[*Directory]) *Container {
 	return ctr.WithExec(args)
 }
 
+func (m *Base) Build(source *Directory, pkg Optional[string], tags Optional[[]string], trimpath Optional[bool], rawArgs Optional[[]string]) *File {
+	return m.WithSource(source).Build(pkg, tags, trimpath, rawArgs)
+}
+
 type BaseWithSource struct {
 	*Base
 }
@@ -189,4 +217,26 @@ func (m *BaseWithSource) WithCgoDisabled() *BaseWithSource {
 
 func (m *BaseWithSource) Exec(args []string) *Container {
 	return m.Ctr.WithExec(args)
+}
+
+func (m *BaseWithSource) Build(pkg Optional[string], tags Optional[[]string], trimpath Optional[bool], rawArgs Optional[[]string]) *File {
+	args := []string{"go", "build", "-o", "/out/result"}
+
+	if tags, ok := tags.Get(); ok && len(tags) > 0 {
+		args = append(args, "-tags", strings.Join(tags, ","))
+	}
+
+	if trimpath.GetOr(false) {
+		args = append(args, "-trimpath")
+	}
+
+	if rawArgs, ok := rawArgs.Get(); ok {
+		args = append(args, rawArgs...)
+	}
+
+	if pkg, ok := pkg.Get(); ok {
+		args = append(args, pkg)
+	}
+
+	return m.Exec(args).File("/out/result")
 }

@@ -301,6 +301,76 @@ func (m *Ci) Go(ctx context.Context) error {
 
 	// Build
 	group.Go(func() error {
+		var group errgroup.Group
+
+		group.Go(func() error {
+			binary, err := dag.Go().
+				Build(dag.Host().Directory("./testdata/go")).
+				Sync(ctx)
+			if err != nil {
+				return err
+			}
+
+			out, err := dag.Container().From("alpine").WithFile("/app", binary).WithExec([]string{"/app"}).Stderr(ctx)
+			if err != nil {
+				return err
+			}
+
+			if out != "hello\n" {
+				return fmt.Errorf("unexpected output: wanted \"hello\", got %q", out)
+			}
+
+			return nil
+		})
+
+		group.Go(func() error {
+			binary, err := dag.Go().
+				FromVersion("latest").
+				Build(dag.Host().Directory("./testdata/go")).
+				Sync(ctx)
+			if err != nil {
+				return err
+			}
+
+			out, err := dag.Container().From("alpine").WithFile("/app", binary).WithExec([]string{"/app"}).Stderr(ctx)
+			if err != nil {
+				return err
+			}
+
+			if out != "hello\n" {
+				return fmt.Errorf("unexpected output: wanted \"hello\", got %q", out)
+			}
+
+			return nil
+		})
+
+		group.Go(func() error {
+			binary, err := dag.Go().
+				FromVersion("latest").
+				WithSource(dag.Host().Directory("./testdata/go")).
+				Build().
+				Sync(ctx)
+			if err != nil {
+				return err
+			}
+
+			out, err := dag.Container().From("alpine").WithFile("/app", binary).WithExec([]string{"/app"}).Stderr(ctx)
+			if err != nil {
+				return err
+			}
+
+			if out != "hello\n" {
+				return fmt.Errorf("unexpected output: wanted \"hello\", got %q", out)
+			}
+
+			return nil
+		})
+
+		return group.Wait()
+	})
+
+	// Exec: Build
+	group.Go(func() error {
 		ctr, err := dag.Go().
 			WithSource(dag.Host().Directory("./testdata/go")).
 			Exec([]string{"go", "build", "-o", "/app", "."}).
@@ -321,7 +391,7 @@ func (m *Ci) Go(ctx context.Context) error {
 		return nil
 	})
 
-	// Test
+	// Exec: Test
 	group.Go(func() error {
 		ctr, err := dag.Go().
 			WithSource(dag.Host().Directory("./testdata/go")).
