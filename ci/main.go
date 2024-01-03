@@ -116,6 +116,66 @@ func (m *Ci) Go(ctx context.Context) error {
 		return group.Wait()
 	})
 
+	// Env vars
+	group.Go(func() error {
+		var group errgroup.Group
+
+		const platform = "darwin/arm64/v7"
+
+		group.Go(func() error {
+			out, err := dag.Go().
+				WithPlatform(platform).
+				Exec([]string{"bash", "-c", "echo $GOOS/$GOARCH/$GOARM"}).
+				Stdout(ctx)
+			if err != nil {
+				return err
+			}
+
+			if out != platform+"\n" {
+				return fmt.Errorf("unexpected output: wanted %q, got %q", platform, out)
+			}
+
+			return nil
+		})
+
+		group.Go(func() error {
+			out, err := dag.Go().
+				FromVersion("latest").
+				WithPlatform(platform).
+				Exec([]string{"bash", "-c", "echo $GOOS/$GOARCH/$GOARM"}).
+				Stdout(ctx)
+			if err != nil {
+				return err
+			}
+
+			if out != platform+"\n" {
+				return fmt.Errorf("unexpected output: wanted %q, got %q", platform, out)
+			}
+
+			return nil
+		})
+
+		group.Go(func() error {
+			out, err := dag.Go().
+				FromVersion("latest").
+				WithSource(dag.Host().Directory("./testdata/go")).
+				WithPlatform(platform).
+				Exec([]string{"bash", "-c", "echo $GOOS/$GOARCH/$GOARM"}).
+				Stdout(ctx)
+			if err != nil {
+				return err
+			}
+
+			if out != platform+"\n" {
+				return fmt.Errorf("unexpected output: wanted %q, got %q", platform, out)
+			}
+
+			return nil
+		})
+
+		return group.Wait()
+	})
+
 	// Build
 	group.Go(func() error {
 		ctr, err := dag.Go().

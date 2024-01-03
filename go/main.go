@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/containerd/containerd/platforms"
+)
 
 // defaultImageRepository is used when no image is specified.
 const defaultImageRepository = "golang"
@@ -37,13 +41,18 @@ func (m *Go) WithEnvVariable(name string, value string, expand Optional[bool]) *
 	return defaultContainer().WithEnvVariable(name, value, expand)
 }
 
+// Set GOOS, GOARCH and GOARM environment variables.
+func (m *Go) WithPlatform(platform Platform) *Base {
+	return defaultContainer().WithPlatform(platform)
+}
+
 // Mount a source directory. The container will use the latest official Go image.
 func (m *Go) WithSource(src *Directory) *BaseWithSource {
 	return defaultContainer().WithSource(src)
 }
 
 // Run a Go command in a container (default: latest official Go image with no mounted source).
-func (m *Go) Exec(args []string, version Optional[string], image Optional[string], container Optional[*Container], source Optional[*Directory]) *Container {
+func (m *Go) Exec(args []string, version Optional[string], image Optional[string], container Optional[*Container], source Optional[*Directory], platform Optional[Platform]) *Container {
 	var base *Base
 
 	if v, ok := version.Get(); ok {
@@ -54,6 +63,10 @@ func (m *Go) Exec(args []string, version Optional[string], image Optional[string
 		base = m.FromContainer(c)
 	} else {
 		base = defaultContainer()
+	}
+
+	if p, ok := platform.Get(); ok {
+		base = base.WithPlatform(p)
 	}
 
 	return base.Exec(args, source)
@@ -79,6 +92,23 @@ func (m *Base) WithEnvVariable(name string, value string, expand Optional[bool])
 		m.Ctr.WithEnvVariable(name, value, ContainerWithEnvVariableOpts{
 			Expand: expand.GetOr(false),
 		}),
+	}
+}
+
+// Set GOOS, GOARCH and GOARM environment variables.
+func (m *Base) WithPlatform(platform Platform) *Base {
+	p := platforms.MustParse(string(platform))
+
+	ctr := m.Ctr.
+		WithEnvVariable("GOOS", p.OS).
+		WithEnvVariable("GOARCH", p.Architecture)
+
+	if p.Variant != "" {
+		ctr = ctr.WithEnvVariable("GOARM", p.Variant)
+	}
+
+	return &Base{
+		ctr,
 	}
 }
 
