@@ -10,7 +10,7 @@
 ### Go
 
 ```go
-dag.Golang().
+dag.Go().
     .WithSource(dag.Host().Directory("."))
     .Exec([]string{"go", "build"})
 ```
