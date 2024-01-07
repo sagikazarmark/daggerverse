@@ -30,6 +30,17 @@ func (m *Ci) Go(ctx context.Context) error {
 
 	// Custom version
 	group.Go(func() error {
+		_, err := dag.Go(GoOpts{
+			Version: "latest",
+		}).
+			Exec([]string{"go", "version"}).
+			Sync(ctx)
+
+		return err
+	})
+
+	// Custom version (DEPRECATED)
+	group.Go(func() error {
 		_, err := dag.Go().
 			FromVersion("latest").
 			Exec([]string{"go", "version"}).
@@ -40,6 +51,17 @@ func (m *Ci) Go(ctx context.Context) error {
 
 	// Custom image
 	group.Go(func() error {
+		_, err := dag.Go(GoOpts{
+			Image: "golang:latest",
+		}).
+			Exec([]string{"go", "version"}).
+			Sync(ctx)
+
+		return err
+	})
+
+	// Custom image (DEPRECATED)
+	group.Go(func() error {
 		_, err := dag.Go().
 			FromImage("golang:latest").
 			Exec([]string{"go", "version"}).
@@ -49,6 +71,17 @@ func (m *Ci) Go(ctx context.Context) error {
 	})
 
 	// Custom container
+	group.Go(func() error {
+		_, err := dag.Go(GoOpts{
+			Container: dag.Container().From("golang:latest"),
+		}).
+			Exec([]string{"go", "version"}).
+			Sync(ctx)
+
+		return err
+	})
+
+	// Custom container (DEPRECATED)
 	group.Go(func() error {
 		_, err := dag.Go().
 			FromContainer(dag.Container().From("golang:latest")).
@@ -140,24 +173,6 @@ func (m *Ci) Go(ctx context.Context) error {
 
 		group.Go(func() error {
 			out, err := dag.Go().
-				FromVersion("latest").
-				WithPlatform(platform).
-				Exec([]string{"bash", "-c", "echo $GOOS/$GOARCH/$GOARM"}).
-				Stdout(ctx)
-			if err != nil {
-				return err
-			}
-
-			if out != platform+"\n" {
-				return fmt.Errorf("unexpected output: wanted %q, got %q", platform, out)
-			}
-
-			return nil
-		})
-
-		group.Go(func() error {
-			out, err := dag.Go().
-				FromVersion("latest").
 				WithSource(dag.Host().Directory("./testdata/go")).
 				WithPlatform(platform).
 				Exec([]string{"bash", "-c", "echo $GOOS/$GOARCH/$GOARM"}).
@@ -202,24 +217,6 @@ func (m *Ci) Go(ctx context.Context) error {
 
 			group.Go(func() error {
 				out, err := dag.Go().
-					FromVersion("latest").
-					WithCgoEnabled().
-					Exec([]string{"bash", "-c", "echo $CGO_ENABLED"}).
-					Stdout(ctx)
-				if err != nil {
-					return err
-				}
-
-				if out != "1\n" {
-					return fmt.Errorf("unexpected output: wanted \"1\", got %q", out)
-				}
-
-				return nil
-			})
-
-			group.Go(func() error {
-				out, err := dag.Go().
-					FromVersion("latest").
 					WithSource(dag.Host().Directory("./testdata/go")).
 					WithCgoEnabled().
 					Exec([]string{"bash", "-c", "echo $CGO_ENABLED"}).
@@ -260,24 +257,6 @@ func (m *Ci) Go(ctx context.Context) error {
 
 			group.Go(func() error {
 				out, err := dag.Go().
-					FromVersion("latest").
-					WithCgoDisabled().
-					Exec([]string{"bash", "-c", "echo $CGO_ENABLED"}).
-					Stdout(ctx)
-				if err != nil {
-					return err
-				}
-
-				if out != "0\n" {
-					return fmt.Errorf("unexpected output: wanted \"0\", got %q", out)
-				}
-
-				return nil
-			})
-
-			group.Go(func() error {
-				out, err := dag.Go().
-					FromVersion("latest").
 					WithSource(dag.Host().Directory("./testdata/go")).
 					WithCgoDisabled().
 					Exec([]string{"bash", "-c", "echo $CGO_ENABLED"}).
@@ -325,28 +304,6 @@ func (m *Ci) Go(ctx context.Context) error {
 
 		group.Go(func() error {
 			binary, err := dag.Go().
-				FromVersion("latest").
-				Build(dag.Host().Directory("./testdata/go")).
-				Sync(ctx)
-			if err != nil {
-				return err
-			}
-
-			out, err := dag.Container().From("alpine").WithFile("/app", binary).WithExec([]string{"/app"}).Stderr(ctx)
-			if err != nil {
-				return err
-			}
-
-			if out != "hello\n" {
-				return fmt.Errorf("unexpected output: wanted \"hello\", got %q", out)
-			}
-
-			return nil
-		})
-
-		group.Go(func() error {
-			binary, err := dag.Go().
-				FromVersion("latest").
 				WithSource(dag.Host().Directory("./testdata/go")).
 				Build().
 				Sync(ctx)
