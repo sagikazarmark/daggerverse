@@ -386,8 +386,9 @@ func (m *Ci) Helm(ctx context.Context) error {
 	// Lint
 	// TODO: improve this test
 	group.Go(func() error {
-		_, err := dag.Helm().
-			FromVersion(helmVersion).
+		_, err := dag.Helm(HelmOpts{
+			Version: helmVersion,
+		}).
 			Lint(dag.Host().Directory("./testdata/helm/charts/package")).
 			Sync(ctx)
 
@@ -397,8 +398,9 @@ func (m *Ci) Helm(ctx context.Context) error {
 	// Package
 	// TODO: improve this test
 	group.Go(func() error {
-		_, err := dag.Helm().
-			FromVersion(helmVersion).
+		_, err := dag.Helm(HelmOpts{
+			Version: helmVersion,
+		}).
 			Package(dag.Host().Directory("./testdata/helm/charts/package")).
 			Sync(ctx)
 
@@ -420,8 +422,9 @@ func (m *Ci) Helm(ctx context.Context) error {
 
 		zotRepository := fmt.Sprintf(zotRepositoryTemplate, platformArgs[0], platformArgs[1])
 
-		helm := dag.Helm().
-			FromVersion(helmVersion)
+		helm := dag.Helm(HelmOpts{
+			Version: helmVersion,
+		})
 
 		pkg := helm.Package(dag.Host().Directory("./testdata/helm/charts/package"))
 
@@ -434,14 +437,14 @@ func (m *Ci) Helm(ctx context.Context) error {
 
 		password := dag.SetSecret("registry-password", "password")
 
-		_, err = dag.Helm().FromContainer(
-			helm.Container().
+		_, err = dag.Helm(HelmOpts{
+			Container: helm.Container().
 				WithServiceBinding("zot", registry),
-		).
-			Login("zot:8080", "username", password, HelmBaseLoginOpts{
+		}).
+			Login("zot:8080", "username", password, HelmLoginOpts{
 				Insecure: true,
 			}).
-			Push(pkg, "oci://zot:8080/helm-charts", HelmBasePushOpts{
+			Push(pkg, "oci://zot:8080/helm-charts", HelmPushOpts{
 				PlainHTTP: true,
 			}).
 			Sync(ctx)

@@ -12,57 +12,59 @@ import (
 // defaultImageRepository is used when no image is specified.
 const defaultImageRepository = "alpine/helm"
 
-type Helm struct{}
-
-// Specify which version (image tag) of Helm to use from the official image repository on Docker Hub.
-func (m *Helm) FromVersion(version string) *Base {
-	return &Base{wrapContainer(dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version)))}
+type Helm struct {
+	// +private
+	Ctr *Container
 }
 
-// Specify a custom image reference in "repository:tag" format.
-func (m *Helm) FromImage(ref string) *Base {
-	return &Base{wrapContainer(dag.Container().From(ref))}
-}
+func New(
+	// Version (image tag) to use from the official image repository as a base container.
+	version Optional[string],
 
-// Specify a custom container.
-func (m *Helm) FromContainer(ctr *Container) *Base {
-	return &Base{wrapContainer(ctr)}
-}
+	// Custom image reference in "repository:tag" format to use as a base container.
+	image Optional[string],
 
-func defaultContainer() *Base {
-	return &Base{wrapContainer(dag.Container().From(defaultImageRepository))}
-}
+	// Custom container to use as a base container.
+	container Optional[*Container],
+) *Helm {
+	var ctr *Container
 
-func wrapContainer(c *Container) *Container {
-	return c
+	if v, ok := version.Get(); ok {
+		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, v))
+	} else if i, ok := image.Get(); ok {
+		ctr = dag.Container().From(i)
+	} else if c, ok := container.Get(); ok {
+		ctr = c
+	} else {
+		ctr = dag.Container().From(defaultImageRepository)
+	}
 
 	// Disable cache mounts for now.
 	// Need to figure out if they are needed at all.
 	// Note: helm registry auth is stored in ~/.config/helm/registry/config.json (within helm config dir)
-	// return c.
+	// ctr = ctr..
 	// 	// TODO: run as non-root
 	// 	WithUser("root").
 	// 	WithMountedCache("/root/.cache/helm", dag.CacheVolume("helm-cache")).
 	// 	WithMountedCache("/root/.helm", dag.CacheVolume("helm-root")).
 	// 	WithMountedCache("/root/.config/helm", dag.CacheVolume("helm-config"))
+
+	return &Helm{
+		Ctr: ctr,
+	}
 }
 
-// Return the default container.
 func (m *Helm) Container() *Container {
-	return defaultContainer().Container()
-}
-
-type Base struct {
-	Ctr *Container
-}
-
-// Return the underlying container.
-func (m *Base) Container() *Container {
 	return m.Ctr
 }
 
 // Lint a Helm chart directory.
-func (m *Base) Lint(ctx context.Context, chart *Directory, appVersion Optional[string], version Optional[string]) (*Container, error) {
+func (m *Helm) Lint(
+	ctx context.Context,
+
+	// A directory containing a Helm chart.
+	chart *Directory,
+) (*Container, error) {
 	chartMetadata, err := getChartMetadata(ctx, chart)
 	if err != nil {
 		return nil, err
@@ -86,7 +88,21 @@ func (m *Base) Lint(ctx context.Context, chart *Directory, appVersion Optional[s
 }
 
 // Build a Helm chart package.
-func (m *Base) Package(ctx context.Context, chart *Directory, appVersion Optional[string], version Optional[string], dependencyUpdate Optional[bool]) (*File, error) {
+func (m *Helm) Package(
+	ctx context.Context,
+
+	// A directory containing a Helm chart.
+	chart *Directory,
+
+	// Set the appVersion on the chart to this version.
+	appVersion Optional[string],
+
+	// Set the version on the chart to this semver version.
+	version Optional[string],
+
+	// Update dependencies from "Chart.yaml" to dir "charts/" before packaging.
+	dependencyUpdate Optional[bool],
+) (*File, error) {
 	chartMetadata, err := getChartMetadata(ctx, chart)
 	if err != nil {
 		return nil, err
@@ -129,7 +145,21 @@ func (m *Base) Package(ctx context.Context, chart *Directory, appVersion Optiona
 }
 
 // Authenticate to an OCI registry.
-func (m *Base) Login(ctx context.Context, host string, username string, password *Secret, insecure Optional[bool]) (*Base, error) {
+func (m *Helm) Login(
+	ctx context.Context,
+
+	// Host of the OCI registry.
+	host string,
+
+	// Registry username.
+	username string,
+
+	// Registry password.
+	password *Secret,
+
+	// Allow connections to TLS registry without certs.
+	insecure Optional[bool],
+) (*Helm, error) {
 	pass, err := password.Plaintext(ctx)
 	if err != nil {
 		return nil, err
@@ -147,22 +177,43 @@ func (m *Base) Login(ctx context.Context, host string, username string, password
 		args = append(args, "--insecure")
 	}
 
-	return &Base{m.Ctr.WithExec(args)}, nil
+	return &Helm{m.Ctr.WithExec(args)}, nil
 }
 
 // Remove credentials stored for an OCI registry.
-func (m *Base) Logout(host string) *Base {
+func (m *Helm) Logout(host string) *Helm {
 	args := []string{
 		"registry",
 		"logout",
 		host,
 	}
 
-	return &Base{m.Ctr.WithExec(args)}
+	return &Helm{m.Ctr.WithExec(args)}
 }
 
 // Push a Helm chart package to an OCI registry.
-func (m *Base) Push(pkg *File, registry string, plainHttp Optional[bool], insecureSkipTlsVerify Optional[bool], caFile Optional[*File], certFile Optional[*File], keyFile Optional[*File]) *Container {
+func (m *Helm) Push(
+	// Packaged Helm chart.
+	pkg *File,
+
+	// OCI registry to push to (including the path except the chart name).
+	registry string,
+
+	// Use insecure HTTP connections for the chart upload.
+	plainHttp Optional[bool],
+
+	// Skip tls certificate checks for the chart upload.
+	insecureSkipTlsVerify Optional[bool],
+
+	// Verify certificates of HTTPS-enabled servers using this CA bundle.
+	caFile Optional[*File],
+
+	// Identify registry client using this SSL certificate file.
+	certFile Optional[*File],
+
+	// Identify registry client using this SSL key file.
+	keyFile Optional[*File],
+) *Container {
 	const workdir = "/src"
 
 	chartPath := path.Join(workdir, "chart.tgz")
