@@ -9,6 +9,7 @@
     "../helm",
     "../helm-docs",
     "../kafka",
-    "../spectral"
+    "../spectral",
+    "../xk6"
   ]
 }
