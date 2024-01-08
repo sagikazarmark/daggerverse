@@ -5,33 +5,34 @@ import "fmt"
 // defaultImageRepository is used when no image is specified.
 const defaultImageRepository = "bitnami/kafka"
 
-type Kafka struct{}
-
-// Specify which version (image tag) of Kafka to use from the official image repository on Docker Hub.
-func (m *Kafka) FromVersion(version string) *Base {
-	return &Base{wrapContainer(dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version)))}
+type Kafka struct {
+	// +private
+	Ctr *Container
 }
 
-// Specify a custom image reference in "repository:tag" format.
-//
-// Note: this module expects an image compatible with bitnami/kafka.
-func (m *Kafka) FromImage(ref string) *Base {
-	return &Base{wrapContainer(dag.Container().From(ref))}
-}
+func New(
+	// Version (image tag) to use from the official image repository as a base container.
+	version Optional[string],
 
-// Specify a custom container.
-//
-// Note: this module expects an image compatible with bitnami/kafka.
-func (m *Kafka) FromContainer(ctr *Container) *Base {
-	return &Base{wrapContainer(ctr)}
-}
+	// Custom image reference in "repository:tag" format to use as a base container.
+	image Optional[string],
 
-func defaultContainer() *Base {
-	return &Base{wrapContainer(dag.Container().From(defaultImageRepository))}
-}
+	// Custom container to use as a base container.
+	container Optional[*Container],
+) *Kafka {
+	var ctr *Container
 
-func wrapContainer(c *Container) *Container {
-	return c.
+	if v, ok := version.Get(); ok {
+		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, v))
+	} else if i, ok := image.Get(); ok {
+		ctr = dag.Container().From(i)
+	} else if c, ok := container.Get(); ok {
+		ctr = c
+	} else {
+		ctr = dag.Container().From(defaultImageRepository)
+	}
+
+	ctr = ctr.
 		// KRaft settings
 		WithEnvVariable("KAFKA_CFG_NODE_ID", "0").
 		WithEnvVariable("KAFKA_CFG_PROCESS_ROLES", "controller,broker").
@@ -43,42 +44,26 @@ func wrapContainer(c *Container) *Container {
 		WithEnvVariable("KAFKA_CFG_CONTROLLER_LISTENER_NAMES", "CONTROLLER").
 		WithEnvVariable("KAFKA_CFG_INTER_BROKER_LISTENER_NAME", "PLAINTEXT").
 		WithExposedPort(9092)
+
+	return &Kafka{
+		Ctr: ctr,
+	}
 }
 
-// Set an environment variable.
-func (m *Kafka) WithEnvVariable(name string, value string, expand Optional[bool]) *Base {
-	return defaultContainer().WithEnvVariable(name, value, expand)
-}
-
-// Return the default container.
 func (m *Kafka) Container() *Container {
-	return defaultContainer().Container()
-}
-
-// Launch a Kafka service using the default container.
-func (m *Kafka) Service() *Service {
-	return defaultContainer().Service()
-}
-
-type Base struct {
-	Ctr *Container
-}
-
-// Return the underlying container.
-func (m *Base) Container() *Container {
 	return m.Ctr
 }
 
 // Set an environment variable.
-func (m *Base) WithEnvVariable(name string, value string, expand Optional[bool]) *Base {
-	return &Base{
+func (m *Kafka) WithEnvVariable(name string, value string, expand Optional[bool]) *Kafka {
+	return &Kafka{
 		m.Ctr.WithEnvVariable(name, value, ContainerWithEnvVariableOpts{
 			Expand: expand.GetOr(false),
 		}),
 	}
 }
 
-// Launch a Kafka service container.
-func (m *Base) Service() *Service {
+// Launch a Kafka service.
+func (m *Kafka) Service() *Service {
 	return m.Ctr.AsService()
 }

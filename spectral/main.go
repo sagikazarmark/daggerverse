@@ -7,67 +7,48 @@ import (
 // defaultImageRepository is used when no image is specified.
 const defaultImageRepository = "stoplight/spectral"
 
-type Spectral struct{}
-
-// Specify which version (image tag) of Spectral to use from the official image repository on Docker Hub.
-func (m *Spectral) FromVersion(version string) *Base {
-	return &Base{dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))}
-}
-
-// Specify a custom image reference in "repository:tag" format.
-func (m *Spectral) FromImage(image string) *Base {
-	return &Base{dag.Container().From(image)}
-}
-
-// Specify a custom container.
-func (m *Spectral) FromContainer(ctr *Container) *Base {
-	return &Base{ctr}
-}
-
-func defaultContainer() *Base {
-	return &Base{dag.Container().From(defaultImageRepository)}
-}
-
-// Mount a source directory.
-func (m *Spectral) WithSource(src *Directory) *BaseWithSource {
-	return defaultContainer().WithSource(src)
-}
-
-func (m *Spectral) Lint(document string, version Optional[string], image Optional[string], container Optional[*Container], source Optional[*Directory]) *Container {
-	var base *Base
-
-	if v, ok := version.Get(); ok {
-		base = m.FromVersion(v)
-	} else if i, ok := image.Get(); ok {
-		base = m.FromImage(i)
-	} else if c, ok := container.Get(); ok {
-		base = m.FromContainer(c)
-	} else {
-		base = defaultContainer()
-	}
-
-	return base.Lint(document, source)
-}
-
-// Return the default container.
-func (m *Spectral) Container() *Container {
-	return defaultContainer().Container()
-}
-
-type Base struct {
+type Spectral struct {
+	// +private
 	Ctr *Container
 }
 
-func (m *Base) Container() *Container {
+func New(
+	// Version (image tag) to use from the official image repository as a base container.
+	version Optional[string],
+
+	// Custom image reference in "repository:tag" format to use as a base container.
+	image Optional[string],
+
+	// Custom container to use as a base container.
+	container Optional[*Container],
+) *Spectral {
+	var ctr *Container
+
+	if v, ok := version.Get(); ok {
+		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, v))
+	} else if i, ok := image.Get(); ok {
+		ctr = dag.Container().From(i)
+	} else if c, ok := container.Get(); ok {
+		ctr = c
+	} else {
+		ctr = dag.Container().From(defaultImageRepository)
+	}
+
+	return &Spectral{
+		Ctr: ctr,
+	}
+}
+
+func (m *Spectral) Container() *Container {
 	return m.Ctr
 }
 
 // Mount a source directory.
-func (m *Base) WithSource(src *Directory) *BaseWithSource {
+func (m *Spectral) WithSource(src *Directory) *WithSource {
 	const workdir = "/src"
 
-	return &BaseWithSource{
-		&Base{
+	return &WithSource{
+		&Spectral{
 			m.Ctr.
 				WithWorkdir(workdir).
 				WithMountedDirectory(workdir, src),
@@ -75,23 +56,22 @@ func (m *Base) WithSource(src *Directory) *BaseWithSource {
 	}
 }
 
-func (m *Base) Lint(document string, source Optional[*Directory]) *Container {
-	ctr := m.Ctr
-
+func (m *Spectral) Lint(document string, source Optional[*Directory]) *Container {
 	if src, ok := source.Get(); ok {
-		ctr = m.WithSource(src).Ctr
+		return m.WithSource(src).Lint(document)
 	}
 
-	return lint(ctr, document)
+	return lint(m.Ctr, document)
 }
 
-type BaseWithSource struct {
-	*Base
+type WithSource struct {
+	// +private
+	Spectral *Spectral
 }
 
 // example usage: "dagger call with-source --src . lint --document openapi.yaml"
-func (m *BaseWithSource) Lint(document string) *Container {
-	return lint(m.Ctr, document)
+func (m *WithSource) Lint(document string) *Container {
+	return lint(m.Spectral.Ctr, document)
 }
 
 func lint(ctr *Container, document string) *Container {
