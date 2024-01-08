@@ -11,6 +11,7 @@ import (
 const defaultImageRepository = "golang"
 
 type Go struct {
+	// +private
 	Ctr *Container
 }
 
@@ -54,6 +55,10 @@ func New(
 	return &Go{
 		Ctr: ctr,
 	}
+}
+
+func (m *Go) Container() *Container {
+	return m.Ctr
 }
 
 // DEPRECATED: Specify which version (image tag) of Go to use from the official image repository on Docker Hub.
@@ -147,13 +152,13 @@ func (m *Go) Build(
 	return m.WithSource(source).Build(pkg, tags, trimpath, rawArgs, platform)
 }
 
-// Return the base container.
-func (m *Go) Container() *Container {
-	return m.Ctr
+type WithSource struct {
+	// +private
+	Go *Go
 }
 
-type WithSource struct {
-	Go *Go
+func (m *WithSource) Container() *Container {
+	return m.Go.Ctr
 }
 
 // Set an environment variable.
@@ -181,7 +186,7 @@ func (m *WithSource) Exec(args []string, platform Optional[Platform]) *Container
 		m = m.WithPlatform(p)
 	}
 
-	return m.Go.Container().WithExec(args)
+	return m.Go.Ctr.WithExec(args)
 }
 
 func (m *WithSource) Build(pkg Optional[string], tags Optional[[]string], trimpath Optional[bool], rawArgs Optional[[]string], platform Optional[Platform]) *File {
