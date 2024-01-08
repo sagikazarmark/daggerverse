@@ -64,6 +64,7 @@ func (m *Xk6) WithPlatform(platform Platform) *Xk6 {
 	return &Xk6{ctr}
 }
 
+// Build a custom k6 binary.
 func (m *Xk6) Build(
 	// k6 version to build (default: "latest")
 	version Optional[string],
