@@ -61,21 +61,6 @@ func (m *Go) Container() *Container {
 	return m.Ctr
 }
 
-// DEPRECATED: Specify which version (image tag) of Go to use from the official image repository on Docker Hub.
-func (m *Go) FromVersion(version string) *Go {
-	return New(Opt(version), OptEmpty[string](), OptEmpty[*Container](), OptEmpty[bool](), OptEmpty[*CacheVolume](), OptEmpty[*CacheVolume]())
-}
-
-// DEPRECATED: Specify a custom image reference in "repository:tag" format.
-func (m *Go) FromImage(image string) *Go {
-	return New(OptEmpty[string](), Opt(image), OptEmpty[*Container](), OptEmpty[bool](), OptEmpty[*CacheVolume](), OptEmpty[*CacheVolume]())
-}
-
-// DEPRECATED: Specify a custom container.
-func (m *Go) FromContainer(ctr *Container) *Go {
-	return New(OptEmpty[string](), OptEmpty[string](), Opt(ctr), OptEmpty[bool](), OptEmpty[*CacheVolume](), OptEmpty[*CacheVolume]())
-}
-
 // Set an environment variable.
 func (m *Go) WithEnvVariable(name string, value string, expand Optional[bool]) *Go {
 	return &Go{

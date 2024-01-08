@@ -39,16 +39,6 @@ func (m *Ci) Go(ctx context.Context) error {
 		return err
 	})
 
-	// Custom version (DEPRECATED)
-	group.Go(func() error {
-		_, err := dag.Go().
-			FromVersion("latest").
-			Exec([]string{"go", "version"}).
-			Sync(ctx)
-
-		return err
-	})
-
 	// Custom image
 	group.Go(func() error {
 		_, err := dag.Go(GoOpts{
@@ -60,31 +50,11 @@ func (m *Ci) Go(ctx context.Context) error {
 		return err
 	})
 
-	// Custom image (DEPRECATED)
-	group.Go(func() error {
-		_, err := dag.Go().
-			FromImage("golang:latest").
-			Exec([]string{"go", "version"}).
-			Sync(ctx)
-
-		return err
-	})
-
 	// Custom container
 	group.Go(func() error {
 		_, err := dag.Go(GoOpts{
 			Container: dag.Container().From("golang:latest"),
 		}).
-			Exec([]string{"go", "version"}).
-			Sync(ctx)
-
-		return err
-	})
-
-	// Custom container (DEPRECATED)
-	group.Go(func() error {
-		_, err := dag.Go().
-			FromContainer(dag.Container().From("golang:latest")).
 			Exec([]string{"go", "version"}).
 			Sync(ctx)
 
@@ -113,24 +83,6 @@ func (m *Ci) Go(ctx context.Context) error {
 
 		group.Go(func() error {
 			out, err := dag.Go().
-				FromVersion("latest").
-				WithEnvVariable("FOO", "bar").
-				Exec([]string{"bash", "-c", "echo $FOO"}).
-				Stdout(ctx)
-			if err != nil {
-				return err
-			}
-
-			if out != "bar\n" {
-				return fmt.Errorf("unexpected output: wanted \"bar\", got %q", out)
-			}
-
-			return nil
-		})
-
-		group.Go(func() error {
-			out, err := dag.Go().
-				FromVersion("latest").
 				WithSource(dag.Host().Directory("./testdata/go")).
 				WithEnvVariable("FOO", "bar").
 				Exec([]string{"bash", "-c", "echo $FOO"}).
