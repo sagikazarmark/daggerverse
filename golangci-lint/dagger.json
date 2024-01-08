@@ -2,6 +2,6 @@
   "name": "golangci-lint",
   "sdk": "go",
   "dependencies": [
-    "github.com/sagikazarmark/daggerverse/go@8eef9c0086e4e32223f6386aabb70516730f1048"
+    "github.com/sagikazarmark/daggerverse/go@54de323eba85e8d1154751b84a3fb7ab8e2fdd8e"
   ]
 }

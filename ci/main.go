@@ -375,9 +375,7 @@ func (m *Ci) Go(ctx context.Context) error {
 
 func (m *Ci) GolangciLint() *Container {
 	return dag.GolangciLint().
-		Run(GolangciLintRunOpts{
-			Source: dag.Host().Directory("./testdata/go"),
-		})
+		Run(dag.Host().Directory("./testdata/go"))
 }
 
 func (m *Ci) Helm(ctx context.Context) error {
