@@ -12,53 +12,55 @@ import (
 // defaultImageRepository is used when no image is specified.
 const defaultImageRepository = "jnorwood/helm-docs"
 
-type HelmDocs struct{}
-
-// Specify which version (image tag) of helm-docs to use from the official image repository on Docker Hub.
-func (m *HelmDocs) FromVersion(version string) *Base {
-	return &Base{dag.Container().From(fmt.Sprintf("%s:v%s", defaultImageRepository, version))}
-}
-
-// Specify a custom image reference in "repository:tag" format.
-func (m *HelmDocs) FromImage(ref string) *Base {
-	return &Base{dag.Container().From(ref)}
-}
-
-// Specify a custom container.
-func (m *HelmDocs) FromContainer(ctr *Container) *Base {
-	return &Base{ctr}
-}
-
-func defaultContainer() *Base {
-	return &Base{dag.Container().From(defaultImageRepository)}
-}
-
-// Return the default container.
-func (m *HelmDocs) Container() *Container {
-	return defaultContainer().Container()
-}
-
-// Generate markdown documentation for Helm charts from requirements and values files.
-func (m *HelmDocs) Generate(ctx context.Context, chart *Directory, templates Optional[[]*File], sortValuesOrder Optional[string]) (*File, error) {
-	return defaultContainer().Generate(
-		ctx,
-		chart,
-		templates,
-		sortValuesOrder,
-	)
-}
-
-type Base struct {
+type HelmDocs struct {
+	// +private
 	Ctr *Container
 }
 
-// Return the underlying container.
-func (m *Base) Container() *Container {
+func New(
+	// Version (image tag) to use from the official image repository as a base container.
+	version Optional[string],
+
+	// Custom image reference in "repository:tag" format to use as a base container.
+	image Optional[string],
+
+	// Custom container to use as a base container.
+	container Optional[*Container],
+) *HelmDocs {
+	var ctr *Container
+
+	if v, ok := version.Get(); ok {
+		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, v))
+	} else if i, ok := image.Get(); ok {
+		ctr = dag.Container().From(i)
+	} else if c, ok := container.Get(); ok {
+		ctr = c
+	} else {
+		ctr = dag.Container().From(defaultImageRepository)
+	}
+
+	return &HelmDocs{
+		Ctr: ctr,
+	}
+}
+
+func (m *HelmDocs) Container() *Container {
 	return m.Ctr
 }
 
 // Generate markdown documentation for Helm charts from requirements and values files.
-func (m *Base) Generate(ctx context.Context, chart *Directory, templates Optional[[]*File], sortValuesOrder Optional[string]) (*File, error) {
+func (m *HelmDocs) Generate(
+	ctx context.Context,
+
+	// A directory containing a Helm chart.
+	chart *Directory,
+
+	// A list of Go template files to use for rendering the documentation.
+	templates Optional[[]*File],
+
+	// Order in which to sort the values table ("alphanum" or "file"). (default "alphanum")
+	sortValuesOrder Optional[string],
+) (*File, error) {
 	chartName, err := getChartName(ctx, chart)
 	if err != nil {
 		return nil, err

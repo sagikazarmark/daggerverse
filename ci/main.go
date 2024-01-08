@@ -458,7 +458,7 @@ func (m *Ci) Helm(ctx context.Context) error {
 func (m *Ci) HelmDocs(ctx context.Context) error {
 	var group errgroup.Group
 
-	const helmDocsVersion = "1.11.3"
+	const helmDocsVersion = "v1.11.3"
 
 	chartDir := func(chartName string) *Directory {
 		return dag.Host().Directory(fmt.Sprintf("./testdata/helm-docs/charts/%s", chartName))
@@ -470,20 +470,20 @@ func (m *Ci) HelmDocs(ctx context.Context) error {
 
 	testCases := []struct {
 		name string
-		opts HelmDocsBaseGenerateOpts
+		opts HelmDocsGenerateOpts
 	}{
 		{
 			name: "default",
 		},
 		{
 			name: "sort-values",
-			opts: HelmDocsBaseGenerateOpts{
+			opts: HelmDocsGenerateOpts{
 				SortValuesOrder: "file",
 			},
 		},
 		{
 			name: "template",
-			opts: HelmDocsBaseGenerateOpts{
+			opts: HelmDocsGenerateOpts{
 				Templates: []*File{
 					dag.Host().File("./testdata/helm-docs/charts/template/template.md"),
 				},
@@ -496,8 +496,9 @@ func (m *Ci) HelmDocs(ctx context.Context) error {
 		chartName := testCase.name
 
 		group.Go(func() error {
-			actual := dag.HelmDocs().
-				FromVersion(helmDocsVersion).
+			actual := dag.HelmDocs(HelmDocsOpts{
+				Version: helmDocsVersion,
+			}).
 				Generate(chartDir(chartName), testCase.opts)
 
 			_, err := dag.Container().
