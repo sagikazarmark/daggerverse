@@ -480,3 +480,12 @@ func (m *Ci) Spectral() *Container {
 		WithSource(dag.Host().Directory("./testdata/spectral")).
 		Lint("openapi.json")
 }
+
+func (m *Ci) Xk6() *Container {
+	binary := dag.Xk6().Build()
+
+	return dag.Container().
+		From("alpine").
+		WithMountedFile("/usr/local/bin/k6", binary).
+		WithExec([]string{"k6", "version"})
+}

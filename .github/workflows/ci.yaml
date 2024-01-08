@@ -19,6 +19,7 @@ jobs:
           - helm-docs
           - kafka
           - spectral
+          - xk6
 
     steps:
       - name: Checkout repository
