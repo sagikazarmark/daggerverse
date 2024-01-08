@@ -17,7 +17,7 @@ dag.Spectral().
 ```graphql
 query test {
     spectral {
-        fromSource(source: ".") {
+        withSource(source: ".") {
             lint(document: "openapi.yaml") {
                 stdout
             }
