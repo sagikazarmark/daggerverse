@@ -13,13 +13,13 @@ type GolangciLint struct {
 }
 
 func New(
-	// Version (image tag) to use from the official image repository as a base container.
+	// Version (image tag) to use from the official image repository as a golangci-lint binary source.
 	version Optional[string],
 
-	// Custom image reference in "repository:tag" format to use as a base container.
+	// Custom image reference in "repository:tag" format to use as a golangci-lint binary source.
 	image Optional[string],
 
-	// Custom container to use as a base container.
+	// Custom container to use as a golangci-lint binary source.
 	container Optional[*Container],
 
 	// Disable mounting cache volumes.
@@ -28,13 +28,13 @@ func New(
 	// Lint cache volume to mount at ~/.cache/golangci-lint.
 	lintCache Optional[*CacheVolume],
 
-	// Version (image tag) to use from the official image repository as a base container.
+	// Version (image tag) to use from the official image repository as a Go base container.
 	goVersion Optional[string],
 
-	// Custom image reference in "repository:tag" format to use as a base container.
+	// Custom image reference in "repository:tag" format to use as a Go base container.
 	goImage Optional[string],
 
-	// Custom container to use as a base container.
+	// Custom container to use as a Go base container.
 	goContainer Optional[*Container],
 
 	// Disable mounting Go cache volumes.
