@@ -476,9 +476,9 @@ func (m *Ci) Kafka() *Container {
 }
 
 func (m *Ci) Spectral() *Container {
-	return dag.Spectral().
-		WithSource(dag.Host().Directory("./testdata/spectral")).
-		Lint("openapi.json")
+	source := dag.Host().Directory("./testdata/spectral/")
+
+	return dag.Spectral().Lint([]*File{source.File("openapi.json")}, source.File(".spectral.yaml"))
 }
 
 func (m *Ci) Xk6() *Container {

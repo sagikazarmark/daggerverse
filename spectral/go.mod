@@ -12,4 +12,5 @@ require (
 require (
 	github.com/stretchr/testify v1.8.3 // indirect
 	github.com/vektah/gqlparser/v2 v2.5.6 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

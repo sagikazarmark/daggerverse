@@ -7,9 +7,10 @@
 ### Go
 
 ```go
-dag.Spectral().
-    .WithSource(dag.Host().Directory("."))
-    .Lint("openapi.yaml")
+dag.Spectral().Lint(
+    []*File{dag.Host().File("openapi.json")},
+    dag.Host().File(".spectral.yaml"),
+)
 ```
 
 ### GraphQL
@@ -17,10 +18,8 @@ dag.Spectral().
 ```graphql
 query test {
     spectral {
-        withSource(source: ".") {
-            lint(document: "openapi.yaml") {
-                stdout
-            }
+        lint(documents: ["openapi.yaml"], ruleset: ".spectral.yaml") {
+            stdout
         }
     }
 }
@@ -33,9 +32,3 @@ Run the following command to see the command line interface:
 ```shell
 dagger call -m "github.com/sagikazarmark/daggerverse/spectral@main" --help
 ```
-
-## To Do
-
-- [ ] Custom ruleset parameters
-- [ ] Custom arguments
-- [ ] Lint multiple documents
