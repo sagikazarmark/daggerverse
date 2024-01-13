@@ -17,44 +17,56 @@ type Go struct {
 
 func New(
 	// Version (image tag) to use from the official image repository as a base container.
-	version Optional[string],
+	// +optional
+	version string,
 
 	// Custom image reference in "repository:tag" format to use as a base container.
-	image Optional[string],
+	// +optional
+	image string,
 
 	// Custom container to use as a base container.
-	container Optional[*Container],
+	// +optional
+	container *Container,
 
 	// Disable mounting cache volumes.
-	disableCache Optional[bool],
+	// +optional
+	disableCache bool,
 
 	// Module cache volume to mount at /go/pkg/mod.
-	modCache Optional[*CacheVolume],
+	// +optional
+	modCache *CacheVolume,
 
 	// Build cache volume to mount at ~/.cache/go-build.
-	buildCache Optional[*CacheVolume],
+	// +optional
+	buildCache *CacheVolume,
 ) *Go {
 	var ctr *Container
 
-	if v, ok := version.Get(); ok {
-		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, v))
-	} else if i, ok := image.Get(); ok {
-		ctr = dag.Container().From(i)
-	} else if c, ok := container.Get(); ok {
-		ctr = c
+	if version != "" {
+		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
+	} else if image != "" {
+		ctr = dag.Container().From(image)
+	} else if container != nil {
+		ctr = container
 	} else {
 		ctr = dag.Container().From(defaultImageRepository)
 	}
 
-	if !disableCache.GetOr(false) {
+	if !disableCache {
+		if modCache == nil {
+			modCache = dag.CacheVolume("go-mod")
+		}
+
+		if buildCache == nil {
+			buildCache = dag.CacheVolume("go-build")
+		}
+
 		ctr = ctr.
-			WithMountedCache("/go/pkg/mod", modCache.GetOr(dag.CacheVolume("go-mod"))).
-			WithMountedCache("/root/.cache/go-build", buildCache.GetOr(dag.CacheVolume("go-build")))
+			WithMountedCache("/go/pkg/mod", modCache).
+			WithMountedCache("/root/.cache/go-build", buildCache)
 	}
 
-	return &Go{
-		Ctr: ctr,
-	}
+	return &Go{ctr}
 }
 
 func (m *Go) Container() *Container {
@@ -62,16 +74,30 @@ func (m *Go) Container() *Container {
 }
 
 // Set an environment variable.
-func (m *Go) WithEnvVariable(name string, value string, expand Optional[bool]) *Go {
+func (m *Go) WithEnvVariable(
+	// The name of the environment variable (e.g., "HOST").
+	name string,
+
+	// The value of the environment variable (e.g., "localhost").
+	value string,
+
+	// Replace `${VAR}` or $VAR in the value according to the current environment
+	// variables defined in the container (e.g., "/opt/bin:$PATH").
+	// +optional
+	expand bool,
+) *Go {
 	return &Go{
 		m.Ctr.WithEnvVariable(name, value, ContainerWithEnvVariableOpts{
-			Expand: expand.GetOr(false),
+			Expand: expand,
 		}),
 	}
 }
 
 // Set GOOS, GOARCH and GOARM environment variables.
-func (m *Go) WithPlatform(platform Platform) *Go {
+func (m *Go) WithPlatform(
+	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
+	platform Platform,
+) *Go {
 	if platform == "" {
 		return m
 	}
@@ -100,8 +126,11 @@ func (m *Go) WithCgoDisabled() *Go {
 }
 
 // Mount a source directory.
-func (m *Go) WithSource(src *Directory) *WithSource {
-	const workdir = "/src"
+func (m *Go) WithSource(
+	// Source directory to mount.
+	src *Directory,
+) *WithSource {
+	const workdir = "/work"
 
 	return &WithSource{
 		&Go{
@@ -113,28 +142,55 @@ func (m *Go) WithSource(src *Directory) *WithSource {
 }
 
 // Run a Go command.
-func (m *Go) Exec(args []string, source Optional[*Directory], platform Optional[Platform]) *Container {
-	if src, ok := source.Get(); ok {
-		return m.WithSource(src).Exec(args, platform)
+func (m *Go) Exec(
+	// Arguments to pass to the Go command.
+	args []string,
+
+	// Source directory to mount.
+	// +optional
+	src *Directory,
+
+	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
+	// +optional
+	platform Platform,
+) *Container {
+	if platform != "" {
+		m = m.WithPlatform(platform)
 	}
 
-	if p, ok := platform.Get(); ok {
-		m = m.WithPlatform(p)
+	if src != nil {
+		return m.WithSource(src).Exec(args, Platform(""))
 	}
 
 	return m.Ctr.WithExec(args)
 }
 
-// Run "go build" command.
+// Build a binary.
 func (m *Go) Build(
-	source *Directory,
-	pkg Optional[string],
-	tags Optional[[]string],
-	trimpath Optional[bool],
-	rawArgs Optional[[]string],
-	platform Optional[Platform],
+	// Source directory to mount.
+	src *Directory,
+
+	// Package to compile.
+	// +optional
+	pkg string,
+
+	// A list of additional build tags to consider satisfied during the build.
+	// +optional
+	tags []string,
+
+	// Remove all file system paths from the resulting executable.
+	// +optional
+	trimpath bool,
+
+	// Additional args to pass to the build command.
+	// +optional
+	rawArgs []string,
+
+	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
+	// +optional
+	platform Platform,
 ) *File {
-	return m.WithSource(source).Build(pkg, tags, trimpath, rawArgs, platform)
+	return m.WithSource(src).Build(pkg, tags, trimpath, rawArgs, platform)
 }
 
 type WithSource struct {
@@ -147,12 +203,26 @@ func (m *WithSource) Container() *Container {
 }
 
 // Set an environment variable.
-func (m *WithSource) WithEnvVariable(name string, value string, expand Optional[bool]) *WithSource {
+func (m *WithSource) WithEnvVariable(
+	// The name of the environment variable (e.g., "HOST").
+	name string,
+
+	// The value of the environment variable (e.g., "localhost").
+	value string,
+
+	// Replace `${VAR}` or $VAR in the value according to the current environment
+	// variables defined in the container (e.g., "/opt/bin:$PATH").
+	// +optional
+	expand bool,
+) *WithSource {
 	return &WithSource{m.Go.WithEnvVariable(name, value, expand)}
 }
 
 // Set GOOS, GOARCH and GOARM environment variables.
-func (m *WithSource) WithPlatform(platform Platform) *WithSource {
+func (m *WithSource) WithPlatform(
+	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
+	platform Platform,
+) *WithSource {
 	return &WithSource{m.Go.WithPlatform(platform)}
 }
 
@@ -166,32 +236,63 @@ func (m *WithSource) WithCgoDisabled() *WithSource {
 	return &WithSource{m.Go.WithCgoDisabled()}
 }
 
-func (m *WithSource) Exec(args []string, platform Optional[Platform]) *Container {
-	if p, ok := platform.Get(); ok {
-		m = m.WithPlatform(p)
+// Run a Go command.
+func (m *WithSource) Exec(
+	// Arguments to pass to the Go command.
+	args []string,
+
+	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
+	// +optional
+	platform Platform,
+) *Container {
+	if platform != "" {
+		m = m.WithPlatform(platform)
 	}
 
 	return m.Go.Ctr.WithExec(args)
 }
 
-func (m *WithSource) Build(pkg Optional[string], tags Optional[[]string], trimpath Optional[bool], rawArgs Optional[[]string], platform Optional[Platform]) *File {
-	args := []string{"go", "build", "-o", "/out/result"}
+// Compile the packages into a binary.
+func (m *WithSource) Build(
+	// Package to compile.
+	// +optional
+	pkg string,
 
-	if tags, ok := tags.Get(); ok && len(tags) > 0 {
+	// A list of additional build tags to consider satisfied during the build.
+	// +optional
+	tags []string,
+
+	// Remove all file system paths from the resulting executable.
+	// +optional
+	trimpath bool,
+
+	// Additional args to pass to the build command.
+	// +optional
+	rawArgs []string,
+
+	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
+	// +optional
+	platform Platform,
+) *File {
+	binaryPath := "/out/binary"
+
+	args := []string{"go", "build", "-o", binaryPath}
+
+	if len(tags) > 0 {
 		args = append(args, "-tags", strings.Join(tags, ","))
 	}
 
-	if trimpath.GetOr(false) {
+	if trimpath {
 		args = append(args, "-trimpath")
 	}
 
-	if rawArgs, ok := rawArgs.Get(); ok {
+	if len(rawArgs) > 0 {
 		args = append(args, rawArgs...)
 	}
 
-	if pkg, ok := pkg.Get(); ok {
+	if pkg != "" {
 		args = append(args, pkg)
 	}
 
-	return m.Exec(args, platform).File("/out/result")
+	return m.Exec(args, platform).File(binaryPath)
 }
