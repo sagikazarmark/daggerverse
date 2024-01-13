@@ -14,29 +14,30 @@ type Bats struct {
 
 func New(
 	// Version (image tag) to use from the official image repository as a base container.
-	version Optional[string],
+	// +optional
+	version string,
 
 	// Custom image reference in "repository:tag" format to use as a base container.
-	image Optional[string],
+	// +optional
+	image string,
 
 	// Custom container to use as a base container.
-	container Optional[*Container],
+	// +optional
+	container *Container,
 ) *Bats {
 	var ctr *Container
 
-	if v, ok := version.Get(); ok {
-		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, v))
-	} else if i, ok := image.Get(); ok {
-		ctr = dag.Container().From(i)
-	} else if c, ok := container.Get(); ok {
-		ctr = c
+	if version != "" {
+		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
+	} else if image != "" {
+		ctr = dag.Container().From(image)
+	} else if container != nil {
+		ctr = container
 	} else {
 		ctr = dag.Container().From(defaultImageRepository)
 	}
 
-	return &Bats{
-		Ctr: ctr,
-	}
+	return &Bats{ctr}
 }
 
 func (m *Bats) Container() *Container {
@@ -44,8 +45,11 @@ func (m *Bats) Container() *Container {
 }
 
 // Mount a source directory.
-func (m *Bats) WithSource(src *Directory) *WithSource {
-	const workdir = "/src"
+func (m *Bats) WithSource(
+	// Source directory.
+	src *Directory,
+) *WithSource {
+	const workdir = "/work"
 
 	return &WithSource{
 		&Bats{
@@ -56,8 +60,16 @@ func (m *Bats) WithSource(src *Directory) *WithSource {
 	}
 }
 
-func (m *Bats) Run(args []string, source Optional[*Directory]) *Container {
-	if src, ok := source.Get(); ok {
+// Run bats tests.
+func (m *Bats) Run(
+	// Arguments to pass to bats.
+	args []string,
+
+	// Source directory to mount.
+	// +optional
+	src *Directory,
+) *Container {
+	if src != nil {
 		return m.WithSource(src).Run(args)
 	}
 
@@ -73,6 +85,10 @@ func (m *WithSource) Container() *Container {
 	return m.Bats.Ctr
 }
 
-func (m *WithSource) Run(args []string) *Container {
+// Run bats tests.
+func (m *WithSource) Run(
+	// Arguments to pass to bats.
+	args []string,
+) *Container {
 	return m.Bats.Ctr.WithExec(args)
 }
