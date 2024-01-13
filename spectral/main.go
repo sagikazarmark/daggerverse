@@ -1,7 +1,12 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+
+	"gopkg.in/yaml.v3"
 )
 
 // defaultImageRepository is used when no image is specified.
@@ -14,22 +19,25 @@ type Spectral struct {
 
 func New(
 	// Version (image tag) to use from the official image repository as a base container.
-	version Optional[string],
+	// +optional
+	version string,
 
 	// Custom image reference in "repository:tag" format to use as a base container.
-	image Optional[string],
+	// +optional
+	image string,
 
 	// Custom container to use as a base container.
-	container Optional[*Container],
+	// +optional
+	container *Container,
 ) *Spectral {
 	var ctr *Container
 
-	if v, ok := version.Get(); ok {
-		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, v))
-	} else if i, ok := image.Get(); ok {
-		ctr = dag.Container().From(i)
-	} else if c, ok := container.Get(); ok {
-		ctr = c
+	if version != "" {
+		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
+	} else if image != "" {
+		ctr = dag.Container().From(image)
+	} else if container != nil {
+		ctr = container
 	} else {
 		ctr = dag.Container().From(defaultImageRepository)
 	}
@@ -43,40 +51,95 @@ func (m *Spectral) Container() *Container {
 	return m.Ctr
 }
 
-// Mount a source directory.
-func (m *Spectral) WithSource(src *Directory) *WithSource {
-	const workdir = "/src"
+// Lint JSON/YAML documents.
+func (m *Spectral) Lint(
+	ctx context.Context,
 
-	return &WithSource{
-		&Spectral{
-			m.Ctr.
-				WithWorkdir(workdir).
-				WithMountedDirectory(workdir, src),
-		},
-	}
-}
+	// JSON/YAML OpenAPI documents.
+	documents []*File,
 
-func (m *Spectral) Lint(document string, source Optional[*Directory]) *Container {
-	if src, ok := source.Get(); ok {
-		return m.WithSource(src).Lint(document)
-	}
+	// Ruleset file.
+	ruleset *File,
 
-	return lint(m.Ctr, document)
-}
+	// Results of this level or above will trigger a failure exit code. (choices: "error", "warn", "info", "hint") (default "error")
+	// +optional
+	failSeverity string,
 
-type WithSource struct {
-	// +private
-	Spectral *Spectral
-}
+	// Only output results equal to or greater than fail severity.
+	// +optional
+	displayOnlyFailures bool,
 
-// example usage: "dagger call with-source --src . lint --document openapi.yaml"
-func (m *WithSource) Lint(document string) *Container {
-	return lint(m.Spectral.Ctr, document)
-}
+	// Custom json-ref-resolver instance.
+	// +optional
+	resolver *File,
 
-func lint(ctr *Container, document string) *Container {
+	// Text encoding to use. (choices: "utf8", "ascii", "utf-8", "utf16le", "ucs2", "ucs-2", "base64", "latin1") (default "utf8")
+	// +optional
+	encoding string,
+
+	// Increase verbosity.
+	// +optional
+	verbose bool,
+
+	// No logging, output only.
+	// +optional
+	quiet bool,
+) (*Container, error) {
+	ctr := m.Ctr
 	args := []string{"lint"}
-	args = append(args, document)
 
-	return ctr.WithExec(args)
+	rulesetType, err := detectRulesetType(ctx, ruleset)
+	if err != nil {
+		return nil, err
+	}
+
+	rulesetFilePath := fmt.Sprintf("/work/ruleset.%s", rulesetType)
+	ctr = ctr.WithMountedFile(rulesetFilePath, ruleset)
+	args = append(args, "--ruleset", rulesetFilePath)
+
+	if failSeverity != "" {
+		args = append(args, "--fail-severity", failSeverity)
+	}
+
+	if resolver != nil {
+		ctr = ctr.WithMountedFile("/work/resolver", resolver)
+		args = append(args, "--resolver", "/work/resolver")
+	}
+
+	if verbose {
+		args = append(args, "--verbose")
+	}
+
+	if quiet {
+		args = append(args, "--quiet")
+	}
+
+	for i, document := range documents {
+		documentName := fmt.Sprintf("/work/documents/document-%d", i)
+
+		ctr = ctr.WithMountedFile(documentName, document)
+		args = append(args, documentName)
+	}
+
+	return ctr.WithExec(args), nil
+}
+
+// This is a workaround for the fact that Dagger does not preserve file names.
+// https://github.com/dagger/dagger/issues/6416
+func detectRulesetType(ctx context.Context, ruleset *File) (string, error) {
+	rulesetContents, err := ruleset.Contents(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	// Fall back to JS type
+	rulesetType := "js"
+
+	if err := yaml.Unmarshal([]byte(rulesetContents), io.Discard); err == nil {
+		rulesetType = "yaml"
+	} else if err = json.Unmarshal([]byte(rulesetContents), io.Discard); err == nil {
+		rulesetType = "json"
+	}
+
+	return rulesetType, nil
 }
