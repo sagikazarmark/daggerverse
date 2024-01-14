@@ -174,7 +174,7 @@ func (m *Go) Exec(
 // Build a binary.
 func (m *Go) Build(
 	// Source directory to mount.
-	src *Directory,
+	source *Directory,
 
 	// Package to compile.
 	// +optional
@@ -196,13 +196,13 @@ func (m *Go) Build(
 	// +optional
 	platform Platform,
 ) *File {
-	return m.WithSource(src).Build(pkg, tags, trimpath, rawArgs, platform)
+	return m.WithSource(source).Build(pkg, tags, trimpath, rawArgs, platform)
 }
 
 // Mount a source directory.
 func (m *Go) WithSource(
 	// Source directory to mount.
-	src *Directory,
+	source *Directory,
 ) *WithSource {
 	const workdir = "/work"
 
@@ -210,7 +210,7 @@ func (m *Go) WithSource(
 		&Go{
 			m.Ctr.
 				WithWorkdir(workdir).
-				WithMountedDirectory(workdir, src),
+				WithMountedDirectory(workdir, source),
 		},
 	}
 }
