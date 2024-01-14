@@ -325,9 +325,18 @@ func (m *Ci) Go(ctx context.Context) error {
 	return group.Wait()
 }
 
-func (m *Ci) GolangciLint() *Container {
-	return dag.GolangciLint().
-		Run(dag.Host().Directory("./testdata/go"))
+func (m *Ci) GolangciLint(ctx context.Context) error {
+	group, ctx := errgroup.WithContext(ctx)
+
+	group.Go(func() error {
+		_, err := dag.GolangciLint().
+			Run(dag.Host().Directory("./testdata/go")).
+			Sync(ctx)
+
+		return err
+	})
+
+	return group.Wait()
 }
 
 func (m *Ci) Helm(ctx context.Context) error {
