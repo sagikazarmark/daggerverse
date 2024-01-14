@@ -31,14 +31,6 @@ func New(
 	// Disable mounting cache volumes.
 	// +optional
 	disableCache bool,
-
-	// Module cache volume to mount at /go/pkg/mod.
-	// +optional
-	modCache *CacheVolume,
-
-	// Build cache volume to mount at ~/.cache/go-build.
-	// +optional
-	buildCache *CacheVolume,
 ) *Go {
 	var ctr *Container
 
@@ -52,21 +44,15 @@ func New(
 		ctr = dag.Container().From(defaultImageRepository)
 	}
 
+	m := &Go{ctr}
+
 	if !disableCache {
-		if modCache == nil {
-			modCache = dag.CacheVolume("go-mod")
-		}
-
-		if buildCache == nil {
-			buildCache = dag.CacheVolume("go-build")
-		}
-
-		ctr = ctr.
-			WithMountedCache("/go/pkg/mod", modCache).
-			WithMountedCache("/root/.cache/go-build", buildCache)
+		m = m.
+			WithModuleCache(dag.CacheVolume("go-mod"), nil, "").
+			WithBuildCache(dag.CacheVolume("go-build"), nil, "")
 	}
 
-	return &Go{ctr}
+	return m
 }
 
 func (m *Go) Container() *Container {
@@ -125,20 +111,40 @@ func (m *Go) WithCgoDisabled() *Go {
 	return &Go{m.Ctr.WithEnvVariable("CGO_ENABLED", "0")}
 }
 
-// Mount a source directory.
-func (m *Go) WithSource(
-	// Source directory to mount.
-	src *Directory,
-) *WithSource {
-	const workdir = "/work"
+// Mount a cache volume for Go module cache.
+func (m *Go) WithModuleCache(
+	cache *CacheVolume,
 
-	return &WithSource{
-		&Go{
-			m.Ctr.
-				WithWorkdir(workdir).
-				WithMountedDirectory(workdir, src),
-		},
-	}
+	// Identifier of the directory to use as the cache volume's root.
+	// +optional
+	source *Directory,
+
+	// Sharing mode of the cache volume.
+	// +optional
+	sharing CacheSharingMode,
+) *Go {
+	return &Go{m.Ctr.WithMountedCache("/go/pkg/mod", cache, ContainerWithMountedCacheOpts{
+		Source:  source,
+		Sharing: sharing,
+	})}
+}
+
+// Mount a cache volume for Go build cache.
+func (m *Go) WithBuildCache(
+	cache *CacheVolume,
+
+	// Identifier of the directory to use as the cache volume's root.
+	// +optional
+	source *Directory,
+
+	// Sharing mode of the cache volume.
+	// +optional
+	sharing CacheSharingMode,
+) *Go {
+	return &Go{m.Ctr.WithMountedCache("/root/.cache/go-build", cache, ContainerWithMountedCacheOpts{
+		Source:  source,
+		Sharing: sharing,
+	})}
 }
 
 // Run a Go command.
@@ -193,6 +199,22 @@ func (m *Go) Build(
 	return m.WithSource(src).Build(pkg, tags, trimpath, rawArgs, platform)
 }
 
+// Mount a source directory.
+func (m *Go) WithSource(
+	// Source directory to mount.
+	src *Directory,
+) *WithSource {
+	const workdir = "/work"
+
+	return &WithSource{
+		&Go{
+			m.Ctr.
+				WithWorkdir(workdir).
+				WithMountedDirectory(workdir, src),
+		},
+	}
+}
+
 type WithSource struct {
 	// +private
 	Go *Go
@@ -234,6 +256,36 @@ func (m *WithSource) WithCgoEnabled() *WithSource {
 // Set CGO_ENABLED environment variable to 0.
 func (m *WithSource) WithCgoDisabled() *WithSource {
 	return &WithSource{m.Go.WithCgoDisabled()}
+}
+
+// Mount a cache volume for Go module cache.
+func (m *WithSource) WithModuleCache(
+	cache *CacheVolume,
+
+	// Identifier of the directory to use as the cache volume's root.
+	// +optional
+	source *Directory,
+
+	// Sharing mode of the cache volume.
+	// +optional
+	sharing CacheSharingMode,
+) *WithSource {
+	return &WithSource{m.Go.WithModuleCache(cache, source, sharing)}
+}
+
+// Mount a cache volume for Go build cache.
+func (m *WithSource) WithBuildCache(
+	cache *CacheVolume,
+
+	// Identifier of the directory to use as the cache volume's root.
+	// +optional
+	source *Directory,
+
+	// Sharing mode of the cache volume.
+	// +optional
+	sharing CacheSharingMode,
+) *WithSource {
+	return &WithSource{m.Go.WithBuildCache(cache, source, sharing)}
 }
 
 // Run a Go command.
