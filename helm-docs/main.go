@@ -19,29 +19,30 @@ type HelmDocs struct {
 
 func New(
 	// Version (image tag) to use from the official image repository as a base container.
-	version Optional[string],
+	// +optional
+	version string,
 
 	// Custom image reference in "repository:tag" format to use as a base container.
-	image Optional[string],
+	// +optional
+	image string,
 
 	// Custom container to use as a base container.
-	container Optional[*Container],
+	// +optional
+	container *Container,
 ) *HelmDocs {
 	var ctr *Container
 
-	if v, ok := version.Get(); ok {
-		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, v))
-	} else if i, ok := image.Get(); ok {
-		ctr = dag.Container().From(i)
-	} else if c, ok := container.Get(); ok {
-		ctr = c
+	if version != "" {
+		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
+	} else if image != "" {
+		ctr = dag.Container().From(image)
+	} else if container != nil {
+		ctr = container
 	} else {
 		ctr = dag.Container().From(defaultImageRepository)
 	}
 
-	return &HelmDocs{
-		Ctr: ctr,
-	}
+	return &HelmDocs{ctr}
 }
 
 func (m *HelmDocs) Container() *Container {
@@ -56,10 +57,12 @@ func (m *HelmDocs) Generate(
 	chart *Directory,
 
 	// A list of Go template files to use for rendering the documentation.
-	templates Optional[[]*File],
+	// +optional
+	templates []*File,
 
 	// Order in which to sort the values table ("alphanum" or "file"). (default "alphanum")
-	sortValuesOrder Optional[string],
+	// +optional
+	sortValuesOrder string,
 ) (*File, error) {
 	chartName, err := getChartName(ctx, chart)
 	if err != nil {
@@ -82,17 +85,15 @@ func (m *HelmDocs) Generate(
 		// "--log-level", "trace",
 	}
 
-	if files, ok := templates.Get(); ok {
-		for i, file := range files {
-			templatePath := fmt.Sprint("/src/templates/template-%d", i)
+	for i, template := range templates {
+		templatePath := fmt.Sprint("/src/templates/template-%d", i)
 
-			args = append(args, "--template-files", templatePath)
-			ctr = ctr.WithMountedFile(templatePath, file)
-		}
+		args = append(args, "--template-files", templatePath)
+		ctr = ctr.WithMountedFile(templatePath, template)
 	}
 
-	if v, ok := sortValuesOrder.Get(); ok {
-		args = append(args, "--sort-values-order", v)
+	if sortValuesOrder != "" {
+		args = append(args, "--sort-values-order", sortValuesOrder)
 	}
 
 	ctr = ctr.WithExec(args)
