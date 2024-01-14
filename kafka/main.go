@@ -12,22 +12,25 @@ type Kafka struct {
 
 func New(
 	// Version (image tag) to use from the official image repository as a base container.
-	version Optional[string],
+	// +optional
+	version string,
 
 	// Custom image reference in "repository:tag" format to use as a base container.
-	image Optional[string],
+	// +optional
+	image string,
 
 	// Custom container to use as a base container.
-	container Optional[*Container],
+	// +optional
+	container *Container,
 ) *Kafka {
 	var ctr *Container
 
-	if v, ok := version.Get(); ok {
-		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, v))
-	} else if i, ok := image.Get(); ok {
-		ctr = dag.Container().From(i)
-	} else if c, ok := container.Get(); ok {
-		ctr = c
+	if version != "" {
+		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
+	} else if image != "" {
+		ctr = dag.Container().From(image)
+	} else if container != nil {
+		ctr = container
 	} else {
 		ctr = dag.Container().From(defaultImageRepository)
 	}
@@ -45,9 +48,7 @@ func New(
 		WithEnvVariable("KAFKA_CFG_INTER_BROKER_LISTENER_NAME", "PLAINTEXT").
 		WithExposedPort(9092)
 
-	return &Kafka{
-		Ctr: ctr,
-	}
+	return &Kafka{ctr}
 }
 
 func (m *Kafka) Container() *Container {
@@ -55,10 +56,21 @@ func (m *Kafka) Container() *Container {
 }
 
 // Set an environment variable.
-func (m *Kafka) WithEnvVariable(name string, value string, expand Optional[bool]) *Kafka {
+func (m *Kafka) WithEnvVariable(
+	// The name of the environment variable (e.g., "HOST").
+	name string,
+
+	// The value of the environment variable (e.g., "localhost").
+	value string,
+
+	// Replace `${VAR}` or $VAR in the value according to the current environment
+	// variables defined in the container (e.g., "/opt/bin:$PATH").
+	// +optional
+	expand bool,
+) *Kafka {
 	return &Kafka{
 		m.Ctr.WithEnvVariable(name, value, ContainerWithEnvVariableOpts{
-			Expand: expand.GetOr(false),
+			Expand: expand,
 		}),
 	}
 }
