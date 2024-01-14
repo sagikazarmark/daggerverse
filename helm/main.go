@@ -19,22 +19,25 @@ type Helm struct {
 
 func New(
 	// Version (image tag) to use from the official image repository as a base container.
-	version Optional[string],
+	// +optional
+	version string,
 
 	// Custom image reference in "repository:tag" format to use as a base container.
-	image Optional[string],
+	// +optional
+	image string,
 
 	// Custom container to use as a base container.
-	container Optional[*Container],
+	// +optional
+	container *Container,
 ) *Helm {
 	var ctr *Container
 
-	if v, ok := version.Get(); ok {
-		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, v))
-	} else if i, ok := image.Get(); ok {
-		ctr = dag.Container().From(i)
-	} else if c, ok := container.Get(); ok {
-		ctr = c
+	if version != "" {
+		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
+	} else if image != "" {
+		ctr = dag.Container().From(image)
+	} else if container != nil {
+		ctr = container
 	} else {
 		ctr = dag.Container().From(defaultImageRepository)
 	}
@@ -49,9 +52,7 @@ func New(
 	// 	WithMountedCache("/root/.helm", dag.CacheVolume("helm-root")).
 	// 	WithMountedCache("/root/.config/helm", dag.CacheVolume("helm-config"))
 
-	return &Helm{
-		Ctr: ctr,
-	}
+	return &Helm{ctr}
 }
 
 func (m *Helm) Container() *Container {
@@ -95,13 +96,16 @@ func (m *Helm) Package(
 	chart *Directory,
 
 	// Set the appVersion on the chart to this version.
-	appVersion Optional[string],
+	// +optional
+	appVersion string,
 
 	// Set the version on the chart to this semver version.
-	version Optional[string],
+	// +optional
+	version string,
 
 	// Update dependencies from "Chart.yaml" to dir "charts/" before packaging.
-	dependencyUpdate Optional[bool],
+	// +optional
+	dependencyUpdate bool,
 ) (*File, error) {
 	chartMetadata, err := getChartMetadata(ctx, chart)
 	if err != nil {
@@ -123,17 +127,17 @@ func (m *Helm) Package(
 		"--destination", "/out",
 	}
 
-	if v, ok := appVersion.Get(); ok {
-		args = append(args, "--app-version", v)
+	if appVersion != "" {
+		args = append(args, "--app-version", appVersion)
 	}
 
 	chartVersion := chartMetadata.Version
-	if v, ok := version.Get(); ok {
-		args = append(args, "--version", v)
-		chartVersion = v
+	if version != "" {
+		args = append(args, "--version", version)
+		chartVersion = version
 	}
 
-	if v, ok := dependencyUpdate.Get(); ok && v {
+	if dependencyUpdate {
 		args = append(args, "--dependency-update")
 	}
 
@@ -158,7 +162,8 @@ func (m *Helm) Login(
 	password *Secret,
 
 	// Allow connections to TLS registry without certs.
-	insecure Optional[bool],
+	// +optional
+	insecure bool,
 ) (*Helm, error) {
 	pass, err := password.Plaintext(ctx)
 	if err != nil {
@@ -173,7 +178,7 @@ func (m *Helm) Login(
 		"--password", pass,
 	}
 
-	if v, ok := insecure.Get(); ok && v {
+	if insecure {
 		args = append(args, "--insecure")
 	}
 
@@ -200,19 +205,24 @@ func (m *Helm) Push(
 	registry string,
 
 	// Use insecure HTTP connections for the chart upload.
-	plainHttp Optional[bool],
+	// +optional
+	plainHttp bool,
 
 	// Skip tls certificate checks for the chart upload.
-	insecureSkipTlsVerify Optional[bool],
+	// +optional
+	insecureSkipTlsVerify bool,
 
 	// Verify certificates of HTTPS-enabled servers using this CA bundle.
-	caFile Optional[*File],
+	// +optional
+	caFile *File,
 
 	// Identify registry client using this SSL certificate file.
-	certFile Optional[*File],
+	// +optional
+	certFile *File,
 
 	// Identify registry client using this SSL key file.
-	keyFile Optional[*File],
+	// +optional
+	keyFile *File,
 ) *Container {
 	const workdir = "/src"
 
@@ -229,26 +239,26 @@ func (m *Helm) Push(
 		registry,
 	}
 
-	if v, ok := plainHttp.Get(); ok && v {
+	if plainHttp {
 		args = append(args, "--plain-http")
 	}
 
-	if v, ok := insecureSkipTlsVerify.Get(); ok && v {
+	if insecureSkipTlsVerify {
 		args = append(args, "--insecure-skip-tls-verify")
 	}
 
-	if v, ok := caFile.Get(); ok {
-		ctr = ctr.WithMountedFile("/etc/helm/ca.pem", v)
+	if caFile != nil {
+		ctr = ctr.WithMountedFile("/etc/helm/ca.pem", caFile)
 		args = append(args, "--ca-file", "/etc/helm/ca.pem")
 	}
 
-	if v, ok := certFile.Get(); ok {
-		ctr = ctr.WithMountedFile("/etc/helm/cert.pem", v)
+	if certFile != nil {
+		ctr = ctr.WithMountedFile("/etc/helm/cert.pem", certFile)
 		args = append(args, "--cert-file", "/etc/helm/cert.pem")
 	}
 
-	if v, ok := keyFile.Get(); ok {
-		ctr = ctr.WithMountedFile("/etc/helm/key.pem", v)
+	if keyFile != nil {
+		ctr = ctr.WithMountedFile("/etc/helm/key.pem", keyFile)
 		args = append(args, "--key-file", "/etc/helm/key.pem")
 	}
 

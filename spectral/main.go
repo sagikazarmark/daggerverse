@@ -42,9 +42,7 @@ func New(
 		ctr = dag.Container().From(defaultImageRepository)
 	}
 
-	return &Spectral{
-		Ctr: ctr,
-	}
+	return &Spectral{ctr}
 }
 
 func (m *Spectral) Container() *Container {

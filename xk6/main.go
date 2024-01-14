@@ -16,29 +16,30 @@ type Xk6 struct {
 
 func New(
 	// Version (image tag) to use from the official image repository as a base container.
-	version Optional[string],
+	// +optional
+	version string,
 
 	// Custom image reference in "repository:tag" format to use as a base container.
-	image Optional[string],
+	// +optional
+	image string,
 
 	// Custom container to use as a base container.
-	container Optional[*Container],
+	// +optional
+	container *Container,
 ) *Xk6 {
 	var ctr *Container
 
-	if v, ok := version.Get(); ok {
-		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, v))
-	} else if i, ok := image.Get(); ok {
-		ctr = dag.Container().From(i)
-	} else if c, ok := container.Get(); ok {
-		ctr = c
+	if version != "" {
+		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
+	} else if image != "" {
+		ctr = dag.Container().From(image)
+	} else if container != nil {
+		ctr = container
 	} else {
 		ctr = dag.Container().From(defaultImageRepository)
 	}
 
-	return &Xk6{
-		Ctr: ctr,
-	}
+	return &Xk6{ctr}
 }
 
 func (m *Xk6) Container() *Container {
@@ -46,7 +47,10 @@ func (m *Xk6) Container() *Container {
 }
 
 // Set GOOS, GOARCH and GOARM environment variables.
-func (m *Xk6) WithPlatform(platform Platform) *Xk6 {
+func (m *Xk6) WithPlatform(
+	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
+	platform Platform,
+) *Xk6 {
 	if platform == "" {
 		return m
 	}
@@ -67,29 +71,37 @@ func (m *Xk6) WithPlatform(platform Platform) *Xk6 {
 // Build a custom k6 binary.
 func (m *Xk6) Build(
 	// k6 version to build (default: "latest")
-	version Optional[string],
+	// +optional
+	version string,
 
 	// Extension to add to the k6 binary (format: <module[@version][=replacement]>)
-	with Optional[[]string],
+	// +optional
+	with []string,
 
 	// Add replacements to the go.mod file generated (format: <module=replacement>)
-	replace Optional[[]string],
+	// +optional
+	replace []string,
 
-	// Target platform to build for (format: <os>/<arch>[/<variant>]) (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64")
-	platform Optional[Platform],
+	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
+	// +optional
+	platform Platform,
 ) *File {
-	args := []string{"build", version.GetOr("latest")}
+	if version == "" {
+		version = "latest"
+	}
 
-	for _, w := range with.GetOr([]string{}) {
+	args := []string{"build", version}
+
+	for _, w := range with {
 		args = append(args, "--with", w)
 	}
 
-	for _, r := range replace.GetOr([]string{}) {
+	for _, r := range replace {
 		args = append(args, "--replace", r)
 	}
 
-	if p, ok := platform.Get(); ok {
-		m = m.WithPlatform(p)
+	if platform != "" {
+		m = m.WithPlatform(platform)
 	}
 
 	return m.Ctr.WithExec(args).File("/xk6/k6")
