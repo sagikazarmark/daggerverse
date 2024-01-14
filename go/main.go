@@ -304,6 +304,8 @@ func (m *WithSource) Exec(
 	return m.Go.Ctr.WithExec(args)
 }
 
+const buildBinaryPath = "/out/binary"
+
 // Compile the packages into a binary.
 func (m *WithSource) Build(
 	// Package to compile.
@@ -325,10 +327,8 @@ func (m *WithSource) Build(
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	// +optional
 	platform Platform,
-) *File {
-	binaryPath := "/out/binary"
-
-	args := []string{"go", "build", "-o", binaryPath}
+) *BuildResult {
+	args := []string{"go", "build", "-o", buildBinaryPath}
 
 	if len(tags) > 0 {
 		args = append(args, "-tags", strings.Join(tags, ","))
@@ -346,5 +346,18 @@ func (m *WithSource) Build(
 		args = append(args, pkg)
 	}
 
-	return m.Exec(args, platform).File(binaryPath)
+	return &BuildResult{m.Exec(args, platform)}
+}
+
+type BuildResult struct {
+	// +private
+	Ctr *Container
+}
+
+func (r *BuildResult) Verify(args []string) *BuildResult {
+	return &BuildResult{r.Ctr.WithExec(args)}
+}
+
+func (r *BuildResult) File() *File {
+	return r.Ctr.File(buildBinaryPath)
 }
