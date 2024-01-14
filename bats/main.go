@@ -47,7 +47,7 @@ func (m *Bats) Container() *Container {
 // Mount a source directory.
 func (m *Bats) WithSource(
 	// Source directory.
-	src *Directory,
+	source *Directory,
 ) *WithSource {
 	const workdir = "/work"
 
@@ -55,7 +55,7 @@ func (m *Bats) WithSource(
 		&Bats{
 			m.Ctr.
 				WithWorkdir(workdir).
-				WithMountedDirectory(workdir, src),
+				WithMountedDirectory(workdir, source),
 		},
 	}
 }
@@ -67,10 +67,10 @@ func (m *Bats) Run(
 
 	// Source directory to mount.
 	// +optional
-	src *Directory,
+	source *Directory,
 ) *Container {
-	if src != nil {
-		return m.WithSource(src).Run(args)
+	if source != nil {
+		return m.WithSource(source).Run(args)
 	}
 
 	return m.Ctr.WithExec(args)
