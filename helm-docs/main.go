@@ -86,7 +86,7 @@ func (m *HelmDocs) Generate(
 	}
 
 	for i, template := range templates {
-		templatePath := fmt.Sprint("/src/templates/template-%d", i)
+		templatePath := fmt.Sprintf("/src/templates/template-%d", i)
 
 		args = append(args, "--template-files", templatePath)
 		ctr = ctr.WithMountedFile(templatePath, template)
