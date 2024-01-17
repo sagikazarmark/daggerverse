@@ -4,6 +4,7 @@
   "sdk": "go",
   "dependencies": [
     "../bats",
+    "../gh",
     "../go",
     "../golangci-lint",
     "../helm",
