@@ -16,6 +16,10 @@ func (m *Ci) Bats() *Container {
 		Run([]string{"test.bats"})
 }
 
+func (m *Ci) Gh() *Container {
+	return dag.Gh().Run("--help")
+}
+
 func (m *Ci) Go(ctx context.Context) error {
 	var group errgroup.Group
 

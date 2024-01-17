@@ -12,6 +12,7 @@ jobs:
       matrix:
         module:
           - bats
+          - gh
           - go
           - golangci-lint
           - helm
