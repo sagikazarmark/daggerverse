@@ -13,6 +13,7 @@ jobs:
         module:
           - archive
           - bats
+          - checksum
           - gh
           - go
           - golangci-lint
