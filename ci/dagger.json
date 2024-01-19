@@ -3,6 +3,7 @@
   "root": "..",
   "sdk": "go",
   "dependencies": [
+    "../archive",
     "../bats",
     "../gh",
     "../go",
