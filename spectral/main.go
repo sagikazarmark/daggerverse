@@ -2,11 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-
-	"gopkg.in/yaml.v3"
+	"path"
 )
 
 // defaultImageRepository is used when no image is specified.
@@ -86,22 +83,40 @@ func (m *Spectral) Lint(
 	ctr := m.Ctr
 	args := []string{"lint"}
 
-	rulesetType, err := detectRulesetType(ctx, ruleset)
-	if err != nil {
-		return nil, err
-	}
+	{
+		dir := dag.Directory().WithFile("", ruleset)
 
-	rulesetFilePath := fmt.Sprintf("/work/ruleset.%s", rulesetType)
-	ctr = ctr.WithMountedFile(rulesetFilePath, ruleset)
-	args = append(args, "--ruleset", rulesetFilePath)
+		entries, err := dir.Entries(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(entries) < 1 {
+			return nil, fmt.Errorf("ruleset file is missing")
+		}
+
+		ctr = ctr.WithMountedDirectory("/work/ruleset", dir)
+		args = append(args, "--ruleset", path.Join("/work/ruleset", entries[0]))
+	}
 
 	if failSeverity != "" {
 		args = append(args, "--fail-severity", failSeverity)
 	}
 
 	if resolver != nil {
-		ctr = ctr.WithMountedFile("/work/resolver", resolver)
-		args = append(args, "--resolver", "/work/resolver")
+		dir := dag.Directory().WithFile("", resolver)
+
+		entries, err := dir.Entries(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(entries) < 1 {
+			return nil, fmt.Errorf("resolver file is missing")
+		}
+
+		ctr = ctr.WithMountedDirectory("/work/resolver", dir)
+		args = append(args, "--resolver", path.Join("/work/resolver", entries[0]))
 	}
 
 	if verbose {
@@ -112,32 +127,24 @@ func (m *Spectral) Lint(
 		args = append(args, "--quiet")
 	}
 
-	for i, document := range documents {
-		documentName := fmt.Sprintf("/work/documents/document-%d", i)
+	{
+		dir := dag.Directory()
 
-		ctr = ctr.WithMountedFile(documentName, document)
-		args = append(args, documentName)
+		for _, document := range documents {
+			dir = dir.WithFile("", document)
+		}
+
+		entries, err := dir.Entries(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		ctr = ctr.WithMountedDirectory("/work/documents", dir)
+
+		for _, e := range entries {
+			args = append(args, path.Join("/work/documents", e))
+		}
 	}
 
 	return ctr.WithExec(args), nil
-}
-
-// This is a workaround for the fact that Dagger does not preserve file names.
-// https://github.com/dagger/dagger/issues/6416
-func detectRulesetType(ctx context.Context, ruleset *File) (string, error) {
-	rulesetContents, err := ruleset.Contents(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	// Fall back to JS type
-	rulesetType := "js"
-
-	if err := yaml.Unmarshal([]byte(rulesetContents), io.Discard); err == nil {
-		rulesetType = "yaml"
-	} else if err = json.Unmarshal([]byte(rulesetContents), io.Discard); err == nil {
-		rulesetType = "json"
-	}
-
-	return rulesetType, nil
 }
