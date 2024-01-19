@@ -31,6 +31,10 @@ func (m *Archive) Create(
 	// +optional
 	platform Platform,
 ) (*File, error) {
+	if name == "" {
+		return nil, fmt.Errorf("name is required")
+	}
+
 	format, err := processFormat(format, platform)
 	if err != nil {
 		return nil, err
