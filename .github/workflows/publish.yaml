@@ -11,6 +11,7 @@ jobs:
     strategy:
       matrix:
         module:
+          - archive
           - bats
           - gh
           - go
