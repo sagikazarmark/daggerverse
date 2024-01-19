@@ -11,6 +11,7 @@ jobs:
     strategy:
       matrix:
         module:
+          - arc
           - archive
           - bats
           - checksum
