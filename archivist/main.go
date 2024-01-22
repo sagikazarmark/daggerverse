@@ -3,6 +3,13 @@ package main
 // Archivist provides methods to create and extract archives.
 type Archivist struct{}
 
+// Archiver archives a directory of files and returns a single archive.
+type Archiver interface {
+	DaggerObject
+
+	Archive(name string, source *Directory) *File
+}
+
 func arc() *Arc {
 	return dag.Arc(ArcOpts{
 		Version: "3.5.0", // pin version
