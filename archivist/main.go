@@ -1,18 +1,7 @@
 package main
 
-// Archiver provides methods to create and extract archives.
-type Archiver struct {
-	// +private
-	Arc *Arc
-}
-
-func New() *Archiver {
-	return &Archiver{
-		Arc: dag.Arc(ArcOpts{
-			Version: "3.5.0", // pin version
-		}),
-	}
-}
+// Archivist provides methods to create and extract archives.
+type Archivist struct{}
 
 func arc() *Arc {
 	return dag.Arc(ArcOpts{
@@ -21,7 +10,7 @@ func arc() *Arc {
 }
 
 // Create and extract ".tar" archives.
-func (m *Archiver) Tar() *Tar {
+func (m *Archivist) Tar() *Tar {
 	return &Tar{}
 }
 
@@ -33,7 +22,7 @@ func (m *Tar) Archive(name string, source *Directory) *File {
 }
 
 // Create and extract ".tar.br" (and ".tbr") archives.
-func (m *Archiver) TarBr() *TarBr {
+func (m *Archivist) TarBr() *TarBr {
 	return &TarBr{}
 }
 
@@ -45,7 +34,7 @@ func (m *TarBr) Archive(name string, source *Directory) *File {
 }
 
 // Create and extract ".tar.bz2" (and ".tbz2") archives.
-func (m *Archiver) TarBz2() *TarBz2 {
+func (m *Archivist) TarBz2() *TarBz2 {
 	return &TarBz2{}
 }
 
@@ -57,7 +46,7 @@ func (m *TarBz2) Archive(name string, source *Directory) *File {
 }
 
 // Create and extract ".tar.gz" (and ".tgz") archives.
-func (m *Archiver) TarGz() *TarGz {
+func (m *Archivist) TarGz() *TarGz {
 	return &TarGz{}
 }
 
@@ -69,7 +58,7 @@ func (m *TarGz) Archive(name string, source *Directory) *File {
 }
 
 // Create and extract ".tar.lz4" (and ".tlz4") archives.
-func (m *Archiver) TarLz4() *TarLz4 {
+func (m *Archivist) TarLz4() *TarLz4 {
 	return &TarLz4{}
 }
 
@@ -81,7 +70,7 @@ func (m *TarLz4) Archive(name string, source *Directory) *File {
 }
 
 // Create and extract ".tar.sz" (and ".tsz") archives.
-func (m *Archiver) TarSz() *TarSz {
+func (m *Archivist) TarSz() *TarSz {
 	return &TarSz{}
 }
 
@@ -93,7 +82,7 @@ func (m *TarSz) Archive(name string, source *Directory) *File {
 }
 
 // Create and extract ".tar.xz" (and ".txz") archives.
-func (m *Archiver) TarXz() *TarXz {
+func (m *Archivist) TarXz() *TarXz {
 	return &TarXz{}
 }
 
@@ -105,7 +94,7 @@ func (m *TarXz) Archive(name string, source *Directory) *File {
 }
 
 // Create and extract ".tar.zst" archives.
-func (m *Archiver) TarZst() *TarZst {
+func (m *Archivist) TarZst() *TarZst {
 	return &TarZst{}
 }
 
@@ -117,7 +106,7 @@ func (m *TarZst) Archive(name string, source *Directory) *File {
 }
 
 // Create and extract ".zip" archives.
-func (m *Archiver) Zip() *Zip {
+func (m *Archivist) Zip() *Zip {
 	return &Zip{}
 }
 

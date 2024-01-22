@@ -5,7 +5,7 @@
   "dependencies": [
     "../arc",
     "../archive",
-    "../archiver",
+    "../archivist",
     "../bats",
     "../checksum",
     "../gh",

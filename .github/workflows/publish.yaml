@@ -13,7 +13,7 @@ jobs:
         module:
           - arc
           - archive
-          - archiver
+          - archivist
           - bats
           - checksum
           - gh
