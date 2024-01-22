@@ -11,26 +11,44 @@ const alpineBaseImage = "alpine:latest"
 type Checksum struct{}
 
 // Calculate the SHA-256 checksum of the given files.
-func (m *Checksum) SHA256(
+func (m *Checksum) Sha256() *Sha256 {
+	return &Sha256{}
+}
+
+type Sha256 struct{}
+
+// Calculate the SHA-256 checksum of the given files.
+func (m *Sha256) Calculate(
 	ctx context.Context,
 
 	// The files to calculate the checksum for.
 	files []*File,
 ) (string, error) {
-	return m.calculate(ctx, "sha256", files)
+	return calculate(ctx, "sha256", files)
 }
 
-func (m *Checksum) calculate(ctx context.Context, algo string, files []*File) (string, error) {
+// Check the SHA-256 checksum of the given files.
+func (m *Sha256) Check(
+	// Checksum content.
+	checksums string,
+
+	// The files to check the checksum if.
+	files []*File,
+) (*Container, error) {
+	return check("sha256", checksums, files)
+}
+
+func calculate(ctx context.Context, algo string, files []*File) (string, error) {
 	dir := dag.Directory()
 
 	for _, file := range files {
 		dir = dir.WithFile("", file)
 	}
 
-	return m.calculateDirectory(ctx, algo, dir)
+	return calculateDirectory(ctx, algo, dir)
 }
 
-func (m *Checksum) calculateDirectory(ctx context.Context, algo string, dir *Directory) (string, error) {
+func calculateDirectory(ctx context.Context, algo string, dir *Directory) (string, error) {
 	return dag.Container().
 		From(alpineBaseImage).
 		WithWorkdir("/work").
@@ -39,28 +57,17 @@ func (m *Checksum) calculateDirectory(ctx context.Context, algo string, dir *Dir
 		Stdout(ctx)
 }
 
-// Check the SHA-256 checksum of the given files.
-func (m *Checksum) CheckSHA256(
-	// Checksum content.
-	checksums string,
-
-	// The files to check the checksum if.
-	files []*File,
-) (*Container, error) {
-	return m.check("sha256", checksums, files)
-}
-
-func (m *Checksum) check(algo string, checksums string, files []*File) (*Container, error) {
+func check(algo string, checksums string, files []*File) (*Container, error) {
 	dir := dag.Directory()
 
 	for _, file := range files {
 		dir = dir.WithFile("", file)
 	}
 
-	return m.checkDirectory(algo, checksums, dir)
+	return checkDirectory(algo, checksums, dir)
 }
 
-func (m *Checksum) checkDirectory(algo string, checksums string, dir *Directory) (*Container, error) {
+func checkDirectory(algo string, checksums string, dir *Directory) (*Container, error) {
 	dir = dir.WithNewFile("checksums.txt", checksums)
 
 	return dag.Container().
