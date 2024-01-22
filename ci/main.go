@@ -279,6 +279,25 @@ func (m *Ci) Go(ctx context.Context) error {
 			return nil
 		})
 
+		group.Go(func() error {
+			binary := dag.Go().
+				WithSource(dag.Host().Directory("./testdata/go")).
+				Build(GoWithSourceBuildOpts{
+					Name: "my-binary",
+				})
+
+			binaryName, err := binary.Name(ctx)
+			if err != nil {
+				return err
+			}
+
+			if binaryName != "my-binary" {
+				return fmt.Errorf("unexpected output: wanted \"my-binary\", got %q", binaryName)
+			}
+
+			return nil
+		})
+
 		return group.Wait()
 	})
 
