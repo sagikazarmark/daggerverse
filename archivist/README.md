@@ -1,6 +1,6 @@
-# Archiver
+# Archivist
 
-[Daggerverse](https://daggerverse.dev/mod/github.com/sagikazarmark/daggerverse/archiver)
+[Daggerverse](https://daggerverse.dev/mod/github.com/sagikazarmark/daggerverse/archivist)
 ![Dagger Version](https://img.shields.io/badge/dagger%20version-%3E=0.9.7-0f0f19.svg?style=flat-square)
 
 **Dagger module for creating and extracting archives.**
@@ -30,7 +30,7 @@ func (m *MyModule) archive(archiver Archiver, source *Directory) *File {
 }
 
 func (m *MyModule) BuildArchive() *File {
-    return m.archive(dag.Archiver().TarGz(), dag.Directory())
+    return m.archive(dag.Archivist().TarGz(), dag.Directory())
 }
 ```
 

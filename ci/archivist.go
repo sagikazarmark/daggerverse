@@ -6,18 +6,17 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func (m *Ci) Archiver(ctx context.Context) error {
+func (m *Ci) Archivist(ctx context.Context) error {
 	var group errgroup.Group
 
 	group.Go(func() error {
-		dir := dag.Host().Directory("./testdata/archiver")
+		dir := dag.Host().Directory("./testdata/archivist")
 
-		archive := dag.Archiver().TarGz().Archive("test", dir)
+		archive := dag.Archivist().TarGz().Archive("test", dir)
 
 		unarchivedDir := dag.Arc().Unarchive(archive)
 
 		// TODO: improve test
-
 		_ = unarchivedDir
 
 		return nil
