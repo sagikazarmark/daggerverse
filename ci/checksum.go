@@ -16,12 +16,9 @@ func (m *Ci) Checksum(ctx context.Context) error {
 			dag.Host().File("./testdata/checksum/bar"),
 		}
 
-		checksums, err := dag.Checksum().Sha256().Calculate(ctx, files)
-		if err != nil {
-			return err
-		}
+		checksums := dag.Checksum().Sha256().Calculate(files)
 
-		_, err = dag.Checksum().Sha256().Check(checksums, files).Sync(ctx)
+		_, err := dag.Checksum().Sha256().Check(checksums, files).Sync(ctx)
 
 		return err
 	})
