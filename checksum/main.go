@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"strings"
 )
 
 const alpineBaseImage = "alpine:latest"
@@ -23,41 +25,54 @@ func (m *Sha256) Calculate(
 
 	// The files to calculate the checksum for.
 	files []*File,
-) (string, error) {
-	return calculate(ctx, "sha256", files)
+
+	// The name of the checksum file.
+	// +optional
+	// +default=checksums.txt
+	fileName string,
+) *File {
+	return calculate(ctx, "sha256", fileName, files)
 }
 
 // Check the SHA-256 checksum of the given files.
 func (m *Sha256) Check(
-	// Checksum content.
-	checksums string,
+	// Checksum file.
+	checksums *File,
 
 	// The files to check the checksum if.
 	files []*File,
-) (*Container, error) {
+) *Container {
 	return check("sha256", checksums, files)
 }
 
-func calculate(ctx context.Context, algo string, files []*File) (string, error) {
+func calculate(ctx context.Context, algo string, fileName string, files []*File) *File {
 	dir := dag.Directory()
 
 	for _, file := range files {
 		dir = dir.WithFile("", file)
 	}
 
-	return calculateDirectory(ctx, algo, dir)
+	return calculateDirectory(ctx, algo, fileName, dir)
 }
 
-func calculateDirectory(ctx context.Context, algo string, dir *Directory) (string, error) {
+func calculateDirectory(ctx context.Context, algo string, fileName string, dir *Directory) *File {
+	if fileName == "" {
+		fileName = "checksums.txt"
+	}
+
+	file := filepath.Join("/", filepath.Base(fileName))
+
+	cmd := []string{algo + "sum", "$(ls)", ">", file}
+
 	return dag.Container().
 		From(alpineBaseImage).
 		WithWorkdir("/work").
 		WithMountedDirectory("/work", dir).
-		WithExec([]string{"sh", "-c", fmt.Sprintf("%ssum $(ls)", algo)}).
-		Stdout(ctx)
+		WithExec([]string{"sh", "-c", strings.Join(cmd, " ")}).
+		File(file)
 }
 
-func check(algo string, checksums string, files []*File) (*Container, error) {
+func check(algo string, checksums *File, files []*File) *Container {
 	dir := dag.Directory()
 
 	for _, file := range files {
@@ -67,12 +82,12 @@ func check(algo string, checksums string, files []*File) (*Container, error) {
 	return checkDirectory(algo, checksums, dir)
 }
 
-func checkDirectory(algo string, checksums string, dir *Directory) (*Container, error) {
-	dir = dir.WithNewFile("checksums.txt", checksums)
+func checkDirectory(algo string, checksums *File, dir *Directory) *Container {
+	dir = dir.WithFile("checksums.txt", checksums)
 
 	return dag.Container().
 		From(alpineBaseImage).
 		WithWorkdir("/work").
 		WithMountedDirectory("/work", dir).
-		WithExec([]string{"sh", "-c", fmt.Sprintf("%ssum -w -c checksums.txt", algo)}), nil
+		WithExec([]string{"sh", "-c", fmt.Sprintf("%ssum -w -c checksums.txt", algo)})
 }
