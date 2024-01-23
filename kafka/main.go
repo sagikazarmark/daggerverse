@@ -36,6 +36,9 @@ func New(
 	}
 
 	ctr = ctr.
+		// https://github.com/bitnami/charts/issues/22552#issuecomment-1905721850
+		WithEnvVariable("KAFKA_CFG_MESSAGE_MAX_BYTES", "1048588").
+
 		// KRaft settings
 		WithEnvVariable("KAFKA_CFG_NODE_ID", "0").
 		WithEnvVariable("KAFKA_CFG_PROCESS_ROLES", "controller,broker").
