@@ -9,7 +9,7 @@
 
 ```go
 dag.GolangciLint().
-    Run(dag.Host().Directory("."))
+    Run(dag.CurrentModule().Source().Directory("."))
 ```
 
 ### Shell

@@ -10,7 +10,7 @@ func (m *Ci) Arc(ctx context.Context) error {
 	var group errgroup.Group
 
 	group.Go(func() error {
-		dir := dag.Host().Directory("./testdata/arc")
+		dir := dag.CurrentModule().Source()..Directory("./testdata/arc")
 
 		archive := dag.Arc().ArchiveDirectory("test", dir).TarGz()
 

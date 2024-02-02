@@ -12,8 +12,8 @@ func (m *Ci) Checksum(ctx context.Context) error {
 	// Calculate and check files
 	group.Go(func() error {
 		files := []*File{
-			dag.Host().File("./testdata/checksum/foo"),
-			dag.Host().File("./testdata/checksum/bar"),
+			dag.CurrentModule().Source().File("./testdata/checksum/foo"),
+			dag.CurrentModule().Source().File("./testdata/checksum/bar"),
 		}
 
 		checksums := dag.Checksum().Sha256().Calculate(files)

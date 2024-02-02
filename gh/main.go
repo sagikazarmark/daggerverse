@@ -207,5 +207,5 @@ func downloadBinary(ctx context.Context, version string) (*File, error) {
 		return nil, err
 	}
 
-	return dag.Host().File(path.Join("/tmp", binaryName, "bin/gh")), nil
+	return dag.CurrentModule().WorkdirFile(path.Join("/tmp", binaryName, "bin/gh")), nil
 }

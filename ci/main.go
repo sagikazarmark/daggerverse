@@ -12,7 +12,7 @@ type Ci struct{}
 
 func (m *Ci) Bats() *Container {
 	return dag.Bats().
-		WithSource(dag.Host().Directory("./testdata/bats")).
+		WithSource(dag.CurrentModule().Source().Directory("./testdata/bats")).
 		Run([]string{"test.bats"})
 }
 
@@ -87,7 +87,7 @@ func (m *Ci) Go(ctx context.Context) error {
 
 		group.Go(func() error {
 			out, err := dag.Go().
-				WithSource(dag.Host().Directory("./testdata/go")).
+				WithSource(dag.CurrentModule().Source().Directory("./testdata/go")).
 				WithEnvVariable("FOO", "bar").
 				Exec([]string{"bash", "-c", "echo $FOO"}).
 				Stdout(ctx)
@@ -129,7 +129,7 @@ func (m *Ci) Go(ctx context.Context) error {
 
 		group.Go(func() error {
 			out, err := dag.Go().
-				WithSource(dag.Host().Directory("./testdata/go")).
+				WithSource(dag.CurrentModule().Source().Directory("./testdata/go")).
 				WithPlatform(platform).
 				Exec([]string{"bash", "-c", "echo $GOOS/$GOARCH/$GOARM"}).
 				Stdout(ctx)
@@ -173,7 +173,7 @@ func (m *Ci) Go(ctx context.Context) error {
 
 			group.Go(func() error {
 				out, err := dag.Go().
-					WithSource(dag.Host().Directory("./testdata/go")).
+					WithSource(dag.CurrentModule().Source().Directory("./testdata/go")).
 					WithCgoEnabled().
 					Exec([]string{"bash", "-c", "echo $CGO_ENABLED"}).
 					Stdout(ctx)
@@ -213,7 +213,7 @@ func (m *Ci) Go(ctx context.Context) error {
 
 			group.Go(func() error {
 				out, err := dag.Go().
-					WithSource(dag.Host().Directory("./testdata/go")).
+					WithSource(dag.CurrentModule().Source().Directory("./testdata/go")).
 					WithCgoDisabled().
 					Exec([]string{"bash", "-c", "echo $CGO_ENABLED"}).
 					Stdout(ctx)
@@ -240,7 +240,7 @@ func (m *Ci) Go(ctx context.Context) error {
 
 		group.Go(func() error {
 			binary, err := dag.Go().
-				Build(dag.Host().Directory("./testdata/go")).
+				Build(dag.CurrentModule().Source().Directory("./testdata/go")).
 				Sync(ctx)
 			if err != nil {
 				return err
@@ -260,7 +260,7 @@ func (m *Ci) Go(ctx context.Context) error {
 
 		group.Go(func() error {
 			binary, err := dag.Go().
-				WithSource(dag.Host().Directory("./testdata/go")).
+				WithSource(dag.CurrentModule().Source().Directory("./testdata/go")).
 				Build().
 				Sync(ctx)
 			if err != nil {
@@ -281,7 +281,7 @@ func (m *Ci) Go(ctx context.Context) error {
 
 		group.Go(func() error {
 			binary := dag.Go().
-				WithSource(dag.Host().Directory("./testdata/go")).
+				WithSource(dag.CurrentModule().Source().Directory("./testdata/go")).
 				Build(GoWithSourceBuildOpts{
 					Name: "my-binary",
 				})
@@ -304,7 +304,7 @@ func (m *Ci) Go(ctx context.Context) error {
 	// Exec: Build
 	group.Go(func() error {
 		ctr, err := dag.Go().
-			WithSource(dag.Host().Directory("./testdata/go")).
+			WithSource(dag.CurrentModule().Source().Directory("./testdata/go")).
 			Exec([]string{"go", "build", "-o", "/app", "."}).
 			Sync(ctx)
 		if err != nil {
@@ -326,7 +326,7 @@ func (m *Ci) Go(ctx context.Context) error {
 	// Exec: Test
 	group.Go(func() error {
 		ctr, err := dag.Go().
-			WithSource(dag.Host().Directory("./testdata/go")).
+			WithSource(dag.CurrentModule().Source().Directory("./testdata/go")).
 			Exec([]string{"go", "test", "-v"}).
 			Sync(ctx)
 		if err != nil {
@@ -353,7 +353,7 @@ func (m *Ci) GolangciLint(ctx context.Context) error {
 
 	group.Go(func() error {
 		_, err := dag.GolangciLint().
-			Run(dag.Host().Directory("./testdata/go")).
+			Run(dag.CurrentModule().Source().Directory("./testdata/go")).
 			Sync(ctx)
 
 		return err
@@ -373,7 +373,7 @@ func (m *Ci) Helm(ctx context.Context) error {
 		_, err := dag.Helm(HelmOpts{
 			Version: helmVersion,
 		}).
-			Lint(dag.Host().Directory("./testdata/helm/charts/package")).
+			Lint(dag.CurrentModule().Source().Directory("./testdata/helm/charts/package")).
 			Sync(ctx)
 
 		return err
@@ -385,7 +385,7 @@ func (m *Ci) Helm(ctx context.Context) error {
 		_, err := dag.Helm(HelmOpts{
 			Version: helmVersion,
 		}).
-			Package(dag.Host().Directory("./testdata/helm/charts/package")).
+			Package(dag.CurrentModule().Source().Directory("./testdata/helm/charts/package")).
 			Sync(ctx)
 
 		return err
@@ -410,12 +410,12 @@ func (m *Ci) Helm(ctx context.Context) error {
 			Version: helmVersion,
 		})
 
-		pkg := helm.Package(dag.Host().Directory("./testdata/helm/charts/package"))
+		pkg := helm.Package(dag.CurrentModule().Source().Directory("./testdata/helm/charts/package"))
 
 		registry := dag.Container().
 			From(fmt.Sprintf("%s:%s", zotRepository, zotVersion)).
 			WithExposedPort(8080).
-			WithMountedDirectory("/etc/zot", dag.Host().Directory("./testdata/helm/zot")).
+			WithMountedDirectory("/etc/zot", dag.CurrentModule().Source().Directory("./testdata/helm/zot")).
 			WithExec([]string{"serve", "/etc/zot/config.json"}).
 			AsService()
 
@@ -445,11 +445,11 @@ func (m *Ci) HelmDocs(ctx context.Context) error {
 	const helmDocsVersion = "v1.11.3"
 
 	chartDir := func(chartName string) *Directory {
-		return dag.Host().Directory(fmt.Sprintf("./testdata/helm-docs/charts/%s", chartName))
+		return dag.CurrentModule().Source().Directory(fmt.Sprintf("./testdata/helm-docs/charts/%s", chartName))
 	}
 
 	expected := func(chartName string) *File {
-		return dag.Host().File(fmt.Sprintf("./testdata/helm-docs/charts/%s/expected.md", chartName))
+		return dag.CurrentModule().Source().File(fmt.Sprintf("./testdata/helm-docs/charts/%s/expected.md", chartName))
 	}
 
 	testCases := []struct {
@@ -469,7 +469,7 @@ func (m *Ci) HelmDocs(ctx context.Context) error {
 			name: "template",
 			opts: HelmDocsGenerateOpts{
 				Templates: []*File{
-					dag.Host().File("./testdata/helm-docs/charts/template/template.md"),
+					dag.CurrentModule().Source().File("./testdata/helm-docs/charts/template/template.md"),
 				},
 			},
 		},
@@ -508,7 +508,7 @@ func (m *Ci) Kafka() *Container {
 }
 
 func (m *Ci) Spectral() *Container {
-	source := dag.Host().Directory("./testdata/spectral/")
+	source := dag.CurrentModule().Source().Directory("./testdata/spectral/")
 
 	return dag.Spectral().Lint([]*File{source.File("openapi.json")}, source.File(".spectral.yaml"))
 }

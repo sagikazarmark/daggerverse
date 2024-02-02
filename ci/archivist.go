@@ -10,7 +10,7 @@ func (m *Ci) Archivist(ctx context.Context) error {
 	var group errgroup.Group
 
 	group.Go(func() error {
-		dir := dag.Host().Directory("./testdata/archivist")
+		dir := dag.CurrentModule().Source().Directory("./testdata/archivist")
 
 		archive := dag.Archivist().TarGz().Archive("test", dir)
 

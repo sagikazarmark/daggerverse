@@ -5,5 +5,5 @@
 ## Usage
 
 ```go
-readme := dag.HelmDocs().Generate(dag.Host().Directory("path/to/chart"))
+readme := dag.HelmDocs().Generate(dag.CurrentModule().Source().Directory("path/to/chart"))
 ```

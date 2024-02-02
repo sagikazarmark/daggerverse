@@ -8,7 +8,7 @@
 
 ```go
 dag.Bats().
-    .WithSource(dag.Host().Directory("."))
+    .WithSource(dag.CurrentModule().Source().Directory("."))
     .Run([]string{"test.bats"})
 ```
 

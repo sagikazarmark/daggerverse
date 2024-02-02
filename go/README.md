@@ -11,7 +11,7 @@
 
 ```go
 dag.Go().
-    .WithSource(dag.Host().Directory("."))
+    .WithSource(dag.CurrentModule().Source().Directory("."))
     .Exec([]string{"go", "build"})
 ```
 
