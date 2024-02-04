@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"path"
 	"runtime"
 	"strings"
@@ -195,17 +196,22 @@ func downloadBinary(ctx context.Context, version string) (*File, error) {
 	downloadURL := fmt.Sprintf(binaryDownloadURL, version, version, runtime.GOOS, runtime.GOARCH)
 	binaryName := fmt.Sprintf("gh_%s_%s_%s", version, runtime.GOOS, runtime.GOARCH)
 
-	client := getter.Client{
-		Ctx:  ctx,
-		Src:  downloadURL,
-		Dst:  "/tmp",
-		Mode: getter.ClientModeDir,
-	}
-
-	err := client.Get()
+	pwd, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
 
-	return dag.CurrentModule().WorkdirFile(path.Join("/tmp", binaryName, "bin/gh")), nil
+	client := getter.Client{
+		Ctx:  ctx,
+		Src:  downloadURL,
+		Dst:  pwd,
+		Mode: getter.ClientModeDir,
+	}
+
+	err = client.Get()
+	if err != nil {
+		return nil, err
+	}
+
+	return dag.CurrentModule().WorkdirFile(path.Join(binaryName, "bin/gh")), nil
 }
