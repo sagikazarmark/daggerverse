@@ -41,6 +41,9 @@
       "source": "kafka"
     },
     {
+      "source": "quarto"
+    },
+    {
       "source": "spectral"
     },
     {
