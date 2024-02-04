@@ -23,6 +23,7 @@ jobs:
           - helm
           - helm-docs
           - kafka
+          - quarto
           - spectral
           - xk6
 

@@ -47,6 +47,10 @@
       "source": "../kafka"
     },
     {
+      "name": "quarto",
+      "source": "../quarto"
+    },
+    {
       "name": "spectral",
       "source": "../spectral"
     },
