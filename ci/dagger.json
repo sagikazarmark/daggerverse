@@ -1,20 +1,54 @@
 {
   "name": "ci",
-  "root": "..",
   "sdk": "go",
   "dependencies": [
-    "../arc",
-    "../archive",
-    "../archivist",
-    "../bats",
-    "../checksum",
-    "../gh",
-    "../go",
-    "../golangci-lint",
-    "../helm",
-    "../helm-docs",
-    "../kafka",
-    "../spectral",
-    "../xk6"
+    {
+      "name": "arc",
+      "source": "../arc"
+    },
+    {
+      "name": "archive",
+      "source": "../archive"
+    },
+    {
+      "name": "archivist",
+      "source": "../archivist"
+    },
+    {
+      "name": "bats",
+      "source": "../bats"
+    },
+    {
+      "name": "checksum",
+      "source": "../checksum"
+    },
+    {
+      "name": "gh",
+      "source": "../gh"
+    },
+    {
+      "name": "go",
+      "source": "../go"
+    },
+    {
+      "name": "golangci-lint",
+      "source": "../golangci-lint"
+    },
+    {
+      "name": "helm",
+      "source": "../helm"
+    },
+    {
+      "name": "helm-docs",
+      "source": "../helm-docs"
+    },
+    {
+      "name": "kafka",
+      "source": "../kafka"
+    },
+    {
+      "name": "spectral",
+      "source": "../spectral"
+    }
   ]
 }

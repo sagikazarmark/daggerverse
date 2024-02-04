@@ -1,0 +1,11 @@
+{
+  "exclude": [
+    ".devenv",
+    ".direnv"
+  ],
+  "root-for": [
+    {
+      "source": "ci"
+    }
+  ]
+}
