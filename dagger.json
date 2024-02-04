@@ -5,7 +5,46 @@
   ],
   "root-for": [
     {
+      "source": "arc"
+    },
+    {
+      "source": "archive"
+    },
+    {
+      "source": "archivist"
+    },
+    {
+      "source": "bats"
+    },
+    {
+      "source": "checksum"
+    },
+    {
       "source": "ci"
+    },
+    {
+      "source": "gh"
+    },
+    {
+      "source": "go"
+    },
+    {
+      "source": "golangci-lint"
+    },
+    {
+      "source": "helm"
+    },
+    {
+      "source": "helm-docs"
+    },
+    {
+      "source": "kafka"
+    },
+    {
+      "source": "spectral"
+    },
+    {
+      "source": "xk6"
     }
   ]
 }

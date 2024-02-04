@@ -1,7 +1,4 @@
 {
   "name": "archivist",
-  "sdk": "go",
-  "dependencies": [
-    "github.com/sagikazarmark/daggerverse/arc@20e8626c9f25d570e6321765d496643736d76ee5"
-  ]
+  "sdk": "go"
 }
