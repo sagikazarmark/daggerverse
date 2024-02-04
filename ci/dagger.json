@@ -49,6 +49,10 @@
     {
       "name": "spectral",
       "source": "../spectral"
+    },
+    {
+      "name": "xk6",
+      "source": "../xk6"
     }
   ]
 }
