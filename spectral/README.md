@@ -8,8 +8,8 @@
 
 ```go
 dag.Spectral().Lint(
-    []*File{dag.Host().File("openapi.json")},
-    dag.Host().File(".spectral.yaml"),
+    []*File{dag.CurrentModule().Source().File("openapi.json")},
+    dag.CurrentModule().Source().File(".spectral.yaml"),
 )
 ```
 

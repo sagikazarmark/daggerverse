@@ -1,7 +1,7 @@
 # xk6
 
 [Daggerverse](https://daggerverse.dev/mod/github.com/sagikazarmark/daggerverse/xk6)
-![Dagger Version](https://img.shields.io/badge/dagger%20version-%3E=0.9.5-0f0f19.svg?style=flat-square)
+![Dagger Version](https://img.shields.io/badge/dagger%20version-%3E=0.9.8-0f0f19.svg?style=flat-square)
 
 **Make custom builds of [k6](https://github.com/grafana/k6).**
 

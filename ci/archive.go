@@ -9,7 +9,7 @@ import (
 func (m *Ci) Archive(ctx context.Context) error {
 	var group errgroup.Group
 
-	source := dag.Host().Directory("./testdata/archive")
+	source := dag.CurrentModule().Source().Directory("./testdata/archive")
 
 	// Format
 	group.Go(func() error {
