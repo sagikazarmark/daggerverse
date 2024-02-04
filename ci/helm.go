@@ -137,12 +137,12 @@ func (m *Ci) Helm(ctx context.Context) error {
 
 		_, err = dag.Helm(HelmOpts{
 			Container: helm.Container().
-				WithServiceBinding("zot2", registry),
+				WithServiceBinding("zot", registry),
 		}).
-			Login("zot2:8080", "username", password, HelmLoginOpts{
+			Login("zot:8080", "username", password, HelmLoginOpts{
 				Insecure: true,
 			}).
-			Push(pkg, "oci://zot2:8080/helm-charts", HelmPushOpts{
+			Push(pkg, "oci://zot:8080/helm-charts", HelmPushOpts{
 				PlainHTTP: true,
 			}).
 			Sync(ctx)
