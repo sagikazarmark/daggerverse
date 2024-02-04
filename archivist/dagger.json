@@ -1,4 +1,10 @@
 {
   "name": "archivist",
-  "sdk": "go"
+  "sdk": "go",
+  "dependencies": [
+    {
+      "name": "arc",
+      "source": "../arc"
+    }
+  ]
 }
