@@ -6,5 +6,7 @@
       "name": "arc",
       "source": "../arc"
     }
-  ]
+  ],
+  "source": ".",
+  "engineVersion": "v0.9.9"
 }

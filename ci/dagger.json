@@ -58,5 +58,7 @@
       "name": "xk6",
       "source": "../xk6"
     }
-  ]
+  ],
+  "source": ".",
+  "engineVersion": "v0.9.9"
 }
