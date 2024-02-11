@@ -4,7 +4,7 @@
   "dependencies": [
     {
       "name": "arc",
-      "source": "../arc"
+      "source": "github.com/sagikazarmark/daggerverse/arc"
     }
   ],
   "source": ".",
