@@ -1,3 +1,4 @@
+// Dagger-native API for creating and extracting archives.
 package main
 
 // Archivist provides methods to create and extract archives.

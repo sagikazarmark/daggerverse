@@ -1,3 +1,4 @@
+// Bash Automated Testing System
 package main
 
 import (

@@ -1,3 +1,4 @@
+// Go programming language module.
 package main
 
 import (
