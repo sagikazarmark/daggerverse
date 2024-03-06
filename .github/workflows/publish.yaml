@@ -45,6 +45,6 @@ jobs:
         run: nix develop --impure .#ci
 
       - name: Publish
-        run: nix develop --impure .#ci -c dagger mod publish
+        run: nix develop --impure .#ci -c dagger publish
         env:
           DAGGER_MODULE: ${{ matrix.module }}
