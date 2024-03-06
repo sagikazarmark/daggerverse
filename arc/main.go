@@ -1,3 +1,4 @@
+// Easily create & extract archives, and compress & decompress files of various formats.
 package main
 
 import (

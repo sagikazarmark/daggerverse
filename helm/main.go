@@ -1,3 +1,4 @@
+// The package manager for Kubernetes.
 package main
 
 import (

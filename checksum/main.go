@@ -1,3 +1,4 @@
+// Calculate and check the checksum of files.
 package main
 
 import (
@@ -28,7 +29,7 @@ func (m *Sha256) Calculate(
 
 	// The name of the checksum file.
 	// +optional
-	// +default=checksums.txt
+	// +default="checksums.txt"
 	fileName string,
 ) *File {
 	return calculate(ctx, "sha256", fileName, files)

@@ -1,4 +1,4 @@
-module main
+module golangci-lint
 
 go 1.21.3
 
@@ -10,6 +10,6 @@ require (
 )
 
 require (
-	github.com/stretchr/testify v1.8.3 // indirect
+	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/vektah/gqlparser/v2 v2.5.6
 )
