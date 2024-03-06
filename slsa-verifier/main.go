@@ -139,7 +139,7 @@ func (m *SlsaVerifier) get(ctx context.Context, version string) (*File, error) {
 
 		version, err = getLatestVersion(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get latest GitHub CLI version: %w", err)
+			return nil, fmt.Errorf("failed to get latest version: %w", err)
 		}
 	}
 
