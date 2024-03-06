@@ -51,6 +51,10 @@
       "source": "../quarto"
     },
     {
+      "name": "slsa-verifier",
+      "source": "../slsa-verifier"
+    },
+    {
       "name": "spectral",
       "source": "../spectral"
     },

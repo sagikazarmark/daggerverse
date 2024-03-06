@@ -24,6 +24,7 @@ jobs:
           - helm-docs
           - kafka
           - quarto
+          - slsa-verifier
           - spectral
           - xk6
 
