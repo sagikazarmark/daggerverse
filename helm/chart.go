@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+
+	"helm.sh/helm/v3/pkg/chart"
+	"sigs.k8s.io/yaml"
 )
 
 // Returns a Helm chart from a source directory.
@@ -135,40 +138,22 @@ func (p *Package) WithRegistryAuth(
 	// +optional
 	insecure bool,
 ) (*Package, error) {
-	pass, err := password.Plaintext(ctx)
+	ctr, err := login(ctx, p.Container, host, username, password, insecure)
 	if err != nil {
 		return nil, err
 	}
 
-	args := []string{
-		"registry",
-		"login",
-		host,
-		"--username", username,
-		"--password", pass,
-	}
-
-	if insecure {
-		args = append(args, "--insecure")
-	}
-
 	return &Package{
 		File:      p.File,
-		Container: p.Container.WithExec(args),
+		Container: ctr,
 	}, nil
 }
 
 // Remove credentials stored for an OCI registry.
 func (p *Package) WithoutRegistryAuth(host string) *Package {
-	args := []string{
-		"registry",
-		"logout",
-		host,
-	}
-
 	return &Package{
 		File:      p.File,
-		Container: p.Container.WithExec(args),
+		Container: logout(p.Container, host),
 	}
 }
 
@@ -240,4 +225,19 @@ func (p *Package) Publish(
 	_, err := ctr.WithExec(args).Sync(ctx)
 
 	return err
+}
+
+func getChartMetadata(ctx context.Context, c *Directory) (*chart.Metadata, error) {
+	chartYaml, err := c.File("Chart.yaml").Contents(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	meta := new(chart.Metadata)
+	err = yaml.Unmarshal([]byte(chartYaml), meta)
+	if err != nil {
+		return nil, err
+	}
+
+	return meta, nil
 }

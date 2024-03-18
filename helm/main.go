@@ -4,10 +4,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"path"
-
-	"helm.sh/helm/v3/pkg/chart"
-	"sigs.k8s.io/yaml"
 )
 
 // defaultImageRepository is used when no image is specified.
@@ -67,26 +63,7 @@ func (m *Helm) Lint(
 	// A directory containing a Helm chart.
 	chart *Directory,
 ) (*Container, error) {
-	chartMetadata, err := getChartMetadata(ctx, chart)
-	if err != nil {
-		return nil, err
-	}
-
-	const workdir = "/src"
-
-	chartName := chartMetadata.Name
-	chartPath := path.Join(workdir, chartName)
-
-	ctr := m.Ctr.
-		WithWorkdir(workdir).
-		WithMountedDirectory(chartPath, chart)
-
-	args := []string{
-		"lint",
-		chartPath,
-	}
-
-	return ctr.WithExec(args), nil
+	return m.Chart(chart).Lint(ctx)
 }
 
 // Build a Helm chart package.
@@ -108,45 +85,12 @@ func (m *Helm) Package(
 	// +optional
 	dependencyUpdate bool,
 ) (*File, error) {
-	chartMetadata, err := getChartMetadata(ctx, chart)
+	pkg, err := m.Chart(chart).Package(ctx, appVersion, version, dependencyUpdate)
 	if err != nil {
 		return nil, err
 	}
 
-	const workdir = "/src"
-
-	chartName := chartMetadata.Name
-	chartPath := path.Join(workdir, chartName)
-
-	ctr := m.Ctr.
-		WithWorkdir(workdir).
-		WithMountedDirectory(chartPath, chart)
-
-	args := []string{
-		"package",
-
-		"--destination", "/out",
-	}
-
-	if appVersion != "" {
-		args = append(args, "--app-version", appVersion)
-	}
-
-	chartVersion := chartMetadata.Version
-	if version != "" {
-		args = append(args, "--version", version)
-		chartVersion = version
-	}
-
-	if dependencyUpdate {
-		args = append(args, "--dependency-update")
-	}
-
-	args = append(args, chartPath)
-
-	ctr = ctr.WithExec(args)
-
-	return ctr.File(fmt.Sprintf("/out/%s-%s.tgz", chartName, chartVersion)), nil
+	return pkg.File, nil
 }
 
 // Authenticate to an OCI registry.
@@ -166,6 +110,22 @@ func (m *Helm) Login(
 	// +optional
 	insecure bool,
 ) (*Helm, error) {
+	ctr, err := login(ctx, m.Ctr, host, username, password, insecure)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Helm{ctr}, nil
+}
+
+func login(
+	ctx context.Context,
+	ctr *Container,
+	host string,
+	username string,
+	password *Secret,
+	insecure bool,
+) (*Container, error) {
 	pass, err := password.Plaintext(ctx)
 	if err != nil {
 		return nil, err
@@ -183,22 +143,28 @@ func (m *Helm) Login(
 		args = append(args, "--insecure")
 	}
 
-	return &Helm{m.Ctr.WithExec(args)}, nil
+	return ctr.WithExec(args), nil
 }
 
 // Remove credentials stored for an OCI registry.
 func (m *Helm) Logout(host string) *Helm {
+	return &Helm{logout(m.Ctr, host)}
+}
+
+func logout(ctr *Container, host string) *Container {
 	args := []string{
 		"registry",
 		"logout",
 		host,
 	}
 
-	return &Helm{m.Ctr.WithExec(args)}
+	return ctr.WithExec(args)
 }
 
 // Push a Helm chart package to an OCI registry.
 func (m *Helm) Push(
+	ctx context.Context,
+
 	// Packaged Helm chart.
 	pkg *File,
 
@@ -224,59 +190,11 @@ func (m *Helm) Push(
 	// Identify registry client using this SSL key file.
 	// +optional
 	keyFile *File,
-) *Container {
-	const workdir = "/src"
-
-	chartPath := path.Join(workdir, "chart.tgz")
-
-	ctr := m.Ctr.
-		WithWorkdir(workdir).
-		WithMountedFile(chartPath, pkg)
-
-	args := []string{
-		"push",
-
-		chartPath,
-		registry,
+) error {
+	p := &Package{
+		File:      pkg,
+		Container: m.Ctr,
 	}
 
-	if plainHttp {
-		args = append(args, "--plain-http")
-	}
-
-	if insecureSkipTlsVerify {
-		args = append(args, "--insecure-skip-tls-verify")
-	}
-
-	if caFile != nil {
-		ctr = ctr.WithMountedFile("/etc/helm/ca.pem", caFile)
-		args = append(args, "--ca-file", "/etc/helm/ca.pem")
-	}
-
-	if certFile != nil {
-		ctr = ctr.WithMountedFile("/etc/helm/cert.pem", certFile)
-		args = append(args, "--cert-file", "/etc/helm/cert.pem")
-	}
-
-	if keyFile != nil {
-		ctr = ctr.WithMountedFile("/etc/helm/key.pem", keyFile)
-		args = append(args, "--key-file", "/etc/helm/key.pem")
-	}
-
-	return ctr.WithExec(args)
-}
-
-func getChartMetadata(ctx context.Context, c *Directory) (*chart.Metadata, error) {
-	chartYaml, err := c.File("Chart.yaml").Contents(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	meta := new(chart.Metadata)
-	err = yaml.Unmarshal([]byte(chartYaml), meta)
-	if err != nil {
-		return nil, err
-	}
-
-	return meta, nil
+	return p.Publish(ctx, registry, plainHttp, insecureSkipTlsVerify, caFile, certFile, keyFile)
 }
