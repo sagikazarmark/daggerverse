@@ -64,5 +64,8 @@
     }
   ],
   "source": ".",
-  "engineVersion": "v0.10.1"
+  "engineVersion": "v0.10.3",
+  "codegen": {
+    "automaticGitignore": true
+  }
 }
