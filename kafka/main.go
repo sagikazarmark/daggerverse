@@ -1,3 +1,4 @@
+// Kafka service module for Dagger.
 package main
 
 import "fmt"

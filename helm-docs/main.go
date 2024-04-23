@@ -1,3 +1,4 @@
+// A tool for automatically generating markdown documentation for helm charts.
 package main
 
 import (

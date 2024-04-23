@@ -1,3 +1,4 @@
+// Open-source scientific and technical publishing system built on Pandoc.
 package main
 
 import (

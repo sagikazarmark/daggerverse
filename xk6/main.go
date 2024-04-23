@@ -1,3 +1,4 @@
+// Build k6 with extensions.
 package main
 
 import (

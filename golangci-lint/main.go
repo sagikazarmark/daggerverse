@@ -1,3 +1,4 @@
+// Fast linters runner for Go.
 package main
 
 import (

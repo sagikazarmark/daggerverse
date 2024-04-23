@@ -1,3 +1,4 @@
+// An open-source API style guide enforcer and linter.
 package main
 
 import (
