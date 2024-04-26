@@ -1,4 +1,4 @@
-module github.com/sagikazarmark/daggerverse/helm
+module dagger/helm
 
 go 1.21.3
 

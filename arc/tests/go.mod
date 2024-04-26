@@ -1,4 +1,4 @@
-module github.com/sagikazarmark/daggerverse/arc/tests
+module dagger/arc/tests
 
 go 1.21.7
 

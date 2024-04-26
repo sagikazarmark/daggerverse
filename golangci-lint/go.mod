@@ -1,4 +1,4 @@
-module github.com/sagikazarmark/daggerverse/golangci-lint
+module dagger/golangci-lint
 
 go 1.21.3
 

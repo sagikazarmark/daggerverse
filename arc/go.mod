@@ -1,4 +1,4 @@
-module github.com/sagikazarmark/daggerverse/arc
+module dagger/arc
 
 go 1.21.3
 

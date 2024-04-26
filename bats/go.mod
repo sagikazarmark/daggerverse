@@ -1,4 +1,4 @@
-module github.com/sagikazarmark/daggerverse/bats
+module dagger/bats
 
 go 1.21.2
 

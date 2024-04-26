@@ -1,4 +1,4 @@
-module github.com/sagikazarmark/daggerverse/slsa-verifier
+module dagger/slsa-verifier
 
 go 1.21.7
 

@@ -1,4 +1,4 @@
-module github.com/sagikazarmark/daggerverse/spectral
+module dagger/spectral
 
 go 1.21.2
 

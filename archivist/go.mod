@@ -1,4 +1,4 @@
-module github.com/sagikazarmark/daggerverse/archivist
+module dagger/archivist
 
 go 1.21.3
 

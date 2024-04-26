@@ -1,4 +1,4 @@
-module github.com/sagikazarmark/daggerverse/xk6
+module dagger/xk6
 
 go 1.21.3
 

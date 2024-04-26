@@ -1,4 +1,4 @@
-module github.com/sagikazarmark/daggerverse/helm-tests
+module dagger/helm/tests
 
 go 1.21.7
 

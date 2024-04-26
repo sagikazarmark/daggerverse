@@ -1,4 +1,4 @@
-module github.com/sagikazarmark/daggerverse/gh
+module dagger/gh
 
 go 1.21.3
 
@@ -21,9 +21,6 @@ require (
 	golang.org/x/crypto v0.19.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
-)
-
-require (
 	cloud.google.com/go v0.112.0 // indirect
 	cloud.google.com/go/compute v1.23.3 // indirect
 	cloud.google.com/go/iam v1.1.5 // indirect

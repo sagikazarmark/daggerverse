@@ -1,4 +1,4 @@
-module github.com/sagikazarmark/daggerverse/quarto
+module dagger/quarto
 
 go 1.21.3
 

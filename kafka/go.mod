@@ -1,4 +1,4 @@
-module github.com/sagikazarmark/daggerverse/kafka
+module dagger/kafka
 
 go 1.21.2
 

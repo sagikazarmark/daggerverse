@@ -1,4 +1,4 @@
-module github.com/sagikazarmark/daggerverse/checksum
+module dagger/checksum
 
 go 1.21.3
 
