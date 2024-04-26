@@ -14,6 +14,7 @@ jobs:
       matrix:
         module:
           - arc
+          - helm
 
     steps:
       - name: Run pipeline

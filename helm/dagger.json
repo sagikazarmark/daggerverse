@@ -1,6 +1,9 @@
 {
   "name": "helm",
   "sdk": "go",
+  "exclude": [
+    "tests"
+  ],
   "source": ".",
   "engineVersion": "v0.11.1",
   "codegen": {
