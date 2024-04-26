@@ -1,8 +1,11 @@
 {
-  "name": "arc",
+  "name": "tests",
   "sdk": "go",
-  "exclude": [
-    "tests"
+  "dependencies": [
+    {
+      "name": "arc",
+      "source": ".."
+    }
   ],
   "source": ".",
   "engineVersion": "v0.11.1",

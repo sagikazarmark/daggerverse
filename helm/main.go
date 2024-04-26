@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"path"
 )
 
 // defaultImageRepository is used when no image is specified.
@@ -54,6 +55,18 @@ func New(
 
 func (m *Helm) Container() *Container {
 	return m.Ctr
+}
+
+// Create a new chart directory along with the common files and directories used in a chart.
+func (m *Helm) Create(name string) *Directory {
+	const workdir = "/work"
+
+	name = path.Clean(name)
+
+	return m.Ctr.
+		WithWorkdir(workdir).
+		WithExec([]string{"create", name}).
+		Directory(path.Join(workdir, name))
 }
 
 // Lint a Helm chart directory.
