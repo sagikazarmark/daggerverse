@@ -1,4 +1,4 @@
-module dagger/tests
+module dagger/helm/tests
 
 go 1.21.7
 
