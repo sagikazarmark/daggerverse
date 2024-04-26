@@ -1,0 +1,21 @@
+go 1.22.1
+
+use (
+	./arc
+	./arc/tests
+	./archive
+	./archivist
+	./bats
+	./checksum
+	./gh
+	./go
+	./golangci-lint
+	./helm
+	./helm-docs
+	./helm/tests
+	./kafka
+	./quarto
+	./slsa-verifier
+	./spectral
+	./xk6
+)
