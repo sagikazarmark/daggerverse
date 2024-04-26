@@ -13,6 +13,8 @@ use (
 	./helm
 	./helm-docs
 	./kafka
+	./kustomize
+	./kustomize/tests
 	./quarto
 	./slsa-verifier
 	./spectral
