@@ -1,0 +1,12 @@
+{
+  "name": "tests",
+  "sdk": "go",
+  "dependencies": [
+    {
+      "name": "kustomize",
+      "source": ".."
+    }
+  ],
+  "source": ".",
+  "engineVersion": "v0.11.1"
+}

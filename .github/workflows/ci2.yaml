@@ -15,6 +15,7 @@ jobs:
         module:
           - arc
           - helm
+          - kustomize
 
     steps:
       - name: Run pipeline
