@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/sourcegraph/conc/pool"
@@ -16,6 +17,7 @@ type Tests struct{}
 func (m *Tests) All(ctx context.Context) error {
 	p := pool.New().WithErrors().WithContext(ctx)
 
+	p.Go(m.Create)
 	p.Go(m.Lint)
 	p.Go(m.LintOld)
 	p.Go(m.Package)
@@ -24,6 +26,24 @@ func (m *Tests) All(ctx context.Context) error {
 	// p.Go(m.LoginAndPushOld)
 
 	return p.Wait()
+}
+
+func (m *Tests) Create(ctx context.Context) error {
+	dir := dag.Helm(HelmOpts{
+		Version: helmVersion,
+	}).
+		Create("foo")
+
+	entries, err := dir.Entries(ctx)
+	if err != nil {
+		return err
+	}
+
+	if !slices.Contains(entries, "Chart.yaml") {
+		return fmt.Errorf("expected chart directory to contain Chart.yaml")
+	}
+
+	return nil
 }
 
 // TODO: improve this test
