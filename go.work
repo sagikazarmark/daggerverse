@@ -25,6 +25,7 @@ use (
 	./kustomize
 	./kustomize/tests
 	./quarto
+	./quarto/tests
 	./slsa-verifier
 	./spectral
 	./xk6
