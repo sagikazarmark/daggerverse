@@ -1,6 +1,6 @@
 module dagger/go
 
-go 1.21.3
+go 1.21.7
 
 require (
 	github.com/Khan/genqlient v0.7.0
