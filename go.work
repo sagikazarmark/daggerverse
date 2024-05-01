@@ -29,5 +29,6 @@ use (
 	./slsa-verifier
 	./slsa-verifier/tests
 	./spectral
+	./spectral/tests
 	./xk6
 )

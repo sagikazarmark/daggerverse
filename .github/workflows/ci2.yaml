@@ -26,6 +26,7 @@ jobs:
           - kustomize
           - quarto
           - slsa-verifier
+          - spectral
 
     steps:
       - name: Run pipeline
