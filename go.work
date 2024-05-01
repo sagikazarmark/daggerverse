@@ -31,4 +31,5 @@ use (
 	./spectral
 	./spectral/tests
 	./xk6
+	./xk6/tests
 )

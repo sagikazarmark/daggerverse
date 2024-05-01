@@ -27,6 +27,7 @@ jobs:
           - quarto
           - slsa-verifier
           - spectral
+          - xk6
 
     steps:
       - name: Run pipeline
