@@ -14,7 +14,6 @@ jobs:
       matrix:
         module:
           - arc
-          - archive
           - archivist
           - bats
           - checksum
@@ -24,63 +23,18 @@ jobs:
           - helm
           - helm-docs
           - kafka
+          - kustomize
           - quarto
           - slsa-verifier
           - spectral
           - xk6
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-
-      - name: Set up Nix
-        uses: cachix/install-nix-action@8887e596b4ee1134dae06b98d573bd674693f47c # v26
+      - name: Run pipeline
+        uses: dagger/dagger-for-github@eba69b4dddb54eddfdb51a88eb7fd86957137630 # v5.4.0
         with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up magic Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@fc6aaceb40b9845a02b91e059ec147e78d1b4e41 # v4
-
-      - name: Prepare Nix shell
-        run: nix develop --impure .#ci
-
-      - name: Test
-        run: nix develop --impure .#ci -c dagger call ${{ matrix.module }}
-        env:
-          DAGGER_MODULE: ci
-
-  dev:
-    name: Developer environment
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-
-      - name: Set up Nix
-        uses: cachix/install-nix-action@8887e596b4ee1134dae06b98d573bd674693f47c # v26
-        with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up magic Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@fc6aaceb40b9845a02b91e059ec147e78d1b4e41 # v4
-
-      - name: Check
-        run: nix flake check --impure
-
-      - name: Dev shell
-        run: nix develop --impure
-
-  dependency-review:
-    name: Dependency review
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-
-      - name: Dependency Review
-        uses: actions/dependency-review-action@0c155c5e8556a497adf53f2c18edabf945ed8e70 # v4.3.2
+          verb: call
+          module: github.com/${{ github.repository }}/${{ matrix.module }}/tests@${{ github.ref }}
+          args: all
+          # cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: "0.11.2"
