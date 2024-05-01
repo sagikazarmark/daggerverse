@@ -12,6 +12,7 @@ use (
 	./golangci-lint
 	./helm
 	./helm-docs
+	./helm/tests
 	./kafka
 	./kustomize
 	./kustomize/tests

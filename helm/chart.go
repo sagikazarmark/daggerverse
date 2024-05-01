@@ -123,8 +123,6 @@ func (c *Chart) Package(
 
 // Authenticate to an OCI registry.
 func (p *Package) WithRegistryAuth(
-	ctx context.Context,
-
 	// Host of the OCI registry.
 	host string,
 
@@ -137,16 +135,11 @@ func (p *Package) WithRegistryAuth(
 	// Allow connections to TLS registry without certs.
 	// +optional
 	insecure bool,
-) (*Package, error) {
-	ctr, err := login(ctx, p.Container, host, username, password, insecure)
-	if err != nil {
-		return nil, err
-	}
-
+) *Package {
 	return &Package{
 		File:      p.File,
-		Container: ctr,
-	}, nil
+		Container: login(p.Container, host, username, password, insecure),
+	}
 }
 
 // Remove credentials stored for an OCI registry.

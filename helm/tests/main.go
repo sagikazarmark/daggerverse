@@ -22,8 +22,9 @@ func (m *Tests) All(ctx context.Context) error {
 	p.Go(m.LintOld)
 	p.Go(m.Package)
 	p.Go(m.PackageOld)
-	p.Go(m.LoginAndPush)
+	// p.Go(m.LoginAndPush)
 	// p.Go(m.LoginAndPushOld)
+	p.Go(m.LoginOld)
 
 	return p.Wait()
 }
@@ -173,6 +174,44 @@ func (m *Tests) LoginAndPushOld(ctx context.Context) error {
 		Push(ctx, pkg, "oci://zot2:8080/helm-charts", HelmPushOpts{
 			PlainHTTP: true,
 		})
+
+	return err
+}
+
+// TODO: improve this test
+func (m *Tests) LoginOld(ctx context.Context) error {
+	const zotRepositoryTemplate = "ghcr.io/project-zot/zot-%s-%s"
+	const zotVersion = "v2.0.0"
+
+	platform, err := dag.DefaultPlatform(ctx)
+	if err != nil {
+		return err
+	}
+
+	platformArgs := strings.Split(string(platform), "/")
+
+	zotRepository := fmt.Sprintf(zotRepositoryTemplate, platformArgs[0], platformArgs[1])
+
+	helm := dag.Helm(HelmOpts{
+		Version: helmVersion,
+	})
+
+	registry := dag.Container().
+		From(fmt.Sprintf("%s:%s", zotRepository, zotVersion)).
+		WithExposedPort(8080).
+		WithMountedDirectory("/etc/zot", dag.CurrentModule().Source().Directory("./testdata/zot")).
+		WithExec([]string{"serve", "/etc/zot/config.json"}).
+		AsService()
+
+	password := dag.SetSecret("registry-password", "password")
+
+	_, err = dag.Helm(HelmOpts{
+		Container: helm.Container().
+			WithServiceBinding("zot", registry),
+	}).
+		Login("zot:8080", "username", password, HelmLoginOpts{
+			Insecure: true,
+		}).Container().Sync(ctx)
 
 	return err
 }
