@@ -8,6 +8,7 @@ import (
 	"path"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/v58/github"
 	"github.com/hashicorp/go-getter"
@@ -123,7 +124,8 @@ func (m *Gh) container(ctx context.Context, token *Secret, repo string) (*Contai
 
 			return c
 		}).
-		WithEntrypoint([]string{"/usr/local/bin/gh"})
+		WithEntrypoint([]string{"/usr/local/bin/gh"}).
+		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano))
 
 	return container, nil
 }
