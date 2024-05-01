@@ -40,12 +40,20 @@ func New(
 		ctr = dag.Container().From(defaultImageRepository)
 	}
 
+	ctr = ctr.
+		// Make sure to run as root for now, so that we know where Helm home is.
+		WithUser("root").
+
+		// Do not allow overriding Helm path locations (when using a custom image or container).
+		// TODO: add other paths: https://helm.sh/docs/helm/helm/
+		WithoutEnvVariable("HELM_HOME").
+		WithoutEnvVariable("HELM_REGISTRY_CONFIG").
+		WithMountedTemp("/root/.config/helm/registry")
+
 	// Disable cache mounts for now.
 	// Need to figure out if they are needed at all.
 	// Note: helm registry auth is stored in ~/.config/helm/registry/config.json (within helm config dir)
-	// ctr = ctr..
-	// 	// TODO: run as non-root
-	// 	WithUser("root").
+	// ctr = ctr.
 	// 	WithMountedCache("/root/.cache/helm", dag.CacheVolume("helm-cache")).
 	// 	WithMountedCache("/root/.helm", dag.CacheVolume("helm-root")).
 	// 	WithMountedCache("/root/.config/helm", dag.CacheVolume("helm-config"))
