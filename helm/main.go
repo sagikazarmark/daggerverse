@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"strings"
 )
 
 // defaultImageRepository is used when no image is specified.
@@ -130,41 +131,34 @@ func (m *Helm) Login(
 	// Allow connections to TLS registry without certs.
 	// +optional
 	insecure bool,
-) (*Helm, error) {
-	ctr, err := login(ctx, m.Ctr, host, username, password, insecure)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Helm{ctr}, nil
+) *Helm {
+	return &Helm{login(m.Ctr, host, username, password, insecure)}
 }
 
 func login(
-	ctx context.Context,
 	ctr *Container,
 	host string,
 	username string,
 	password *Secret,
 	insecure bool,
-) (*Container, error) {
-	pass, err := password.Plaintext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
+) *Container {
 	args := []string{
+		"helm",
 		"registry",
 		"login",
 		host,
 		"--username", username,
-		"--password", pass,
+		"--password", "$HELM_PASSWORD",
 	}
 
 	if insecure {
 		args = append(args, "--insecure")
 	}
 
-	return ctr.WithExec(args), nil
+	return ctr.
+		WithSecretVariable("HELM_PASSWORD", password).
+		WithExec([]string{"sh", "-c", strings.Join(args, " ")}, ContainerWithExecOpts{SkipEntrypoint: true}).
+		WithoutEnvVariable("HELM_PASSWORD")
 }
 
 // Remove credentials stored for an OCI registry.
