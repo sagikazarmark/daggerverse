@@ -9,6 +9,7 @@ use (
 	./bats
 	./bats/tests
 	./checksum
+	./checksum/tests
 	./gh
 	./go
 	./golangci-lint

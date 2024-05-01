@@ -16,6 +16,7 @@ jobs:
           - arc
           - archivist
           - bats
+          - checksum
           - helm
           - kustomize
 
