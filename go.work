@@ -11,6 +11,7 @@ use (
 	./checksum
 	./checksum/tests
 	./gh
+	./gh/tests
 	./go
 	./golangci-lint
 	./helm
