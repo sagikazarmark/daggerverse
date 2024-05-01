@@ -25,6 +25,7 @@ jobs:
           - kafka
           - kustomize
           - quarto
+          - slsa-verifier
 
     steps:
       - name: Run pipeline

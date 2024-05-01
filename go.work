@@ -27,6 +27,7 @@ use (
 	./quarto
 	./quarto/tests
 	./slsa-verifier
+	./slsa-verifier/tests
 	./spectral
 	./xk6
 )
