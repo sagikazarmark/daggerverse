@@ -1,4 +1,4 @@
-go 1.22.2
+go 1.21.7
 
 use (
 	./arc
@@ -21,6 +21,7 @@ use (
 	./helm-docs/tests
 	./helm/tests
 	./kafka
+	./kafka/tests
 	./kustomize
 	./kustomize/tests
 	./quarto
