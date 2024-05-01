@@ -2,8 +2,5 @@
   "name": "archive",
   "sdk": "go",
   "source": ".",
-  "engineVersion": "v0.11.1",
-  "codegen": {
-    "automaticGitignore": true
-  }
+  "engineVersion": "v0.11.1"
 }

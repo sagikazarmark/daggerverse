@@ -2,11 +2,12 @@
   "name": "kustomize",
   "sdk": "go",
   "exclude": [
+    "../.direnv",
+    "../.devenv",
+    "../go.work",
+    "../go.work.sum",
     "tests"
   ],
   "source": ".",
-  "engineVersion": "v0.11.1",
-  "codegen": {
-    "automaticGitignore": true
-  }
+  "engineVersion": "v0.11.2"
 }

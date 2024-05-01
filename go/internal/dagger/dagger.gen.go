@@ -21,7 +21,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 
-	"golang/internal/querybuilder"
+	"dagger/go/internal/querybuilder"
 )
 
 func Tracer() trace.Tracer {
@@ -6091,6 +6091,16 @@ func (r *Client) TypeDef() *TypeDef {
 	return &TypeDef{
 		query: q,
 	}
+}
+
+// Get the current Dagger Engine version.
+func (r *Client) Version(ctx context.Context) (string, error) {
+	q := r.query.Select("version")
+
+	var response string
+
+	q = q.Bind(&response)
+	return response, q.Execute(ctx)
 }
 
 // A reference to a secret value, which can be handled more safely than the value itself.
