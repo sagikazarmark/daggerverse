@@ -19,6 +19,7 @@ jobs:
           - checksum
           - gh
           - go
+          - golangci-lint
           - helm
           - kustomize
 
