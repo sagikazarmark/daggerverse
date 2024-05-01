@@ -18,6 +18,7 @@ jobs:
           - bats
           - checksum
           - gh
+          - go
           - helm
           - kustomize
 
