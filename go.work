@@ -1,23 +1,35 @@
-go 1.22.1
+go 1.21.7
 
 use (
 	./arc
 	./arc/tests
 	./archive
 	./archivist
+	./archivist/tests
 	./bats
+	./bats/tests
 	./checksum
+	./checksum/tests
 	./gh
+	./gh/tests
 	./go
+	./go/tests
 	./golangci-lint
+	./golangci-lint/tests
 	./helm
 	./helm-docs
+	./helm-docs/tests
 	./helm/tests
 	./kafka
+	./kafka/tests
 	./kustomize
 	./kustomize/tests
 	./quarto
+	./quarto/tests
 	./slsa-verifier
+	./slsa-verifier/tests
 	./spectral
+	./spectral/tests
 	./xk6
+	./xk6/tests
 )
