@@ -18,6 +18,7 @@ use (
 	./golangci-lint/tests
 	./helm
 	./helm-docs
+	./helm-docs/tests
 	./helm/tests
 	./kafka
 	./kustomize
