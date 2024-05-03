@@ -54,3 +54,7 @@ init module:
     @echo ""
     @echo "Module \"{{module}}\" initialized"
     @echo "Don't forget to add it to GitHub Actions when you are ready!"
+
+# run `dagger develop` for all modules
+develop:
+    for dir in */; do dagger develop -m $dir; done
