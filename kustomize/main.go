@@ -18,8 +18,7 @@ const (
 )
 
 type Kustomize struct {
-	// +private
-	Ctr *Container
+	Container *Container
 }
 
 func New(
@@ -52,10 +51,6 @@ func New(
 	return m
 }
 
-func (m *Kustomize) Container() *Container {
-	return m.Ctr
-}
-
 func cleanPath(s string) string {
 	s = path.Clean(s)
 
@@ -84,7 +79,7 @@ func (m *Kustomize) Build(
 		args = append(args, cleanPath(dir))
 	}
 
-	return m.Ctr.
+	return m.Container.
 		WithWorkdir(sourcePath).
 		WithMountedDirectory(sourcePath, source).
 		WithExec(args).
@@ -106,7 +101,7 @@ func (m *Kustomize) Edit(
 		workdir = path.Join(workdir, cleanPath(dir))
 	}
 
-	return &Edit{m.Ctr.WithMountedDirectory("/work", source).WithWorkdir(workdir)}
+	return &Edit{m.Container.WithMountedDirectory("/work", source).WithWorkdir(workdir)}
 }
 
 // Edit a kustomization file.
