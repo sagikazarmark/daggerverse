@@ -1,5 +1,6 @@
+[private]
 default:
-  just --list
+  @just --list
 
 # run tests for a module
 test module test='all':
