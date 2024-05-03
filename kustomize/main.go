@@ -4,6 +4,7 @@ package main
 import (
 	"fmt"
 	"path"
+	"strings"
 )
 
 const (
@@ -17,42 +18,39 @@ const (
 )
 
 type Kustomize struct {
-	// +private
-	Ctr *Container
+	Container *Container
 }
 
 func New(
 	// Version (image tag) to use from the official image repository as a base container.
+	//
 	// +optional
 	version string,
 
-	// Custom image reference in "repository:tag" format to use as a base container.
-	// +optional
-	image string,
-
 	// Custom container to use as a base container.
+	//
 	// +optional
 	container *Container,
 ) *Kustomize {
-	var ctr *Container
+	if container == nil {
+		if version == "" {
+			version = defaultVersion
+		}
 
-	if version != "" {
-		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
-	} else if image != "" {
-		ctr = dag.Container().From(image)
-	} else if container != nil {
-		ctr = container
-	} else {
-		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, defaultVersion))
+		container = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
 	}
 
-	m := &Kustomize{ctr}
-
-	return m
+	return &Kustomize{container}
 }
 
-func (m *Kustomize) Container() *Container {
-	return m.Ctr
+func cleanPath(s string) string {
+	s = path.Clean(s)
+
+	for strings.HasPrefix(s, "../") {
+		s = strings.TrimPrefix(s, "../")
+	}
+
+	return s
 }
 
 // Build a kustomization target from a directory or URL.
@@ -70,10 +68,10 @@ func (m *Kustomize) Build(
 	args := []string{"build", "--output", output}
 
 	if dir != "" {
-		args = append(args, path.Clean(dir))
+		args = append(args, cleanPath(dir))
 	}
 
-	return m.Ctr.
+	return m.Container.
 		WithWorkdir(sourcePath).
 		WithMountedDirectory(sourcePath, source).
 		WithExec(args).
@@ -81,8 +79,21 @@ func (m *Kustomize) Build(
 }
 
 // Edit a kustomization file.
-func (m *Kustomize) Edit(source *Directory) *Edit {
-	return &Edit{m.Ctr.WithWorkdir("/work").WithMountedDirectory("/work", source)}
+func (m *Kustomize) Edit(
+	source *Directory,
+
+	// Subdirectory within the source to use as the target.
+	//
+	// +optional
+	dir string,
+) *Edit {
+	workdir := "/work"
+
+	if dir != "" {
+		workdir = path.Join(workdir, cleanPath(dir))
+	}
+
+	return &Edit{m.Container.WithMountedDirectory("/work", source).WithWorkdir(workdir)}
 }
 
 // Edit a kustomization file.
@@ -91,12 +102,9 @@ type Edit struct {
 	Container *Container
 }
 
+// Retrieve the source containing the modifications.
 func (m *Edit) Directory() *Directory {
 	return m.Container.Directory("/work")
-}
-
-func (m *Edit) File() *File {
-	return m.Container.File("/work/kustomization.yaml")
 }
 
 // Set the value of different fields in kustomization file.
