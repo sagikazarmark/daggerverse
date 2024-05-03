@@ -131,6 +131,8 @@ func (m *Gh) Exec(
 	// +optional
 	repo string,
 ) *Container {
+	args = append([]string{"gh"}, args...)
+
 	return m.container(token, repo).WithExec(args)
 }
 
