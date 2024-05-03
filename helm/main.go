@@ -48,8 +48,10 @@ func New(
 		// Do not allow overriding Helm path locations (when using a custom image or container).
 		// TODO: add other paths: https://helm.sh/docs/helm/helm/
 		WithoutEnvVariable("HELM_HOME").
-		WithoutEnvVariable("HELM_REGISTRY_CONFIG").
-		WithMountedTemp("/root/.config/helm/registry")
+		WithoutEnvVariable("HELM_REGISTRY_CONFIG")
+
+		// See https://github.com/dagger/dagger/issues/7273
+		// WithMountedTemp("/root/.config/helm/registry")
 
 	// Disable cache mounts for now.
 	// Need to figure out if they are needed at all.
