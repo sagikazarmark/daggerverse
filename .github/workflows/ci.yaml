@@ -30,11 +30,20 @@ jobs:
           - xk6
 
     steps:
+      - uses: dkershner6/switch-case-action@v1
+        id: constructor-args
+        with:
+          default: ""
+          conditionals-with-values: |
+            ${{ matrix.module == 'gh' }} => --github-token env:GITHUB_TOKEN
+
       - name: Run pipeline
         uses: dagger/dagger-for-github@eba69b4dddb54eddfdb51a88eb7fd86957137630 # v5.4.0
         with:
           verb: call
           module: github.com/${{ github.repository }}/${{ matrix.module }}/tests@${{ github.ref }}
-          args: all
+          args: ${{ steps.constructor-args.outputs.value }} all
           # cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: "0.11.2"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

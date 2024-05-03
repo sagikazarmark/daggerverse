@@ -26,68 +26,79 @@ func (m *Release) Create(
 	title string,
 
 	// Release assets to upload.
+	//
 	// +optional
 	files []*File,
 
 	// Save the release as a draft instead of publishing it.
+	//
 	// +optional
 	draft bool,
 
 	// Mark the release as a prerelease.
+	//
 	// +optional
 	preRelease bool,
 
 	// Target branch or full commit SHA (default: main branch).
+	//
 	// +optional
 	target string,
 
 	// Release notes.
+	//
 	// +optional
 	notes string,
 
 	// Read release notes from file.
+	//
 	// +optional
 	notesFile *File,
 
 	// Start a discussion in the specified category.
+	//
 	// +optional
 	discussionCategory string,
 
 	// Automatically generate title and notes for the release.
+	//
 	// +optional
 	generateNotes bool,
 
 	// Tag to use as the starting point for generating release notes.
+	//
 	// +optional
 	notesStartTag string,
 
 	// Mark this release as "Latest" (default: automatic based on date and version).
+	//
 	// +optional
 	latest bool,
 
 	// Abort in case the git tag doesn't already exist in the remote repository.
+	//
 	// +optional
 	verifyTag bool,
 
 	// Tag to use as the starting point for generating release notes.
+	//
 	// +optional
 	notesFromTag bool,
 
 	// GitHub token.
+	//
 	// +optional
 	token *Secret,
 
 	// GitHub repository (e.g. "owner/repo").
+	//
 	// +optional
 	repo string,
-) (*Container, error) {
-	ctr, err := m.Gh.container(ctx, token, repo)
-	if err != nil {
-		return nil, err
-	}
+) error {
+	ctr := m.Gh.container(token, repo)
 
 	args := []string{
-		"release", "create",
+		"gh", "release", "create",
 
 		"--title", title,
 	}
@@ -140,6 +151,7 @@ func (m *Release) Create(
 	args = append(args, tag)
 
 	{
+		// TODO: use WithFiles
 		dir := dag.Directory()
 
 		for _, file := range files {
@@ -148,7 +160,7 @@ func (m *Release) Create(
 
 		entries, err := dir.Entries(ctx)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		ctr = ctr.WithMountedDirectory("/work/assets", dir)
@@ -158,5 +170,7 @@ func (m *Release) Create(
 		}
 	}
 
-	return ctr.WithExec(args), nil
+	_, err := ctr.WithExec(args).Sync(ctx)
+
+	return err
 }

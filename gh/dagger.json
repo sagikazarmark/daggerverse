@@ -8,6 +8,12 @@
     "../go.work.sum",
     "tests"
   ],
+  "dependencies": [
+    {
+      "name": "wolfi",
+      "source": "github.com/shykes/daggerverse/wolfi@3338120927f8e291c4780de691ef63a7c9d825c0"
+    }
+  ],
   "source": ".",
   "engineVersion": "v0.11.2"
 }
