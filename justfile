@@ -1,5 +1,6 @@
+[private]
 default:
-  just --list
+  @just --list
 
 # run tests for a module
 test module test='all':
@@ -32,3 +33,28 @@ release module bump='minor':
 
     git tag -m "{{module}}: ${version}" $tag
     git push origin $tag
+
+# initialize a new module
+[no-exit-message]
+init module:
+    @test ! -d {{module}} || (echo "Module \"{{module}}\" already exists" && exit 1)
+
+    mkdir -p {{module}}
+    cd {{module}} && dagger init --sdk go --name {{module}} --source .
+    jq '.exclude = ["../.direnv", "../.devenv", "../go.work", "../go.work.sum", "tests"]' {{module}}/dagger.json | sponge {{module}}/dagger.json
+    dagger -m {{module}} develop
+
+    mkdir -p {{module}}/tests
+    cd {{module}}/tests && dagger init --sdk go --name tests --source .
+    jq '.exclude = ["../../.direnv", "../../.devenv", "../../go.work", "../../go.work.sum"]' {{module}}/tests/dagger.json | sponge {{module}}/tests/dagger.json
+    go mod edit -module dagger/{{module}}/tests {{module}}/tests/go.mod
+    cp -r .just/templates/tests/main.go {{module}}/tests/main.go
+    dagger -m {{module}}/tests develop
+
+    @echo ""
+    @echo "Module \"{{module}}\" initialized"
+    @echo "Don't forget to add it to GitHub Actions when you are ready!"
+
+# run `dagger develop` for all modules
+develop:
+    for dir in */; do dagger develop -m $dir; done

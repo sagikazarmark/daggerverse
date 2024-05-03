@@ -39,6 +39,9 @@
               just
               git
               semver-tool
+              jq
+              yq-go
+              moreutils
             ];
 
             # https://github.com/cachix/devenv/issues/528#issuecomment-1556108767
