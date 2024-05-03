@@ -2,116 +2,180 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"os"
-	"path"
-	"runtime"
+	"errors"
 	"strings"
-
-	"github.com/google/go-github/v58/github"
-	"github.com/hashicorp/go-getter"
+	"time"
 )
 
 type Gh struct {
-	// GitHub CLI version.
-	// +private
-	Version string
-
 	// GitHub token.
+	//
 	// +private
 	Token *Secret
 
-	// GitHub repository (e.g. "owner/Repo").
+	// GitHub repository (e.g. "owner/repo").
+	//
 	// +private
-	Repo string
+	Repository string
+
+	// Git repository source (with .git directory).
+	Source *Directory
 }
 
 func New(
-	// GitHub CLI version. (default: latest version)
-	// +optional
-	version string,
-
 	// GitHub token.
+	//
 	// +optional
 	token *Secret,
 
 	// GitHub repository (e.g. "owner/repo").
+	//
 	// +optional
 	repo string,
-) *Gh {
+
+	// Git repository source (with .git directory).
+	//
+	// +optional
+	source *Directory,
+) (*Gh, error) {
 	return &Gh{
-		Version: version,
-		Token:   token,
-		Repo:    repo,
+		Token:      token,
+		Repository: repo,
+	}, nil
+}
+
+// Set a GitHub token.
+func (m *Gh) WithToken(
+	// GitHub token.
+	token *Secret,
+) *Gh {
+	gh := *m
+
+	gh.Token = token
+
+	return &gh
+}
+
+// Set a GitHub repository as context.
+func (m *Gh) WithRepo(
+	// GitHub repository (e.g. "owner/repo").
+	repo string,
+) (*Gh, error) {
+	gh := *m
+
+	gh.Repository = repo
+
+	return &gh, nil
+}
+
+// Load a Git repository source (with .git directory).
+func (m *Gh) WithSource(
+	// Git repository source (with .git directory).
+	source *Directory,
+) *Gh {
+	gh := *m
+
+	gh.Source = source
+
+	return &gh
+}
+
+// Clone a GitHub repository.
+func (m *Gh) Clone(
+	// GitHub repository (e.g. "owner/repo").
+	//
+	// +optional
+	repo string,
+) (*Gh, error) {
+	if repo == "" {
+		repo = m.Repository
 	}
+
+	if repo == "" {
+		return nil, errors.New("no repository specified")
+	}
+
+	return m.WithSource(m.Repo().Clone(repo, nil, nil)), nil
 }
 
 // Run a GitHub CLI command (accepts a single command string without "gh").
 func (m *Gh) Run(
-	ctx context.Context,
-
 	// Command to run.
 	cmd string,
 
 	// GitHub token.
+	//
 	// +optional
 	token *Secret,
 
 	// GitHub repository (e.g. "owner/repo").
+	//
 	// +optional
 	repo string,
-) (*Container, error) {
-	ctr, err := m.container(ctx, token, repo)
-	if err != nil {
-		return nil, nil
-	}
-
-	return ctr.WithExec([]string{"sh", "-c", strings.Join([]string{"/usr/local/bin/gh", cmd}, " ")}, ContainerWithExecOpts{SkipEntrypoint: true}), nil
+) *Container {
+	return m.container(token, repo).WithExec([]string{"sh", "-c", strings.Join([]string{"gh", cmd}, " ")})
 }
 
 // Run a GitHub CLI command (accepts a list of arguments without "gh").
 func (m *Gh) Exec(
-	ctx context.Context,
-
 	// Arguments to pass to GitHub CLI.
 	args []string,
 
 	// GitHub token.
+	//
 	// +optional
 	token *Secret,
 
 	// GitHub repository (e.g. "owner/repo").
+	//
 	// +optional
 	repo string,
-) (*Container, error) {
-	ctr, err := m.container(ctx, token, repo)
-	if err != nil {
-		return nil, nil
-	}
+) *Container {
+	args = append([]string{"gh"}, args...)
 
-	return ctr.WithExec(args), nil
+	return m.container(token, repo).WithExec(args)
 }
 
-func (m *Gh) container(ctx context.Context, token *Secret, repo string) (*Container, error) {
+// Open an interactive terminal.
+func (m *Gh) Terminal(
+	// GitHub token.
+	//
+	// +optional
+	token *Secret,
+
+	// GitHub repository (e.g. "owner/repo").
+	//
+	// +optional
+	repo string,
+) *Terminal {
+	return m.container(token, repo).Terminal()
+}
+
+func (m *Gh) base() *Container {
+	return dag.
+		Wolfi().
+		Container(WolfiContainerOpts{
+			Packages: []string{
+				"gh",
+				"git",
+			},
+		}).
+		WithEnvVariable("GH_PROMPT_DISABLED", "true").
+		WithEnvVariable("GH_NO_UPDATE_NOTIFIER", "true").
+		WithExec([]string{"gh", "auth", "setup-git", "--force", "--hostname", "github.com"}) // Use force to avoid network call and cache setup even when no token is provided.
+}
+
+func (m *Gh) container(token *Secret, repo string) *Container {
 	if token == nil {
 		token = m.Token
 	}
 
 	if repo == "" {
-		repo = m.Repo
+		repo = m.Repository
 	}
 
-	binary, err := m.get(ctx, "", token)
-	if err != nil {
-		return nil, err
-	}
-
-	container := dag.Container().
-		From("alpine/git:latest"). // TODO: make this configurable
-		WithEnvVariable("GH_PROMPT_DISABLED", "true").
-		WithEnvVariable("GH_NO_UPDATE_NOTIFIER", "true").
-		WithFile("/usr/local/bin/gh", binary).
+	return m.base().
+		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
 		With(func(c *Container) *Container {
 			if token != nil {
 				c = c.WithSecretVariable("GITHUB_TOKEN", token)
@@ -121,98 +185,12 @@ func (m *Gh) container(ctx context.Context, token *Secret, repo string) (*Contai
 				c = c.WithEnvVariable("GH_REPO", repo)
 			}
 
+			if m.Source != nil {
+				c = c.
+					WithWorkdir("/work/repo").
+					WithMountedDirectory("/work/repo", m.Source)
+			}
+
 			return c
-		}).
-		WithEntrypoint([]string{"/usr/local/bin/gh"})
-
-	return container, nil
-}
-
-// Get the GitHub CLI binary.
-func (m *Gh) Get(
-	ctx context.Context,
-
-	// GitHub CLI version. (default: latest version)
-	// +optional
-	version string,
-
-	// GitHub token. (May be used to get the latest version from the GitHub API)
-	// +optional
-	token *Secret,
-) (*File, error) {
-	return m.get(ctx, version, token)
-}
-
-// Get the GitHub CLI binary.
-func (m *Gh) get(ctx context.Context, version string, token *Secret) (*File, error) {
-	if version == "" {
-		version = m.Version
-	}
-
-	// Get the latest version
-	if version == "" {
-		if token == nil {
-			token = m.Token
-		}
-
-		var err error
-
-		version, err = getLatestVersion(ctx, token)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get latest GitHub CLI version: %w", err)
-		}
-	}
-
-	return downloadBinary(ctx, version)
-}
-
-// Get the latest GitHub CLI version.
-func getLatestVersion(ctx context.Context, token *Secret) (string, error) {
-	client := github.NewClient(nil)
-
-	if token != nil {
-		tokenContent, err := token.Plaintext(ctx)
-		if err != nil {
-			return "", err
-		}
-
-		client = client.WithAuthToken(tokenContent)
-	}
-
-	release, _, err := client.Repositories.GetLatestRelease(ctx, "cli", "cli")
-	if err != nil {
-		return "", err
-	}
-
-	return *release.TagName, nil
-}
-
-const binaryDownloadURL = "https://github.com/cli/cli/releases/download/v%s/gh_%s_%s_%s.tar.gz"
-
-func downloadBinary(ctx context.Context, version string) (*File, error) {
-	// GitHub CLI versions are prefixed with "v", but it looks better in parmeters without it.
-	version = strings.TrimPrefix(version, "v")
-
-	// TODO: support downloading binaries for other platforms.
-	downloadURL := fmt.Sprintf(binaryDownloadURL, version, version, runtime.GOOS, runtime.GOARCH)
-	binaryName := fmt.Sprintf("gh_%s_%s_%s", version, runtime.GOOS, runtime.GOARCH)
-
-	pwd, err := os.Getwd()
-	if err != nil {
-		return nil, err
-	}
-
-	client := getter.Client{
-		Ctx:  ctx,
-		Src:  downloadURL,
-		Dst:  pwd,
-		Mode: getter.ClientModeDir,
-	}
-
-	err = client.Get()
-	if err != nil {
-		return nil, err
-	}
-
-	return dag.CurrentModule().WorkdirFile(path.Join(binaryName, "bin/gh")), nil
+		})
 }
