@@ -48,8 +48,10 @@ func New(
 		// Do not allow overriding Helm path locations (when using a custom image or container).
 		// TODO: add other paths: https://helm.sh/docs/helm/helm/
 		WithoutEnvVariable("HELM_HOME").
-		WithoutEnvVariable("HELM_REGISTRY_CONFIG").
-		WithMountedTemp("/root/.config/helm/registry")
+		WithoutEnvVariable("HELM_REGISTRY_CONFIG")
+
+		// See https://github.com/dagger/dagger/issues/7273
+		// WithMountedTemp("/root/.config/helm/registry")
 
 	// Disable cache mounts for now.
 	// Need to figure out if they are needed at all.
@@ -158,7 +160,7 @@ func login(
 	return ctr.
 		WithSecretVariable("HELM_PASSWORD", password).
 		WithExec([]string{"sh", "-c", strings.Join(args, " ")}, ContainerWithExecOpts{SkipEntrypoint: true}).
-		WithoutEnvVariable("HELM_PASSWORD")
+		WithSecretVariable("HELM_PASSWORD", dag.SetSecret("helm-password-reset", ""))
 }
 
 // Remove credentials stored for an OCI registry.
