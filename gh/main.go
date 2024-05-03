@@ -85,7 +85,7 @@ func (m *Gh) Load(
 // Retrieve the repository source (if any).
 func (m *Gh) Directory() (*Directory, error) {
 	if m.Source == nil {
-		return nil, errors.New("there is no locally clone repository source available")
+		return nil, errors.New("there is no locally cloned repository source available")
 	}
 
 	return m.Source, nil
