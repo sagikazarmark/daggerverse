@@ -46,7 +46,7 @@ func (m *Tests) Clone(ctx context.Context) error {
 		}).
 		WithRepo("sagikazarmark/daggerverse").
 		Clone().
-		Directory().
+		Source().
 		Sync(ctx)
 
 	return err

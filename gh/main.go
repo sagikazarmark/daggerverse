@@ -19,8 +19,6 @@ type Gh struct {
 	Repository string
 
 	// Git repository source (with .git directory).
-	//
-	// +private
 	Source *Directory
 }
 
@@ -71,7 +69,7 @@ func (m *Gh) WithRepo(
 }
 
 // Load a Git repository source (with .git directory).
-func (m *Gh) Load(
+func (m *Gh) WithSource(
 	// Git repository source (with .git directory).
 	source *Directory,
 ) *Gh {
@@ -80,15 +78,6 @@ func (m *Gh) Load(
 	gh.Source = source
 
 	return &gh
-}
-
-// Retrieve the repository source (if any).
-func (m *Gh) Directory() (*Directory, error) {
-	if m.Source == nil {
-		return nil, errors.New("there is no locally cloned repository source available")
-	}
-
-	return m.Source, nil
 }
 
 // Clone a GitHub repository.
@@ -106,7 +95,7 @@ func (m *Gh) Clone(
 		return nil, errors.New("no repository specified")
 	}
 
-	return m.Load(m.Repo().Clone(repo, nil, nil)), nil
+	return m.WithSource(m.Repo().Clone(repo, nil, nil)), nil
 }
 
 // Run a GitHub CLI command (accepts a single command string without "gh").
