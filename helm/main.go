@@ -160,7 +160,7 @@ func login(
 	return ctr.
 		WithSecretVariable("HELM_PASSWORD", password).
 		WithExec([]string{"sh", "-c", strings.Join(args, " ")}, ContainerWithExecOpts{SkipEntrypoint: true}).
-		WithoutEnvVariable("HELM_PASSWORD")
+		WithSecretVariable("HELM_PASSWORD", dag.SetSecret("helm-password-reset", ""))
 }
 
 // Remove credentials stored for an OCI registry.
