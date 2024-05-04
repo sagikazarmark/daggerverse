@@ -42,14 +42,15 @@ init module:
     mkdir -p {{module}}
     cd {{module}} && dagger init --sdk go --name {{module}} --source .
     jq '.exclude = ["../.direnv", "../.devenv", "../go.work", "../go.work.sum", "tests"]' {{module}}/dagger.json | sponge {{module}}/dagger.json
-    dagger -m {{module}} develop
+    dagger develop -m {{module}}
 
     mkdir -p {{module}}/tests
     cd {{module}}/tests && dagger init --sdk go --name tests --source .
     jq '.exclude = ["../../.direnv", "../../.devenv", "../../go.work", "../../go.work.sum"]' {{module}}/tests/dagger.json | sponge {{module}}/tests/dagger.json
     go mod edit -module dagger/{{module}}/tests {{module}}/tests/go.mod
     cp -r .just/templates/tests/main.go {{module}}/tests/main.go
-    dagger -m {{module}}/tests develop
+    cd {{module}}/tests && dagger install ..
+    dagger develop -m {{module}}/tests
 
     @echo ""
     @echo "Module \"{{module}}\" initialized"
