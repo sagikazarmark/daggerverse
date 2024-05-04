@@ -26,6 +26,7 @@ jobs:
           - kafka
           - kustomize
           - quarto
+          - registry-config
           - slsa-verifier
           - spectral
           - xk6

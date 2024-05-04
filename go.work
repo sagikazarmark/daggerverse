@@ -26,6 +26,8 @@ use (
 	./kustomize/tests
 	./quarto
 	./quarto/tests
+	./registry-config
+	./registry-config/tests
 	./slsa-verifier
 	./slsa-verifier/tests
 	./spectral
