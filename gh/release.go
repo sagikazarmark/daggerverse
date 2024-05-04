@@ -120,8 +120,8 @@ func (m *Release) Create(
 	}
 
 	if notesFile != nil {
-		ctr.WithMountedFile("/work/notes.md", notesFile)
-		args = append(args, "--notes-file", "/work/notes.md")
+		ctr = ctr.WithMountedFile("/work/tmp/notes.md", notesFile)
+		args = append(args, "--notes-file", "/work/tmp/notes.md")
 	}
 
 	if discussionCategory != "" {
