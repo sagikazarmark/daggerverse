@@ -7,23 +7,9 @@
 //
 // This module creates a configuration file and returns it as a Secret that can be mounted safely into a Container.
 //
-// Here is an example of how to use this module (in Go):
-//
-//	var password *Secret
-//
-//	registryConfig := dag.RegistryConfig().
-//		WithRegistryAuth("ghcr.io", "sagikazarmark", password).
-//		Secret()
-//
-//	container := dag.Container().
-//		From("helm").
-//		WithMountedSecret("/root/.config/helm/registry/config.json", registryConfig)
-//
 // Be advised that using the tool's built-in authentication mechanism may not work with the configuration file (since it's read only).
 //
-// You can read more about the topic in [this issue].
-//
-// [this issue]: https://github.com/dagger/dagger/issues/7273
+// You can read more about the topic in [this issue](https://github.com/dagger/dagger/issues/7273).
 package main
 
 import (
