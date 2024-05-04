@@ -136,6 +136,20 @@ func (m *Gh) Exec(
 	return m.container(token, repo).WithExec(args)
 }
 
+// Run a git command (accepts a list of arguments without "git").
+func (m *Gh) WithGitExec(
+	// Arguments to pass to GitHub CLI.
+	args []string,
+) (*Gh, error) {
+	if m.Source == nil {
+		return nil, errors.New("no git repository available")
+	}
+
+	args = append([]string{"git"}, args...)
+
+	return m.WithSource(m.container(nil, "").WithExec(args).Directory("/work/repo")), nil
+}
+
 // Open an interactive terminal.
 func (m *Gh) Terminal(
 	// GitHub token.

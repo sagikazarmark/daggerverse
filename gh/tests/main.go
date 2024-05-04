@@ -51,3 +51,21 @@ func (m *Tests) Clone(ctx context.Context) error {
 
 	return err
 }
+
+func (m *Tests) WithGitExec(ctx context.Context) error {
+	_, err := dag.Gh().
+		With(func(g *Gh) *Gh {
+			if m.GitHubToken != nil {
+				g = g.WithToken(m.GitHubToken)
+			}
+
+			return g
+		}).
+		WithRepo("sagikazarmark/daggerverse").
+		Clone().
+		WithGitExec([]string{"checkout", "-b", "gh-test-checkout"}).
+		Source().
+		Sync(ctx)
+
+	return err
+}
