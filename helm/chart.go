@@ -17,7 +17,7 @@ func (m *Helm) Chart(
 ) *Chart {
 	return &Chart{
 		Directory: source,
-		Container: m.Ctr,
+		Container: m.Container,
 	}
 }
 
@@ -66,14 +66,17 @@ func (c *Chart) Package(
 	ctx context.Context,
 
 	// Set the appVersion on the chart to this version.
+	//
 	// +optional
 	appVersion string,
 
 	// Set the version on the chart to this semver version.
+	//
 	// +optional
 	version string,
 
 	// Update dependencies from "Chart.yaml" to dir "charts/" before packaging.
+	//
 	// +optional
 	dependencyUpdate bool,
 ) (*Package, error) {
@@ -133,6 +136,7 @@ func (p *Package) WithRegistryAuth(
 	password *Secret,
 
 	// Allow connections to TLS registry without certs.
+	//
 	// +optional
 	insecure bool,
 ) *Package {
@@ -158,22 +162,27 @@ func (p *Package) Publish(
 	registry string,
 
 	// Use insecure HTTP connections for the chart upload.
+	//
 	// +optional
 	plainHttp bool,
 
 	// Skip tls certificate checks for the chart upload.
+	//
 	// +optional
 	insecureSkipTlsVerify bool,
 
 	// Verify certificates of HTTPS-enabled servers using this CA bundle.
+	//
 	// +optional
 	caFile *File,
 
 	// Identify registry client using this SSL certificate file.
+	//
 	// +optional
 	certFile *File,
 
 	// Identify registry client using this SSL key file.
+	//
 	// +optional
 	keyFile *File,
 ) error {

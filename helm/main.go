@@ -12,8 +12,7 @@ import (
 const defaultImageRepository = "alpine/helm"
 
 type Helm struct {
-	// +private
-	Ctr *Container
+	Container *Container
 }
 
 func New(
@@ -21,27 +20,19 @@ func New(
 	// +optional
 	version string,
 
-	// Custom image reference in "repository:tag" format to use as a base container.
-	// +optional
-	image string,
-
 	// Custom container to use as a base container.
 	// +optional
 	container *Container,
 ) *Helm {
-	var ctr *Container
+	if container == nil {
+		if version == "" {
+			version = "latest"
+		}
 
-	if version != "" {
-		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
-	} else if image != "" {
-		ctr = dag.Container().From(image)
-	} else if container != nil {
-		ctr = container
-	} else {
-		ctr = dag.Container().From(defaultImageRepository)
+		container = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
 	}
 
-	ctr = ctr.
+	container = container.
 		// Make sure to run as root for now, so that we know where Helm home is.
 		WithUser("root").
 
@@ -61,11 +52,7 @@ func New(
 	// 	WithMountedCache("/root/.helm", dag.CacheVolume("helm-root")).
 	// 	WithMountedCache("/root/.config/helm", dag.CacheVolume("helm-config"))
 
-	return &Helm{ctr}
-}
-
-func (m *Helm) Container() *Container {
-	return m.Ctr
+	return &Helm{container}
 }
 
 // Create a new chart directory along with the common files and directories used in a chart.
@@ -74,7 +61,7 @@ func (m *Helm) Create(name string) *Directory {
 
 	name = path.Clean(name)
 
-	return m.Ctr.
+	return m.Container.
 		WithWorkdir(workdir).
 		WithExec([]string{"create", name}).
 		Directory(path.Join(workdir, name))
@@ -98,14 +85,17 @@ func (m *Helm) Package(
 	chart *Directory,
 
 	// Set the appVersion on the chart to this version.
+	//
 	// +optional
 	appVersion string,
 
 	// Set the version on the chart to this semver version.
+	//
 	// +optional
 	version string,
 
 	// Update dependencies from "Chart.yaml" to dir "charts/" before packaging.
+	//
 	// +optional
 	dependencyUpdate bool,
 ) (*File, error) {
@@ -131,10 +121,11 @@ func (m *Helm) Login(
 	password *Secret,
 
 	// Allow connections to TLS registry without certs.
+	//
 	// +optional
 	insecure bool,
 ) *Helm {
-	return &Helm{login(m.Ctr, host, username, password, insecure)}
+	return &Helm{login(m.Container, host, username, password, insecure)}
 }
 
 func login(
@@ -165,7 +156,7 @@ func login(
 
 // Remove credentials stored for an OCI registry.
 func (m *Helm) Logout(host string) *Helm {
-	return &Helm{logout(m.Ctr, host)}
+	return &Helm{logout(m.Container, host)}
 }
 
 func logout(ctr *Container, host string) *Container {
@@ -189,28 +180,33 @@ func (m *Helm) Push(
 	registry string,
 
 	// Use insecure HTTP connections for the chart upload.
+	//
 	// +optional
 	plainHttp bool,
 
 	// Skip tls certificate checks for the chart upload.
+	//
 	// +optional
 	insecureSkipTlsVerify bool,
 
 	// Verify certificates of HTTPS-enabled servers using this CA bundle.
+	//
 	// +optional
 	caFile *File,
 
 	// Identify registry client using this SSL certificate file.
+	//
 	// +optional
 	certFile *File,
 
 	// Identify registry client using this SSL key file.
+	//
 	// +optional
 	keyFile *File,
 ) error {
 	p := &Package{
 		File:      pkg,
-		Container: m.Ctr,
+		Container: m.Container,
 	}
 
 	return p.Publish(ctx, registry, plainHttp, insecureSkipTlsVerify, caFile, certFile, keyFile)
