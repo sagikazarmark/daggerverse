@@ -14,10 +14,10 @@ package main
 
 import (
 	"context"
-	"dagger/registry-config/internal/dagger"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"slices"
 )
 
 type RegistryConfig struct {
@@ -32,7 +32,7 @@ type Auth struct {
 }
 
 // Add credentials for a registry.
-func (m *RegistryConfig) WithRegistryAuth(address string, username string, secret *dagger.Secret) *RegistryConfig {
+func (m *RegistryConfig) WithRegistryAuth(address string, username string, secret *Secret) *RegistryConfig {
 	m.Auths = append(m.Auths, Auth{
 		Address:  address,
 		Username: username,
@@ -40,6 +40,20 @@ func (m *RegistryConfig) WithRegistryAuth(address string, username string, secre
 	})
 
 	return m
+}
+
+// Removes credentials for a registry.
+func (m *RegistryConfig) WithoutRegistryAuth(address string) *RegistryConfig {
+	m.Auths = slices.DeleteFunc(m.Auths, func(a Auth) bool {
+		return a.Address == address
+	})
+
+	return m
+}
+
+// Checks whether the config has any registry credentials.
+func (m *RegistryConfig) HasRegistryAuth() bool {
+	return len(m.Auths) > 0
 }
 
 type Config struct {
@@ -79,4 +93,44 @@ func (m *RegistryConfig) Secret(
 	}
 
 	return dag.SetSecret(name, string(out)), nil
+}
+
+// MountSecret mounts a registry configuration secret into a container if there is any confuguration in it.
+func (m *RegistryConfig) MountSecret(
+	ctx context.Context,
+	container *Container,
+	path string,
+
+	// +optional
+	// +default="registry-config"
+	secretName string,
+
+	// A user:group to set for the mounted secret.
+	//
+	// The user and group can either be an ID (1000:1000) or a name (foo:bar).
+	//
+	// If the group is omitted, it defaults to the same as the user.
+	//
+	// +optional
+	owner string,
+	// Permission given to the mounted secret (e.g., 0600).
+	//
+	// This option requires an owner to be set to be active.
+	//
+	// +optional
+	mode int,
+) (*Container, error) {
+	if !m.HasRegistryAuth() {
+		return container, nil
+	}
+
+	secret, err := m.Secret(ctx, secretName)
+	if err != nil {
+		return nil, err
+	}
+
+	return container.WithMountedSecret(path, secret, ContainerWithMountedSecretOpts{
+		Owner: owner,
+		Mode:  mode,
+	}), nil
 }

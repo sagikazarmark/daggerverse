@@ -5,15 +5,19 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"path/filepath"
 	"strings"
+	"time"
 )
 
 // defaultImageRepository is used when no image is specified.
 const defaultImageRepository = "alpine/helm"
 
 type Helm struct {
+	Container *Container
+
 	// +private
-	Ctr *Container
+	RegistryConfig *RegistryConfig
 }
 
 func New(
@@ -21,27 +25,19 @@ func New(
 	// +optional
 	version string,
 
-	// Custom image reference in "repository:tag" format to use as a base container.
-	// +optional
-	image string,
-
 	// Custom container to use as a base container.
 	// +optional
 	container *Container,
 ) *Helm {
-	var ctr *Container
+	if container == nil {
+		if version == "" {
+			version = "latest"
+		}
 
-	if version != "" {
-		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
-	} else if image != "" {
-		ctr = dag.Container().From(image)
-	} else if container != nil {
-		ctr = container
-	} else {
-		ctr = dag.Container().From(defaultImageRepository)
+		container = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
 	}
 
-	ctr = ctr.
+	container = container.
 		// Make sure to run as root for now, so that we know where Helm home is.
 		WithUser("root").
 
@@ -49,9 +45,6 @@ func New(
 		// TODO: add other paths: https://helm.sh/docs/helm/helm/
 		WithoutEnvVariable("HELM_HOME").
 		WithoutEnvVariable("HELM_REGISTRY_CONFIG")
-
-		// See https://github.com/dagger/dagger/issues/7273
-		// WithMountedTemp("/root/.config/helm/registry")
 
 	// Disable cache mounts for now.
 	// Need to figure out if they are needed at all.
@@ -61,11 +54,36 @@ func New(
 	// 	WithMountedCache("/root/.helm", dag.CacheVolume("helm-root")).
 	// 	WithMountedCache("/root/.config/helm", dag.CacheVolume("helm-config"))
 
-	return &Helm{ctr}
+	return &Helm{
+		Container:      container,
+		RegistryConfig: dag.RegistryConfig(),
+	}
 }
 
-func (m *Helm) Container() *Container {
-	return m.Ctr
+// use container for actions that need registry credentials
+func (m *Helm) container() *Container {
+	return m.Container.
+		With(func(c *Container) *Container {
+			return m.RegistryConfig.MountSecret(c, "/root/.config/helm/registry/config.json", RegistryConfigMountSecretOpts{
+				SecretName: "helm-registry-config",
+			})
+		})
+}
+
+// Add credentials for a registry.
+//
+// Note: WithRegistryAuth overrides any previous or subsequent calls to Login/Logout.
+func (m *Helm) WithRegistryAuth(address string, username string, secret *Secret) *Helm {
+	m.RegistryConfig = m.RegistryConfig.WithRegistryAuth(address, username, secret)
+
+	return m
+}
+
+// Removes credentials for a registry.
+func (m *Helm) WithoutRegistryAuth(address string) *Helm {
+	m.RegistryConfig = m.RegistryConfig.WithoutRegistryAuth(address)
+
+	return m
 }
 
 // Create a new chart directory along with the common files and directories used in a chart.
@@ -74,7 +92,7 @@ func (m *Helm) Create(name string) *Directory {
 
 	name = path.Clean(name)
 
-	return m.Ctr.
+	return m.Container.
 		WithWorkdir(workdir).
 		WithExec([]string{"create", name}).
 		Directory(path.Join(workdir, name))
@@ -87,7 +105,24 @@ func (m *Helm) Lint(
 	// A directory containing a Helm chart.
 	chart *Directory,
 ) (*Container, error) {
-	return m.Chart(chart).Lint(ctx)
+	chartMetadata, err := getChartMetadata(ctx, chart)
+	if err != nil {
+		return nil, err
+	}
+
+	const workdir = "/work"
+
+	chartName := chartMetadata.Name
+	chartPath := path.Join(workdir, chartName)
+
+	args := []string{
+		"lint",
+		chartPath,
+	}
+
+	return m.Container.
+		WithWorkdir(workdir).
+		WithMountedDirectory(chartPath, chart).WithExec(args), nil
 }
 
 // Build a Helm chart package.
@@ -98,26 +133,62 @@ func (m *Helm) Package(
 	chart *Directory,
 
 	// Set the appVersion on the chart to this version.
+	//
 	// +optional
 	appVersion string,
 
 	// Set the version on the chart to this semver version.
+	//
 	// +optional
 	version string,
 
 	// Update dependencies from "Chart.yaml" to dir "charts/" before packaging.
+	//
 	// +optional
 	dependencyUpdate bool,
 ) (*File, error) {
-	pkg, err := m.Chart(chart).Package(ctx, appVersion, version, dependencyUpdate)
+	chartMetadata, err := getChartMetadata(ctx, chart)
 	if err != nil {
 		return nil, err
 	}
 
-	return pkg.File, nil
+	const workdir = "/work"
+
+	chartName := chartMetadata.Name
+	chartPath := filepath.Join(workdir, chartName)
+
+	args := []string{
+		"package",
+
+		"--destination", workdir,
+	}
+
+	if appVersion != "" {
+		args = append(args, "--app-version", appVersion)
+	}
+
+	chartVersion := chartMetadata.Version
+	if version != "" {
+		args = append(args, "--version", version)
+		chartVersion = version
+	}
+
+	if dependencyUpdate {
+		args = append(args, "--dependency-update")
+	}
+
+	args = append(args, chartPath)
+
+	return m.container().
+		WithWorkdir(workdir).
+		WithMountedDirectory(chartPath, chart).
+		WithExec(args).
+		File(path.Join(workdir, fmt.Sprintf("%s-%s.tgz", chartName, chartVersion))), nil
 }
 
 // Authenticate to an OCI registry.
+//
+// Note: Login stores credentials in the filesystem in plain text. Use WithRegistryAuth as a safer alternative.
 func (m *Helm) Login(
 	ctx context.Context,
 
@@ -131,19 +202,10 @@ func (m *Helm) Login(
 	password *Secret,
 
 	// Allow connections to TLS registry without certs.
+	//
 	// +optional
 	insecure bool,
 ) *Helm {
-	return &Helm{login(m.Ctr, host, username, password, insecure)}
-}
-
-func login(
-	ctr *Container,
-	host string,
-	username string,
-	password *Secret,
-	insecure bool,
-) *Container {
 	args := []string{
 		"helm",
 		"registry",
@@ -157,25 +219,25 @@ func login(
 		args = append(args, "--insecure")
 	}
 
-	return ctr.
+	m.Container = m.Container.
 		WithSecretVariable("HELM_PASSWORD", password).
 		WithExec([]string{"sh", "-c", strings.Join(args, " ")}, ContainerWithExecOpts{SkipEntrypoint: true}).
 		WithSecretVariable("HELM_PASSWORD", dag.SetSecret("helm-password-reset", "")) // https://github.com/dagger/dagger/issues/7274
+
+	return m
 }
 
 // Remove credentials stored for an OCI registry.
 func (m *Helm) Logout(host string) *Helm {
-	return &Helm{logout(m.Ctr, host)}
-}
-
-func logout(ctr *Container, host string) *Container {
 	args := []string{
 		"registry",
 		"logout",
 		host,
 	}
 
-	return ctr.WithExec(args)
+	m.Container = m.Container.WithExec(args)
+
+	return m
 }
 
 // Push a Helm chart package to an OCI registry.
@@ -189,29 +251,69 @@ func (m *Helm) Push(
 	registry string,
 
 	// Use insecure HTTP connections for the chart upload.
+	//
 	// +optional
 	plainHttp bool,
 
 	// Skip tls certificate checks for the chart upload.
+	//
 	// +optional
 	insecureSkipTlsVerify bool,
 
 	// Verify certificates of HTTPS-enabled servers using this CA bundle.
+	//
 	// +optional
 	caFile *File,
 
 	// Identify registry client using this SSL certificate file.
+	//
 	// +optional
 	certFile *File,
 
 	// Identify registry client using this SSL key file.
+	//
 	// +optional
 	keyFile *File,
 ) error {
-	p := &Package{
-		File:      pkg,
-		Container: m.Ctr,
+	const workdir = "/work"
+
+	chartPath := path.Join(workdir, "chart.tgz")
+
+	container := m.container().
+		WithWorkdir(workdir).
+		WithMountedFile(chartPath, pkg)
+
+	args := []string{
+		"push",
+
+		chartPath,
+		registry,
 	}
 
-	return p.Publish(ctx, registry, plainHttp, insecureSkipTlsVerify, caFile, certFile, keyFile)
+	if plainHttp {
+		args = append(args, "--plain-http")
+	}
+
+	if insecureSkipTlsVerify {
+		args = append(args, "--insecure-skip-tls-verify")
+	}
+
+	if caFile != nil {
+		container = container.WithMountedFile("/etc/helm/ca.pem", caFile)
+		args = append(args, "--ca-file", "/etc/helm/ca.pem")
+	}
+
+	if certFile != nil {
+		container = container.WithMountedFile("/etc/helm/cert.pem", certFile)
+		args = append(args, "--cert-file", "/etc/helm/cert.pem")
+	}
+
+	if keyFile != nil {
+		container = container.WithMountedFile("/etc/helm/key.pem", keyFile)
+		args = append(args, "--key-file", "/etc/helm/key.pem")
+	}
+
+	_, err := container.WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).WithExec(args).Sync(ctx)
+
+	return err
 }
