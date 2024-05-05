@@ -24,6 +24,8 @@ use (
 	./kafka/tests
 	./kustomize
 	./kustomize/tests
+	./python
+	./python/tests
 	./quarto
 	./quarto/tests
 	./registry-config

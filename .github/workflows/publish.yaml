@@ -14,7 +14,6 @@ jobs:
       matrix:
         module:
           - arc
-          - archive
           - archivist
           - bats
           - checksum
@@ -25,6 +24,7 @@ jobs:
           - helm-docs
           - kafka
           - kustomize
+          - python
           - quarto
           - registry-config
           - slsa-verifier
