@@ -14,7 +14,6 @@ package main
 
 import (
 	"context"
-	"dagger/registry-config/internal/dagger"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -32,7 +31,7 @@ type Auth struct {
 }
 
 // Add credentials for a registry.
-func (m *RegistryConfig) WithRegistryAuth(address string, username string, secret *dagger.Secret) *RegistryConfig {
+func (m *RegistryConfig) WithRegistryAuth(address string, username string, secret *Secret) *RegistryConfig {
 	m.Auths = append(m.Auths, Auth{
 		Address:  address,
 		Username: username,
