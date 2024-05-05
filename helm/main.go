@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // defaultImageRepository is used when no image is specified.
@@ -312,7 +313,7 @@ func (m *Helm) Push(
 		args = append(args, "--key-file", "/etc/helm/key.pem")
 	}
 
-	_, err := container.WithExec(args).Sync(ctx)
+	_, err := container.WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).WithExec(args).Sync(ctx)
 
 	return err
 }
