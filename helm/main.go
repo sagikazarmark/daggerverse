@@ -14,6 +14,9 @@ const defaultImageRepository = "alpine/helm"
 
 type Helm struct {
 	Container *Container
+
+	// +private
+	RegistryConfig *RegistryConfig
 }
 
 func New(
@@ -42,9 +45,6 @@ func New(
 		WithoutEnvVariable("HELM_HOME").
 		WithoutEnvVariable("HELM_REGISTRY_CONFIG")
 
-		// See https://github.com/dagger/dagger/issues/7273
-		// WithMountedTemp("/root/.config/helm/registry")
-
 	// Disable cache mounts for now.
 	// Need to figure out if they are needed at all.
 	// Note: helm registry auth is stored in ~/.config/helm/registry/config.json (within helm config dir)
@@ -53,7 +53,36 @@ func New(
 	// 	WithMountedCache("/root/.helm", dag.CacheVolume("helm-root")).
 	// 	WithMountedCache("/root/.config/helm", dag.CacheVolume("helm-config"))
 
-	return &Helm{container}
+	return &Helm{
+		Container:      container,
+		RegistryConfig: dag.RegistryConfig(),
+	}
+}
+
+// use container for actions that need registry credentials
+func (m *Helm) container() *Container {
+	return m.Container.
+		With(func(c *Container) *Container {
+			return m.RegistryConfig.MountSecret(c, "/root/.config/helm/registry/config.json", RegistryConfigMountSecretOpts{
+				SecretName: "helm-registry-config",
+			})
+		})
+}
+
+// Add credentials for a registry.
+//
+// Note: WithRegistryAuth overrides any previous or subsequent calls to Login/Logout.
+func (m *Helm) WithRegistryAuth(address string, username string, secret *Secret) *Helm {
+	m.RegistryConfig = m.RegistryConfig.WithRegistryAuth(address, username, secret)
+
+	return m
+}
+
+// Removes credentials for a registry.
+func (m *Helm) WithoutRegistryAuth(address string) *Helm {
+	m.RegistryConfig = m.RegistryConfig.WithoutRegistryAuth(address)
+
+	return m
 }
 
 // Create a new chart directory along with the common files and directories used in a chart.
@@ -149,7 +178,7 @@ func (m *Helm) Package(
 
 	args = append(args, chartPath)
 
-	return m.Container.
+	return m.container().
 		WithWorkdir(workdir).
 		WithMountedDirectory(chartPath, chart).
 		WithExec(args).
@@ -157,6 +186,8 @@ func (m *Helm) Package(
 }
 
 // Authenticate to an OCI registry.
+//
+// Note: Login stores credentials in the filesystem in plain text. Use WithRegistryAuth as a safer alternative.
 func (m *Helm) Login(
 	ctx context.Context,
 
@@ -174,16 +205,6 @@ func (m *Helm) Login(
 	// +optional
 	insecure bool,
 ) *Helm {
-	return &Helm{login(m.Container, host, username, password, insecure)}
-}
-
-func login(
-	ctr *Container,
-	host string,
-	username string,
-	password *Secret,
-	insecure bool,
-) *Container {
 	args := []string{
 		"helm",
 		"registry",
@@ -197,25 +218,25 @@ func login(
 		args = append(args, "--insecure")
 	}
 
-	return ctr.
+	m.Container = m.Container.
 		WithSecretVariable("HELM_PASSWORD", password).
 		WithExec([]string{"sh", "-c", strings.Join(args, " ")}, ContainerWithExecOpts{SkipEntrypoint: true}).
 		WithSecretVariable("HELM_PASSWORD", dag.SetSecret("helm-password-reset", "")) // https://github.com/dagger/dagger/issues/7274
+
+	return m
 }
 
 // Remove credentials stored for an OCI registry.
 func (m *Helm) Logout(host string) *Helm {
-	return &Helm{logout(m.Container, host)}
-}
-
-func logout(ctr *Container, host string) *Container {
 	args := []string{
 		"registry",
 		"logout",
 		host,
 	}
 
-	return ctr.WithExec(args)
+	m.Container = m.Container.WithExec(args)
+
+	return m
 }
 
 // Push a Helm chart package to an OCI registry.
@@ -257,7 +278,7 @@ func (m *Helm) Push(
 
 	chartPath := path.Join(workdir, "chart.tgz")
 
-	container := m.Container.
+	container := m.container().
 		WithWorkdir(workdir).
 		WithMountedFile(chartPath, pkg)
 

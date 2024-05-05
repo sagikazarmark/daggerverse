@@ -66,6 +66,20 @@ func (m *Chart) Package(
 	}, nil
 }
 
+// Add credentials for a registry.
+func (m *Package) WithRegistryAuth(address string, username string, secret *Secret) *Package {
+	m.Helm = m.Helm.WithRegistryAuth(address, username, secret)
+
+	return m
+}
+
+// Removes credentials for a registry.
+func (m *Package) WithoutRegistryAuth(address string) *Package {
+	m.Helm = m.Helm.WithoutRegistryAuth(address)
+
+	return m
+}
+
 // Publishes this Helm chart package to an OCI registry.
 func (m *Package) Publish(
 	ctx context.Context,
