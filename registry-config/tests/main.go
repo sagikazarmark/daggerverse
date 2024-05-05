@@ -15,6 +15,7 @@ func (m *Tests) All(ctx context.Context) error {
 
 	p.Go(m.WithRegistryAuth)
 	p.Go(m.WithRegistryAuth_MultipleCredentials)
+	p.Go(m.WithoutRegistryAuth)
 
 	return p.Wait()
 }
@@ -44,6 +45,28 @@ func (m *Tests) WithRegistryAuth_MultipleCredentials(ctx context.Context) error 
 		WithRegistryAuth("ghcr.io", "sagikazarmark", dag.SetSecret("passwordold", "passwordold")).
 		WithRegistryAuth("docker.io", "sagikazarmark", dag.SetSecret("password2", "password2")).
 		WithRegistryAuth("ghcr.io", "sagikazarmark", dag.SetSecret("password", "password")).
+		Secret()
+
+	actual, err := secret.Plaintext(ctx)
+	if err != nil {
+		return err
+	}
+
+	const expected = `{"auths":{"docker.io":{"auth":"c2FnaWthemFybWFyazpwYXNzd29yZDI="},"ghcr.io":{"auth":"c2FnaWthemFybWFyazpwYXNzd29yZA=="}}}`
+
+	if actual != expected {
+		return fmt.Errorf("secret does not match the expected value\nactual:   %s\nexpected: %s", actual, expected)
+	}
+
+	return nil
+}
+
+func (m *Tests) WithoutRegistryAuth(ctx context.Context) error {
+	secret := dag.RegistryConfig().
+		WithRegistryAuth("ghcr.io", "sagikazarmark", dag.SetSecret("password", "password")).
+		WithRegistryAuth("docker.io", "sagikazarmark", dag.SetSecret("password2", "password2")).
+		WithRegistryAuth("gcr.io", "sagikazarmark", dag.SetSecret("password3", "password3")).
+		WithoutRegistryAuth("gcr.io").
 		Secret()
 
 	actual, err := secret.Plaintext(ctx)

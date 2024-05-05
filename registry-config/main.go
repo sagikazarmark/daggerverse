@@ -17,6 +17,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"slices"
 )
 
 type RegistryConfig struct {
@@ -36,6 +37,15 @@ func (m *RegistryConfig) WithRegistryAuth(address string, username string, secre
 		Address:  address,
 		Username: username,
 		Secret:   secret,
+	})
+
+	return m
+}
+
+// Removes credentials for a registry.
+func (m *RegistryConfig) WithoutRegistryAuth(address string) *RegistryConfig {
+	m.Auths = slices.DeleteFunc(m.Auths, func(a Auth) bool {
+		return a.Address == address
 	})
 
 	return m
