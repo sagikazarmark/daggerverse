@@ -51,6 +51,11 @@ func (m *RegistryConfig) WithoutRegistryAuth(address string) *RegistryConfig {
 	return m
 }
 
+// Checks whether the config has any registry credentials.
+func (m *RegistryConfig) HasRegistryAuth() bool {
+	return len(m.Auths) > 0
+}
+
 type Config struct {
 	Auths map[string]ConfigAuth `json:"auths"`
 }
@@ -88,4 +93,44 @@ func (m *RegistryConfig) Secret(
 	}
 
 	return dag.SetSecret(name, string(out)), nil
+}
+
+// MountSecret mounts a registry configuration secret into a container if there is any confuguration in it.
+func (m *RegistryConfig) MountSecret(
+	ctx context.Context,
+	container *Container,
+	path string,
+
+	// +optional
+	// +default="registry-config"
+	secretName string,
+
+	// A user:group to set for the mounted secret.
+	//
+	// The user and group can either be an ID (1000:1000) or a name (foo:bar).
+	//
+	// If the group is omitted, it defaults to the same as the user.
+	//
+	// +optional
+	owner string,
+	// Permission given to the mounted secret (e.g., 0600).
+	//
+	// This option requires an owner to be set to be active.
+	//
+	// +optional
+	mode int,
+) (*Container, error) {
+	if !m.HasRegistryAuth() {
+		return container, nil
+	}
+
+	secret, err := m.Secret(ctx, secretName)
+	if err != nil {
+		return nil, err
+	}
+
+	return container.WithMountedSecret(path, secret, ContainerWithMountedSecretOpts{
+		Owner: owner,
+		Mode:  mode,
+	}), nil
 }

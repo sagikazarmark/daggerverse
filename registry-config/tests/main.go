@@ -82,3 +82,17 @@ func (m *Tests) WithoutRegistryAuth(ctx context.Context) error {
 
 	return nil
 }
+
+func (m *Tests) MountSecret(ctx context.Context) error {
+	const expected = `{"auths":{"docker.io":{"auth":"c2FnaWthemFybWFyazpwYXNzd29yZDI="},"ghcr.io":{"auth":"c2FnaWthemFybWFyazpwYXNzd29yZA=="}}}`
+
+	_, err := dag.RegistryConfig().
+		WithRegistryAuth("ghcr.io", "sagikazarmark", dag.SetSecret("password", "password")).
+		WithRegistryAuth("docker.io", "sagikazarmark", dag.SetSecret("password2", "password2")).
+		MountSecret(dag.Container().From("alpine"), "/actual.json").
+		WithMountedFile("/expected.json", dag.Directory().WithNewFile("expected.json", expected).File("expected.json")).
+		WithExec([]string{"diff", "-u", "/expected.json", "/actual.json"}).
+		Sync(ctx)
+
+	return err
+}
