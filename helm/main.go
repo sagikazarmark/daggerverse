@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -74,7 +75,24 @@ func (m *Helm) Lint(
 	// A directory containing a Helm chart.
 	chart *Directory,
 ) (*Container, error) {
-	return m.Chart(chart).Lint(ctx)
+	chartMetadata, err := getChartMetadata(ctx, chart)
+	if err != nil {
+		return nil, err
+	}
+
+	const workdir = "/work"
+
+	chartName := chartMetadata.Name
+	chartPath := path.Join(workdir, chartName)
+
+	args := []string{
+		"lint",
+		chartPath,
+	}
+
+	return m.Container.
+		WithWorkdir(workdir).
+		WithMountedDirectory(chartPath, chart).WithExec(args), nil
 }
 
 // Build a Helm chart package.
@@ -99,12 +117,43 @@ func (m *Helm) Package(
 	// +optional
 	dependencyUpdate bool,
 ) (*File, error) {
-	pkg, err := m.Chart(chart).Package(ctx, appVersion, version, dependencyUpdate)
+	chartMetadata, err := getChartMetadata(ctx, chart)
 	if err != nil {
 		return nil, err
 	}
 
-	return pkg.File, nil
+	const workdir = "/work"
+
+	chartName := chartMetadata.Name
+	chartPath := filepath.Join(workdir, chartName)
+
+	args := []string{
+		"package",
+
+		"--destination", workdir,
+	}
+
+	if appVersion != "" {
+		args = append(args, "--app-version", appVersion)
+	}
+
+	chartVersion := chartMetadata.Version
+	if version != "" {
+		args = append(args, "--version", version)
+		chartVersion = version
+	}
+
+	if dependencyUpdate {
+		args = append(args, "--dependency-update")
+	}
+
+	args = append(args, chartPath)
+
+	return m.Container.
+		WithWorkdir(workdir).
+		WithMountedDirectory(chartPath, chart).
+		WithExec(args).
+		File(path.Join(workdir, fmt.Sprintf("%s-%s.tgz", chartName, chartVersion))), nil
 }
 
 // Authenticate to an OCI registry.
@@ -204,10 +253,45 @@ func (m *Helm) Push(
 	// +optional
 	keyFile *File,
 ) error {
-	p := &Package{
-		File:      pkg,
-		Container: m.Container,
+	const workdir = "/work"
+
+	chartPath := path.Join(workdir, "chart.tgz")
+
+	container := m.Container.
+		WithWorkdir(workdir).
+		WithMountedFile(chartPath, pkg)
+
+	args := []string{
+		"push",
+
+		chartPath,
+		registry,
 	}
 
-	return p.Publish(ctx, registry, plainHttp, insecureSkipTlsVerify, caFile, certFile, keyFile)
+	if plainHttp {
+		args = append(args, "--plain-http")
+	}
+
+	if insecureSkipTlsVerify {
+		args = append(args, "--insecure-skip-tls-verify")
+	}
+
+	if caFile != nil {
+		container = container.WithMountedFile("/etc/helm/ca.pem", caFile)
+		args = append(args, "--ca-file", "/etc/helm/ca.pem")
+	}
+
+	if certFile != nil {
+		container = container.WithMountedFile("/etc/helm/cert.pem", certFile)
+		args = append(args, "--cert-file", "/etc/helm/cert.pem")
+	}
+
+	if keyFile != nil {
+		container = container.WithMountedFile("/etc/helm/key.pem", keyFile)
+		args = append(args, "--key-file", "/etc/helm/key.pem")
+	}
+
+	_, err := container.WithExec(args).Sync(ctx)
+
+	return err
 }
