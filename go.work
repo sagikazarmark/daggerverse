@@ -8,6 +8,8 @@ use (
 	./archivist/tests
 	./bats
 	./bats/tests
+	./borgo
+	./borgo/tests
 	./checksum
 	./checksum/tests
 	./gh

@@ -1,0 +1,29 @@
+use fmt
+
+enum NetworkState<T> {
+    Loading,
+    Failed(int),
+    Success(T),
+}
+
+struct Response {
+    title: string,
+    duration: int,
+}
+
+fn main() {
+    let res = Response {
+        title: "Hello world",
+        duration: 0,
+    }
+
+    let state = NetworkState.Success(res)
+
+    let msg = match state {
+        NetworkState.Loading => "still loading",
+        NetworkState.Failed(code) => fmt.Sprintf("Got error code: %d", code),
+        NetworkState.Success(res) => res.title,
+    }
+
+    fmt.Println(msg)
+}
