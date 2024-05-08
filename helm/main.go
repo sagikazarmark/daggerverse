@@ -222,7 +222,7 @@ func (m *Helm) Login(
 	m.Container = m.Container.
 		WithSecretVariable("HELM_PASSWORD", password).
 		WithExec([]string{"sh", "-c", strings.Join(args, " ")}, ContainerWithExecOpts{SkipEntrypoint: true}).
-		WithSecretVariable("HELM_PASSWORD", dag.SetSecret("helm-password-reset", "")) // https://github.com/dagger/dagger/issues/7274
+		WithoutSecretVariable("HELM_PASSWORD")
 
 	return m
 }

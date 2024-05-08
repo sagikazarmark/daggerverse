@@ -121,7 +121,7 @@ func (m *GolangciLint) WithModuleCache(
 ) *GolangciLint {
 	return &GolangciLint{m.Go.WithModuleCache(cache, GoWithModuleCacheOpts{
 		Source:  source,
-		Sharing: string(sharing),
+		Sharing: sharing,
 	})}
 }
 
@@ -139,7 +139,7 @@ func (m *GolangciLint) WithBuildCache(
 ) *GolangciLint {
 	return &GolangciLint{m.Go.WithBuildCache(cache, GoWithBuildCacheOpts{
 		Source:  source,
-		Sharing: string(sharing),
+		Sharing: sharing,
 	})}
 }
 
