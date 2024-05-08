@@ -1,9 +1,8 @@
-go 1.21.7
+go 1.22.2
 
 use (
 	./arc
 	./arc/tests
-	./archive
 	./archivist
 	./archivist/tests
 	./bats
