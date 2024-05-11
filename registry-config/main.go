@@ -124,6 +124,7 @@ func (m *RegistryConfig) MountSecret(
 	//
 	// +optional
 	owner string,
+
 	// Permission given to the mounted secret (e.g., 0600).
 	//
 	// This option requires an owner to be set to be active.
@@ -133,6 +134,10 @@ func (m *RegistryConfig) MountSecret(
 ) (*Container, error) {
 	if !m.HasRegistryAuth() {
 		return container, nil
+	}
+
+	if secretNamePrefix != "" {
+		secretName = secretNamePrefix + "-" + secretName
 	}
 
 	secret, err := m.Secret(ctx, secretName)
