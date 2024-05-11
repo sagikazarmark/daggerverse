@@ -14,6 +14,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -68,8 +69,9 @@ type ConfigAuth struct {
 func (m *RegistryConfig) Secret(
 	ctx context.Context,
 
+	// Customize the name of the secret.
+	//
 	// +optional
-	// +default="registry-config"
 	name string,
 ) (*Secret, error) {
 	config := Config{
@@ -92,6 +94,17 @@ func (m *RegistryConfig) Secret(
 		return nil, err
 	}
 
+	if name == "" {
+		h := sha1.New()
+
+		_, err := h.Write(out)
+		if err != nil {
+			return nil, err
+		}
+
+		name = fmt.Sprintf("registry-config-%x", h.Sum(nil))
+	}
+
 	return dag.SetSecret(name, string(out)), nil
 }
 
@@ -108,13 +121,7 @@ func (m *RegistryConfig) MountSecret(
 	// Name of the secret to create and mount.
 	//
 	// +optional
-	// +default="registry-config"
 	secretName string,
-
-	// Prefix to add to the (default) secret name.
-	//
-	// +optional
-	secretNamePrefix string,
 
 	// A user:group to set for the mounted secret.
 	//
@@ -134,10 +141,6 @@ func (m *RegistryConfig) MountSecret(
 ) (*Container, error) {
 	if !m.HasRegistryAuth() {
 		return container, nil
-	}
-
-	if secretNamePrefix != "" {
-		secretName = secretNamePrefix + "-" + secretName
 	}
 
 	secret, err := m.Secret(ctx, secretName)
