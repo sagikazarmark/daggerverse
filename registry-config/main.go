@@ -98,12 +98,23 @@ func (m *RegistryConfig) Secret(
 // MountSecret mounts a registry configuration secret into a container if there is any confuguration in it.
 func (m *RegistryConfig) MountSecret(
 	ctx context.Context,
+
+	// Container to mount the secret into.
 	container *Container,
+
+	// Path to mount the secret into (a common path is ~/.docker/config.json).
 	path string,
 
+	// Name of the secret to create and mount.
+	//
 	// +optional
 	// +default="registry-config"
 	secretName string,
+
+	// Prefix to add to the (default) secret name.
+	//
+	// +optional
+	secretNamePrefix string,
 
 	// A user:group to set for the mounted secret.
 	//
