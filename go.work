@@ -1,6 +1,8 @@
 go 1.22.2
 
 use (
+	./apko
+	./apko/tests
 	./arc
 	./arc/tests
 	./archivist
