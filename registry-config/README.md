@@ -17,6 +17,14 @@ type Module struct {
 	RegistryConfig *RegistryConfig
 }
 
+func New() *Module {
+	return &Module{
+		// ...
+
+		RegistryConfig: dag.RegistryConfig(),
+	}
+}
+
 // use container for actions that need registry credentials
 func (m *Module) container() *Container {
 	return m.Container.
