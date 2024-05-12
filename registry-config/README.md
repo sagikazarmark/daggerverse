@@ -29,7 +29,7 @@ func New() *Module {
 func (m *Module) container() *Container {
 	return m.Container.
 		With(func(c *Container) *Container {
-			return m.RegistryConfig.MountSecret(c, "/root/.config/docker/config.json")
+			return m.RegistryConfig.MountSecret(c, "/root/.docker/config.json")
 		})
 }
 
