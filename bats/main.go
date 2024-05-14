@@ -10,39 +10,31 @@ const defaultImageRepository = "bats/bats"
 
 type Bats struct {
 	// +private
-	Ctr *Container
+	Container *Container
 }
 
 func New(
 	// Version (image tag) to use from the official image repository as a base container.
+	//
 	// +optional
 	version string,
 
-	// Custom image reference in "repository:tag" format to use as a base container.
-	// +optional
-	image string,
-
 	// Custom container to use as a base container.
+	//
 	// +optional
 	container *Container,
 ) *Bats {
-	var ctr *Container
+	if container == nil {
+		if version == "" {
+			version = "latest"
+		}
 
-	if version != "" {
-		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
-	} else if image != "" {
-		ctr = dag.Container().From(image)
-	} else if container != nil {
-		ctr = container
-	} else {
-		ctr = dag.Container().From(defaultImageRepository)
+		container = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
 	}
 
-	return &Bats{ctr}
-}
-
-func (m *Bats) Container() *Container {
-	return m.Ctr
+	return &Bats{
+		Container: container,
+	}
 }
 
 // Mount a source directory.
@@ -54,7 +46,7 @@ func (m *Bats) WithSource(
 
 	return &WithSource{
 		&Bats{
-			m.Ctr.
+			m.Container.
 				WithWorkdir(workdir).
 				WithMountedDirectory(workdir, source),
 		},
@@ -74,7 +66,7 @@ func (m *Bats) Run(
 		return m.WithSource(source).Run(args)
 	}
 
-	return m.Ctr.WithExec(args)
+	return m.Container.WithExec(args)
 }
 
 type WithSource struct {
@@ -83,7 +75,7 @@ type WithSource struct {
 }
 
 func (m *WithSource) Container() *Container {
-	return m.Bats.Ctr
+	return m.Bats.Container
 }
 
 // Run bats tests.
@@ -91,5 +83,5 @@ func (m *WithSource) Run(
 	// Arguments to pass to bats.
 	args []string,
 ) *Container {
-	return m.Bats.Ctr.WithExec(args)
+	return m.Bats.Container.WithExec(args)
 }
