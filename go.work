@@ -39,6 +39,8 @@ use (
 	./slsa-verifier/tests
 	./spectral
 	./spectral/tests
+	./ssh-keygen
+	./ssh-keygen/tests
 	./xk6
 	./xk6/tests
 )
