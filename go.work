@@ -27,6 +27,8 @@ use (
 	./kafka/tests
 	./kustomize
 	./kustomize/tests
+	./openssh-server
+	./openssh-server/tests
 	./python
 	./python/tests
 	./quarto

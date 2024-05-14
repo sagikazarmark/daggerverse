@@ -1,0 +1,15 @@
+#	$OpenBSD: sshd_config,v 1.104 2021/07/02 05:11:21 dtucker Exp $
+
+# This is the sshd server system-wide configuration file.  See
+# sshd_config(5) for more information.
+#
+# https://man7.org/linux/man-pages/man5/sshd_config.5.html
+
+Include /etc/ssh/sshd_config.d/*.conf
+
+AuthorizedKeysFile	.ssh/authorized_keys
+
+# Make sure these aren't overridden by the user
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
