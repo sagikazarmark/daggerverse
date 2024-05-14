@@ -3,8 +3,7 @@ package main
 
 import (
 	"context"
-	"crypto/ed25519"
-	"crypto/rand"
+	"crypto"
 	"encoding/pem"
 
 	"golang.org/x/crypto/ssh"
@@ -13,41 +12,20 @@ import (
 // Generate a new SSH key pair.
 type SshKeygen struct{}
 
+// An SSH key pair.
 type KeyPair struct {
 	PublicKey  *File
 	PrivateKey *Secret
 }
 
-// Generate a new SSH key pair using the Ed25519 algorithm.
-func (m *SshKeygen) Ed25519() *Ed25519 {
-	return &Ed25519{}
-}
-
-type Ed25519 struct{}
-
-// Generate a new SSH key pair using the Ed25519 algorithm.
-func (m *Ed25519) Generate(
+func formatKeys(
 	ctx context.Context,
-
-	// Name used as public key file name and private key secret name.
-	//
-	// Set this to something unique if you need multiple keys.
-	//
-	// +optional
-	// +default="id_ed25519"
 	name string,
-
-	// Encrypt the private key with the given passphrase.
-	//
-	// +optional
+	publicKey crypto.PublicKey,
+	privateKey crypto.PrivateKey,
 	passphrase *Secret,
 ) (*KeyPair, error) {
-	cryptoPublicKey, cryptoPrivateKey, err := ed25519.GenerateKey(rand.Reader)
-	if err != nil {
-		return nil, err
-	}
-
-	sshPublicKey, err := ssh.NewPublicKey(cryptoPublicKey)
+	sshPublicKey, err := ssh.NewPublicKey(publicKey)
 	if err != nil {
 		return nil, err
 	}
@@ -58,24 +36,24 @@ func (m *Ed25519) Generate(
 
 		if passphrase != nil {
 			pass, err := passphrase.Plaintext(ctx)
+			if err != nil {
+				return nil, err
+			}
 
-			sshPrivateKey, err = ssh.MarshalPrivateKeyWithPassphrase(cryptoPrivateKey, "", []byte(pass))
+			sshPrivateKey, err = ssh.MarshalPrivateKeyWithPassphrase(privateKey, "", []byte(pass))
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			sshPrivateKey, err = ssh.MarshalPrivateKey(cryptoPrivateKey, "")
+			sshPrivateKey, err = ssh.MarshalPrivateKey(privateKey, "")
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	publicKey := dag.Directory().WithNewFile(name+".pub", string(ssh.MarshalAuthorizedKey(sshPublicKey))).File(name + ".pub")
-	privateKey := dag.SetSecret(name, string(pem.EncodeToMemory(sshPrivateKey)))
-
 	return &KeyPair{
-		PublicKey:  publicKey,
-		PrivateKey: privateKey,
+		PublicKey:  dag.Directory().WithNewFile(name+".pub", string(ssh.MarshalAuthorizedKey(sshPublicKey))).File(name + ".pub"),
+		PrivateKey: dag.SetSecret(name, string(pem.EncodeToMemory(sshPrivateKey))),
 	}, nil
 }
