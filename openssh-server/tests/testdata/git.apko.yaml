@@ -1,0 +1,30 @@
+contents:
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+  repositories:
+    - https://packages.wolfi.dev/os
+  packages:
+    - wolfi-base
+    - openssh-server
+    - git
+
+cmd: /bin/sh -l
+
+archs:
+  - x86_64
+  - aarch64
+
+accounts:
+  groups:
+    - groupname: git
+      gid: 41
+  users:
+    - username: git
+      uid: 41
+
+paths:
+  - path: /srv/git
+    type: directory
+    uid: 41
+    gid: 41
+    permissions: 0o755

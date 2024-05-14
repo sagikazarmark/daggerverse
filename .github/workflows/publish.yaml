@@ -26,6 +26,7 @@ jobs:
           - helm-docs
           - kafka
           - kustomize
+          - openssh-server
           - python
           - quarto
           - registry-config
