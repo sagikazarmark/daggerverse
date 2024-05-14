@@ -9,16 +9,8 @@
   ],
   "dependencies": [
     {
-      "name": "apko",
-      "source": "../../apko"
-    },
-    {
-      "name": "openssh-server",
-      "source": ".."
-    },
-    {
       "name": "ssh-keygen",
-      "source": "../../ssh-keygen"
+      "source": ".."
     }
   ],
   "source": ".",

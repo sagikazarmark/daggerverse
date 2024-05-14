@@ -7,7 +7,22 @@ import (
 	"github.com/sourcegraph/conc/pool"
 )
 
-type Tests struct{}
+type Tests struct {
+	// +private
+	PublicKey *File
+
+	// +private
+	PrivateKey *Secret
+}
+
+func New() *Tests {
+	keyPair := dag.SSHKeygen().Ed25519().Generate()
+
+	return &Tests{
+		PublicKey:  keyPair.PublicKey(),
+		PrivateKey: keyPair.PrivateKey(),
+	}
+}
 
 // All executes all tests.
 func (m *Tests) All(ctx context.Context) error {
@@ -22,11 +37,9 @@ func (m *Tests) All(ctx context.Context) error {
 }
 
 func (m *Tests) Basic(ctx context.Context) error {
-	publicKey, privateKey := keys()
+	server := dag.OpensshServer().WithAuthorizedKey(m.PublicKey)
 
-	server := dag.OpensshServer().WithAuthorizedKey(publicKey)
-
-	_, err := client(server, privateKey).
+	_, err := client(server, m.PrivateKey).
 		WithExec([]string{"ssh", "-vvv", "-T", "root@server"}).
 		Sync(ctx)
 
@@ -34,11 +47,9 @@ func (m *Tests) Basic(ctx context.Context) error {
 }
 
 func (m *Tests) CustomPort(ctx context.Context) error {
-	publicKey, privateKey := keys()
+	server := dag.OpensshServer().WithAuthorizedKey(m.PublicKey)
 
-	server := dag.OpensshServer().WithAuthorizedKey(publicKey)
-
-	_, err := clientWithPort(server, 2222, privateKey).
+	_, err := clientWithPort(server, 2222, m.PrivateKey).
 		WithExec([]string{"ssh", "-vvv", "-p", "2222", "-T", "root@server"}).
 		Sync(ctx)
 
@@ -46,13 +57,11 @@ func (m *Tests) CustomPort(ctx context.Context) error {
 }
 
 func (m *Tests) User(ctx context.Context) error {
-	publicKey, privateKey := keys()
-
 	server := dag.OpensshServer(OpensshServerOpts{
 		Container: dag.Apko().Config(dag.CurrentModule().Source().File("testdata/git.apko.yaml")).Container(),
-	}).WithAuthorizedKey(publicKey, OpensshServerWithAuthorizedKeyOpts{User: "git"})
+	}).WithAuthorizedKey(m.PublicKey, OpensshServerWithAuthorizedKeyOpts{User: "git"})
 
-	_, err := client(server, privateKey).
+	_, err := client(server, m.PrivateKey).
 		WithExec([]string{"ssh", "-vvv", "-T", "git@server"}).
 		Sync(ctx)
 
@@ -60,35 +69,22 @@ func (m *Tests) User(ctx context.Context) error {
 }
 
 func (m *Tests) Config(ctx context.Context) error {
-	publicKey, privateKey := keys()
-
 	config := dag.CurrentModule().Source().File("testdata/custom.conf")
 
-	server := dag.OpensshServer().WithAuthorizedKey(publicKey).WithConfig("custom", config)
+	server := dag.OpensshServer().WithAuthorizedKey(m.PublicKey).WithConfig("custom", config)
 
-	_, err := client(server, privateKey).
+	_, err := client(server, m.PrivateKey).
 		WithExec([]string{"ssh", "-vvv", "-T", "root@server"}).
 		Sync(ctx)
 
 	return err
 }
 
-func keys() (*File, *File) {
-	keygen := dag.Apko().Wolfi().WithPackage("openssh-keygen").Container().
-		WithExec([]string{"mkdir", "-p", "/ssh"}).
-		WithExec([]string{"ssh-keygen", "-q", "-N", "", "-t", "ed25519", "-f", "/ssh/id_ed25519"})
-
-	publicKey := keygen.File("/ssh/id_ed25519.pub")
-	privateKey := keygen.File("/ssh/id_ed25519")
-
-	return publicKey, privateKey
-}
-
-func client(server *OpensshServer, privateKey *File) *Container {
+func client(server *OpensshServer, privateKey *Secret) *Container {
 	return clientWithPort(server, 0, privateKey)
 }
 
-func clientWithPort(server *OpensshServer, port int, privateKey *File) *Container {
+func clientWithPort(server *OpensshServer, port int, privateKey *Secret) *Container {
 	var serviceOpts OpensshServerServiceOpts
 
 	if port > 0 {
@@ -100,6 +96,6 @@ func clientWithPort(server *OpensshServer, port int, privateKey *File) *Containe
 		Container().
 		WithServiceBinding("server", server.Service(serviceOpts)).
 		WithMountedFile("/root/.ssh/known_hosts", server.KnownHosts("server")).
-		WithMountedFile("/root/.ssh/id_ed25519", privateKey).
+		WithMountedSecret("/root/.ssh/id_ed25519", privateKey).
 		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano))
 }
