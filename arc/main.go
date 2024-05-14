@@ -19,42 +19,37 @@ const (
 // Easily create & extract archives, and compress & decompress files of various formats.
 type Arc struct {
 	// +private
-	Ctr *Container
+	Container *Container
 }
 
 func New(
 	// Version to download from GitHub Releases (default: "3.5.0").
+	//
 	// +optional
 	version string,
 
-	// Custom image reference in "repository:tag" format to use as a base container.
-	// +optional
-	image string,
-
 	// Custom container to use as a base container.
+	//
 	// +optional
 	container *Container,
 ) *Arc {
-	var ctr *Container
+	if container == nil {
+		if version == "" {
+			version = latestVersion
+		}
 
-	if version != "" {
-		ctr = containerWithDownloadedBinary(version)
-	} else if image != "" {
-		ctr = dag.Container().From(image)
-	} else if container != nil {
-		ctr = container
-	} else {
-		ctr = containerWithDownloadedBinary(latestVersion)
+		binary := dag.HTTP(fmt.Sprintf("https://github.com/mholt/archiver/releases/download/v%s/arc_%s_%s_%s", version, version, runtime.GOOS, runtime.GOARCH))
+
+		container = dag.Container().
+			From(alpineBaseImage).
+			WithFile("/usr/local/bin/arc", binary, ContainerWithFileOpts{
+				Permissions: 0755,
+			})
 	}
 
-	return &Arc{ctr}
-}
-
-func containerWithDownloadedBinary(version string) *Container {
-	return dag.Container().
-		From(alpineBaseImage).
-		WithExec([]string{"wget", "-O", "/usr/local/bin/arc", fmt.Sprintf("https://github.com/mholt/archiver/releases/download/v%s/arc_%s_%s_%s", version, version, runtime.GOOS, runtime.GOARCH)}).
-		WithExec([]string{"chmod", "+x", "/usr/local/bin/arc"})
+	return &Arc{
+		Container: container,
+	}
 }
 
 // Create a new archive from a list of files.
@@ -73,7 +68,7 @@ func (m *Arc) ArchiveFiles(
 	return &Archive{
 		Name:      name,
 		Directory: dir,
-		Ctr:       m.Ctr,
+		Container: m.Container,
 	}
 }
 
@@ -88,7 +83,7 @@ func (m *Arc) ArchiveDirectory(
 	return &Archive{
 		Name:      name,
 		Directory: directory,
-		Ctr:       m.Ctr,
+		Container: m.Container,
 	}
 }
 
@@ -100,7 +95,7 @@ type Archive struct {
 	Directory *Directory
 
 	// +private
-	Ctr *Container
+	Container *Container
 }
 
 var supportedFormats = []string{
@@ -129,9 +124,9 @@ func (m *Archive) Create(
 	archiveFilePath := path.Join("/work", m.Name+"."+format)
 	cmd := []string{"arc", "-folder-safe=false", "archive", archiveFilePath, "$(ls)"}
 
-	return m.Ctr.
-		WithWorkdir("/work/src").
-		WithMountedDirectory("/work/src", m.Directory).
+	return m.Container.
+		WithWorkdir("/work").
+		WithMountedDirectory("/work", m.Directory).
 		WithExec([]string{"sh", "-c", strings.Join(cmd, " ")}).
 		File(archiveFilePath), nil
 }
@@ -163,7 +158,7 @@ func (m *Arc) Unarchive(
 
 	cmd := []string{"arc", "unarchive", fileName, baseName}
 
-	return m.Ctr.
+	return m.Container.
 		WithWorkdir("/work").
 		WithMountedFile(path.Join("/work", fileName), archive).
 		WithExec([]string{"sh", "-c", strings.Join(cmd, " ")}).
