@@ -60,16 +60,7 @@ func (m *Arc) ArchiveFiles(
 	// Files to archive.
 	files []*File,
 ) *Archive {
-	dir := dag.Directory()
-	for _, file := range files {
-		dir = dir.WithFile("", file)
-	}
-
-	return &Archive{
-		Name:      name,
-		Directory: dir,
-		Container: m.Container,
-	}
+	return m.ArchiveDirectory(name, dag.Directory().WithFiles("", files))
 }
 
 // Create a new archive from the contents of a directory.
