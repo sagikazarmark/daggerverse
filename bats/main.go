@@ -45,11 +45,8 @@ func (m *Bats) WithSource(
 	const workdir = "/work"
 
 	return &WithSource{
-		&Bats{
-			m.Container.
-				WithWorkdir(workdir).
-				WithMountedDirectory(workdir, source),
-		},
+		Source: source,
+		Bats:   m,
 	}
 }
 
@@ -59,6 +56,7 @@ func (m *Bats) Run(
 	args []string,
 
 	// Source directory to mount.
+	//
 	// +optional
 	source *Directory,
 ) *Container {
@@ -71,11 +69,10 @@ func (m *Bats) Run(
 
 type WithSource struct {
 	// +private
-	Bats *Bats
-}
+	Source *Directory
 
-func (m *WithSource) Container() *Container {
-	return m.Bats.Container
+	// +private
+	Bats *Bats
 }
 
 // Run bats tests.
@@ -83,5 +80,10 @@ func (m *WithSource) Run(
 	// Arguments to pass to bats.
 	args []string,
 ) *Container {
-	return m.Bats.Container.WithExec(args)
+	const workdir = "/work"
+
+	return m.Bats.Container.
+		WithWorkdir(workdir).
+		WithMountedDirectory(workdir, m.Source).
+		WithExec(args)
 }
