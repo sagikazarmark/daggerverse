@@ -4,7 +4,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"path"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -112,12 +111,21 @@ func (m *Archive) Create(
 		return nil, fmt.Errorf("unsupported format: %s", format)
 	}
 
-	archiveFilePath := path.Join("/work", m.Name+"."+format)
+	const (
+		sourcePath = "/work/src"
+		outPath    = "/work/out"
+	)
+
+	// make sure the file name is not a relative path
+	// TODO: should this be an error instead?
+	archiveFilePath := filepath.Join(outPath, filepath.Base(m.Name)+"."+format)
+
 	cmd := []string{"arc", "-folder-safe=false", "archive", archiveFilePath, "$(ls)"}
 
 	return m.Container.
-		WithWorkdir("/work").
-		WithMountedDirectory("/work", m.Directory).
+		WithWorkdir(sourcePath).
+		WithMountedDirectory(sourcePath, m.Directory).
+		WithDirectory(outPath, dag.Directory()).
 		WithExec([]string{"sh", "-c", strings.Join(cmd, " ")}).
 		File(archiveFilePath), nil
 }
@@ -145,13 +153,13 @@ func (m *Arc) Unarchive(
 	}
 
 	baseName := trimExt(fileName)
-	destination := path.Join("/work", baseName)
+	destination := filepath.Join("/work", baseName)
 
 	cmd := []string{"arc", "unarchive", fileName, baseName}
 
 	return m.Container.
 		WithWorkdir("/work").
-		WithMountedFile(path.Join("/work", fileName), archive).
+		WithMountedFile(filepath.Join("/work", fileName), archive).
 		WithExec([]string{"sh", "-c", strings.Join(cmd, " ")}).
 		Directory(destination), nil
 }
