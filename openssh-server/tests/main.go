@@ -47,9 +47,9 @@ func (m *Tests) Basic(ctx context.Context) error {
 }
 
 func (m *Tests) CustomPort(ctx context.Context) error {
-	server := dag.OpensshServer().WithAuthorizedKey(m.PublicKey)
+	server := dag.OpensshServer().WithAuthorizedKey(m.PublicKey).WithPort(2222)
 
-	_, err := clientWithPort(server, 2222, m.PrivateKey).
+	_, err := client(server, m.PrivateKey).
 		WithExec([]string{"ssh", "-vvv", "-p", "2222", "-T", "root@server"}).
 		Sync(ctx)
 
@@ -81,20 +81,10 @@ func (m *Tests) Config(ctx context.Context) error {
 }
 
 func client(server *OpensshServer, privateKey *Secret) *Container {
-	return clientWithPort(server, 0, privateKey)
-}
-
-func clientWithPort(server *OpensshServer, port int, privateKey *Secret) *Container {
-	var serviceOpts OpensshServerServiceOpts
-
-	if port > 0 {
-		serviceOpts.Port = port
-	}
-
 	return dag.Apko().Wolfi().
 		WithPackages([]string{"openssh-client"}).
 		Container().
-		WithServiceBinding("server", server.Service(serviceOpts)).
+		WithServiceBinding("server", server.Service()).
 		WithMountedFile("/root/.ssh/known_hosts", server.KnownHosts("server")).
 		WithMountedSecret("/root/.ssh/id_ed25519", privateKey).
 		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano))

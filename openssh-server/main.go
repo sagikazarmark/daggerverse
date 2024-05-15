@@ -7,6 +7,9 @@ import (
 )
 
 type OpensshServer struct {
+	Port int
+
+	// +private
 	Container *Container
 }
 
@@ -37,6 +40,7 @@ func New(
 		WithExec([]string{"ssh-keygen", "-A"}) // Generate host keys
 
 	return &OpensshServer{
+		Port:      22,
 		Container: container,
 	}
 }
@@ -44,6 +48,7 @@ func New(
 // Mount a custom SSH configuration file (with .conf extension).
 func (m *OpensshServer) WithConfig(name string, file *File) *OpensshServer {
 	return &OpensshServer{
+		Port:      m.Port,
 		Container: m.Container.WithFile(fmt.Sprintf("/etc/ssh/sshd_config.d/%s.conf", name), file),
 	}
 }
@@ -78,6 +83,7 @@ func (m *OpensshServer) WithAuthorizedKey(
 	user = strings.ToLower(user)
 
 	return &OpensshServer{
+		Port: m.Port,
 		Container: m.Container.
 			With(func(c *Container) *Container {
 				if user != "" && user != "root" {
@@ -101,14 +107,22 @@ func (m *OpensshServer) WithAuthorizedKey(
 	}
 }
 
+// Set the port number for the OpenSSH server.
+func (m *OpensshServer) WithPort(port int) (*OpensshServer, error) {
+	if port <= 0 || port > 65535 {
+		return nil, fmt.Errorf("invalid port number \"%d\": port number must be between 1 and 65535", port)
+	}
+
+	return &OpensshServer{
+		Port:      port,
+		Container: m.Container,
+	}, nil
+}
+
 // Return a service that runs the OpenSSH server.
-func (m *OpensshServer) Service(
-	// +optional
-	// +default=22
-	port int,
-) *Service {
+func (m *OpensshServer) Service() *Service {
 	return m.Container.
-		WithExec([]string{"/usr/sbin/sshd", "-D", "-e", "-p", fmt.Sprintf("%d", port)}).
-		WithExposedPort(port).
+		WithExec([]string{"/usr/sbin/sshd", "-D", "-e", "-p", fmt.Sprintf("%d", m.Port)}).
+		WithExposedPort(m.Port).
 		AsService()
 }
