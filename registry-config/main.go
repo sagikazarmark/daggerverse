@@ -65,7 +65,7 @@ func (m *RegistryConfig) Secret(
 	return config.toSecret(name)
 }
 
-// MountSecret mounts a registry configuration secret into a container if there is any confuguration in it.
+// Mount a registry configuration secret into a container.
 func (m *RegistryConfig) MountSecret(
 	ctx context.Context,
 
@@ -79,6 +79,11 @@ func (m *RegistryConfig) MountSecret(
 	//
 	// +optional
 	secretName string,
+
+	// Skip mounting the secret if it's empty.
+	//
+	// +optional
+	skipOnEmpty bool,
 
 	// A user:group to set for the mounted secret.
 	//
@@ -96,17 +101,84 @@ func (m *RegistryConfig) MountSecret(
 	// +optional
 	mode int,
 ) (*Container, error) {
-	if len(m.Auths) == 0 {
+	return m.SecretMount(ctx, path, secretName, skipOnEmpty, owner, mode).Mount(ctx, container)
+}
+
+// Create a SecretMount that can be used to mount the registry configuration into a container.
+func (m *RegistryConfig) SecretMount(
+	ctx context.Context,
+
+	// Path to mount the secret into (a common path is ~/.docker/config.json).
+	path string,
+
+	// Name of the secret to create and mount.
+	//
+	// +optional
+	secretName string,
+
+	// Skip mounting the secret if it's empty.
+	//
+	// +optional
+	skipOnEmpty bool,
+
+	// A user:group to set for the mounted secret.
+	//
+	// The user and group can either be an ID (1000:1000) or a name (foo:bar).
+	//
+	// If the group is omitted, it defaults to the same as the user.
+	//
+	// +optional
+	owner string,
+
+	// Permission given to the mounted secret (e.g., 0600).
+	//
+	// This option requires an owner to be set to be active.
+	//
+	// +optional
+	mode int,
+) *SecretMount {
+	return &SecretMount{
+		Path:           path,
+		SecretName:     secretName,
+		SkipOnEmpty:    skipOnEmpty,
+		Owner:          owner,
+		Mode:           mode,
+		RegistryConfig: m,
+	}
+}
+
+type SecretMount struct {
+	// Path to mount the secret into (a common path is ~/.docker/config.json).
+	Path string
+
+	// Name of the secret to create and mount.
+	SecretName string
+
+	// Skip mounting the secret if it's empty.
+	SkipOnEmpty bool
+
+	// A user:group to set for the mounted secret.
+	Owner string
+
+	// Permission given to the mounted secret (e.g., 0600).
+	Mode int
+
+	// +private
+	RegistryConfig *RegistryConfig
+}
+
+func (m *SecretMount) Mount(ctx context.Context, container *Container) (*Container, error) {
+	if m.SkipOnEmpty && len(m.RegistryConfig.Auths) == 0 {
 		return container, nil
 	}
 
-	secret, err := m.Secret(ctx, secretName)
+	secret, err := m.RegistryConfig.Secret(ctx, m.SecretName)
 	if err != nil {
 		return nil, err
 	}
 
-	return container.WithMountedSecret(path, secret, ContainerWithMountedSecretOpts{
-		Owner: owner,
-		Mode:  mode,
+	return container.WithMountedSecret(m.Path, secret, ContainerWithMountedSecretOpts{
+		Owner: m.Owner,
+		Mode:  m.Mode,
 	}), nil
 }

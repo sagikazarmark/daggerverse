@@ -16,6 +16,10 @@ func (m *Tests) All(ctx context.Context) error {
 	p.Go(m.WithRegistryAuth)
 	p.Go(m.WithRegistryAuth_MultipleCredentials)
 	p.Go(m.WithoutRegistryAuth)
+	p.Go(m.MountSecret)
+	p.Go(m.MountSecret_SkipOnEmpty)
+	p.Go(m.SecretMount)
+	p.Go(m.SecretMount_SkipOnEmpty)
 
 	return p.Wait()
 }
@@ -92,6 +96,44 @@ func (m *Tests) MountSecret(ctx context.Context) error {
 		MountSecret(dag.Container().From("alpine"), "/actual.json").
 		WithMountedFile("/expected.json", dag.Directory().WithNewFile("expected.json", expected).File("expected.json")).
 		WithExec([]string{"diff", "-u", "/expected.json", "/actual.json"}).
+		Sync(ctx)
+
+	return err
+}
+
+func (m *Tests) MountSecret_SkipOnEmpty(ctx context.Context) error {
+	_, err := dag.RegistryConfig().
+		MountSecret(dag.Container().From("alpine"), "/empty.json", RegistryConfigMountSecretOpts{SkipOnEmpty: true}).
+		WithExec([]string{"sh", "-c", "test ! -f /empty.json"}).
+		Sync(ctx)
+
+	return err
+}
+
+func (m *Tests) SecretMount(ctx context.Context) error {
+	const expected = `{"auths":{"docker.io":{"auth":"c2FnaWthemFybWFyazpwYXNzd29yZDI="},"ghcr.io":{"auth":"c2FnaWthemFybWFyazpwYXNzd29yZA=="}}}`
+
+	registryConfig := dag.RegistryConfig().
+		WithRegistryAuth("ghcr.io", "sagikazarmark", dag.SetSecret("MountSecret-password", "password")).
+		WithRegistryAuth("docker.io", "sagikazarmark", dag.SetSecret("MountSecret-password2", "password2"))
+
+	_, err := dag.Container().
+		From("alpine").
+		With(registryConfig.SecretMount("/actual.json").Mount).
+		WithMountedFile("/expected.json", dag.Directory().WithNewFile("expected.json", expected).File("expected.json")).
+		WithExec([]string{"diff", "-u", "/expected.json", "/actual.json"}).
+		Sync(ctx)
+
+	return err
+}
+
+func (m *Tests) SecretMount_SkipOnEmpty(ctx context.Context) error {
+	registryConfig := dag.RegistryConfig()
+
+	_, err := dag.Container().
+		From("alpine").
+		With(registryConfig.SecretMount("/empty.json", RegistryConfigSecretMountOpts{SkipOnEmpty: true}).Mount).
+		WithExec([]string{"sh", "-c", "test ! -f /empty.json"}).
 		Sync(ctx)
 
 	return err
