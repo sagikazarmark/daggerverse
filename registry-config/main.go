@@ -14,10 +14,6 @@ package main
 
 import (
 	"context"
-	"crypto/sha1"
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
 	"slices"
 )
 
@@ -52,14 +48,6 @@ func (m *RegistryConfig) WithoutRegistryAuth(address string) *RegistryConfig {
 	return m
 }
 
-type Config struct {
-	Auths map[string]ConfigAuth `json:"auths"`
-}
-
-type ConfigAuth struct {
-	Auth string `json:"auth"`
-}
-
 // Create the registry configuration.
 func (m *RegistryConfig) Secret(
 	ctx context.Context,
@@ -69,38 +57,12 @@ func (m *RegistryConfig) Secret(
 	// +optional
 	name string,
 ) (*Secret, error) {
-	config := Config{
-		Auths: map[string]ConfigAuth{},
-	}
-
-	for _, auth := range m.Auths {
-		plaintext, err := auth.Secret.Plaintext(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		config.Auths[auth.Address] = ConfigAuth{
-			Auth: base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", auth.Username, plaintext))),
-		}
-	}
-
-	out, err := json.Marshal(config)
+	config, err := m.toConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if name == "" {
-		h := sha1.New()
-
-		_, err := h.Write(out)
-		if err != nil {
-			return nil, err
-		}
-
-		name = fmt.Sprintf("registry-config-%x", h.Sum(nil))
-	}
-
-	return dag.SetSecret(name, string(out)), nil
+	return config.toSecret(name)
 }
 
 // MountSecret mounts a registry configuration secret into a container if there is any confuguration in it.
