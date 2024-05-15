@@ -102,8 +102,13 @@ var supportedFormats = []string{
 
 // Create an archive from the provided files or directory.
 func (m *Archive) Create(
-	// One of the supported archive formats. (choices: "zip", "tar", "tar.br", "tbr", "tar.gz", "tgz", "tar.bz2", "tbz2", "tar.xz", "txz", "tar.lz4", "tlz4", "tar.sz", "tsz", "tar.zst")
+	// One of the supported archive formats. (choices: "tar", "tar.br", "tbr", "tar.gz", "tgz", "tar.bz2", "tbz2", "tar.xz", "txz", "tar.lz4", "tlz4", "tar.sz", "tsz", "tar.zst", "zip")
 	format string,
+
+	// Compression level (depends on the format).
+	//
+	// +optional
+	compressionLevel int,
 ) (*File, error) {
 	format = strings.ToLower(format)
 
@@ -120,7 +125,13 @@ func (m *Archive) Create(
 	// TODO: should this be an error instead?
 	archiveFilePath := filepath.Join(outPath, filepath.Base(m.Name)+"."+format)
 
-	cmd := []string{"arc", "-folder-safe=false", "archive", archiveFilePath, "$(ls)"}
+	cmd := []string{"arc", "-folder-safe=false"}
+
+	if compressionLevel > 0 {
+		cmd = append(cmd, "-level", fmt.Sprintf("%d", compressionLevel))
+	}
+
+	cmd = append(cmd, "archive", archiveFilePath, "$(ls)")
 
 	return m.Container.
 		WithWorkdir(sourcePath).
@@ -130,15 +141,30 @@ func (m *Archive) Create(
 		File(archiveFilePath), nil
 }
 
-func (m *Archive) Tar() (*File, error)    { return m.Create("tar") }
-func (m *Archive) TarBr() (*File, error)  { return m.Create("tar.br") }
-func (m *Archive) TarBz2() (*File, error) { return m.Create("tar.bz2") }
-func (m *Archive) TarGz() (*File, error)  { return m.Create("tar.gz") }
-func (m *Archive) TarLz4() (*File, error) { return m.Create("tar.lz4") }
-func (m *Archive) TarSz() (*File, error)  { return m.Create("tar.sz") }
-func (m *Archive) TarXz() (*File, error)  { return m.Create("tar.xz") }
-func (m *Archive) TarZst() (*File, error) { return m.Create("tar.zst") }
-func (m *Archive) Zip() (*File, error)    { return m.Create("zip") }
+func (m *Archive) Tar() (*File, error)   { return m.Create("tar", 0) }
+func (m *Archive) TarBr() (*File, error) { return m.Create("tar.br", 0) }
+
+func (m *Archive) TarBz2(
+	// +optional
+	// +default=9
+	compressionLevel int,
+) (*File, error) {
+	return m.Create("tar.bz2", compressionLevel)
+}
+
+func (m *Archive) TarGz(
+	// +optional
+	// +default=-1
+	compressionLevel int,
+) (*File, error) {
+	return m.Create("tar.gz", compressionLevel)
+}
+
+func (m *Archive) TarLz4() (*File, error) { return m.Create("tar.lz4", 0) }
+func (m *Archive) TarSz() (*File, error)  { return m.Create("tar.sz", 0) }
+func (m *Archive) TarXz() (*File, error)  { return m.Create("tar.xz", 0) }
+func (m *Archive) TarZst() (*File, error) { return m.Create("tar.zst", 0) }
+func (m *Archive) Zip() (*File, error)    { return m.Create("zip", 0) }
 
 // Extract the contents of an archive.
 func (m *Arc) Unarchive(
