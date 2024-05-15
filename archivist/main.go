@@ -35,27 +35,43 @@ func (m *TarBr) Archive(name string, source *Directory) *File {
 }
 
 // Create and extract ".tar.bz2" (and ".tbz2") archives.
-func (m *Archivist) TarBz2() *TarBz2 {
-	return &TarBz2{}
+func (m *Archivist) TarBz2(
+	// +optional
+	compressionLevel int,
+) *TarBz2 {
+	return &TarBz2{
+		CompressionLevel: compressionLevel,
+	}
 }
 
 // Create and extract ".tar.bz2" (and ".tbz2") archives.
-type TarBz2 struct{}
+type TarBz2 struct {
+	CompressionLevel int
+}
 
 func (m *TarBz2) Archive(name string, source *Directory) *File {
-	return arc().ArchiveDirectory(name, source).TarBz2()
+	return arc().ArchiveDirectory(name, source).TarBz2(ArcArchiveTarBz2Opts{
+		CompressionLevel: m.CompressionLevel,
+	})
 }
 
 // Create and extract ".tar.gz" (and ".tgz") archives.
-func (m *Archivist) TarGz() *TarGz {
+func (m *Archivist) TarGz(
+	// +optional
+	compressionLevel int,
+) *TarGz {
 	return &TarGz{}
 }
 
 // Create and extract ".tar.gz" (and ".tgz") archives.
-type TarGz struct{}
+type TarGz struct {
+	CompressionLevel int
+}
 
 func (m *TarGz) Archive(name string, source *Directory) *File {
-	return arc().ArchiveDirectory(name, source).TarGz()
+	return arc().ArchiveDirectory(name, source).TarGz(ArcArchiveTarGzOpts{
+		CompressionLevel: m.CompressionLevel,
+	})
 }
 
 // Create and extract ".tar.lz4" (and ".tlz4") archives.

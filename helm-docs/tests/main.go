@@ -7,7 +7,7 @@ import (
 	"github.com/sourcegraph/conc/pool"
 )
 
-const version = "v1.11.3"
+const version = "v1.13.1"
 
 type Tests struct{}
 

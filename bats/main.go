@@ -10,39 +10,31 @@ const defaultImageRepository = "bats/bats"
 
 type Bats struct {
 	// +private
-	Ctr *Container
+	Container *Container
 }
 
 func New(
 	// Version (image tag) to use from the official image repository as a base container.
+	//
 	// +optional
 	version string,
 
-	// Custom image reference in "repository:tag" format to use as a base container.
-	// +optional
-	image string,
-
 	// Custom container to use as a base container.
+	//
 	// +optional
 	container *Container,
 ) *Bats {
-	var ctr *Container
+	if container == nil {
+		if version == "" {
+			version = "latest"
+		}
 
-	if version != "" {
-		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
-	} else if image != "" {
-		ctr = dag.Container().From(image)
-	} else if container != nil {
-		ctr = container
-	} else {
-		ctr = dag.Container().From(defaultImageRepository)
+		container = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
 	}
 
-	return &Bats{ctr}
-}
-
-func (m *Bats) Container() *Container {
-	return m.Ctr
+	return &Bats{
+		Container: container,
+	}
 }
 
 // Mount a source directory.
@@ -53,11 +45,8 @@ func (m *Bats) WithSource(
 	const workdir = "/work"
 
 	return &WithSource{
-		&Bats{
-			m.Ctr.
-				WithWorkdir(workdir).
-				WithMountedDirectory(workdir, source),
-		},
+		Source: source,
+		Bats:   m,
 	}
 }
 
@@ -67,6 +56,7 @@ func (m *Bats) Run(
 	args []string,
 
 	// Source directory to mount.
+	//
 	// +optional
 	source *Directory,
 ) *Container {
@@ -74,16 +64,15 @@ func (m *Bats) Run(
 		return m.WithSource(source).Run(args)
 	}
 
-	return m.Ctr.WithExec(args)
+	return m.Container.WithExec(args)
 }
 
 type WithSource struct {
 	// +private
-	Bats *Bats
-}
+	Source *Directory
 
-func (m *WithSource) Container() *Container {
-	return m.Bats.Ctr
+	// +private
+	Bats *Bats
 }
 
 // Run bats tests.
@@ -91,5 +80,10 @@ func (m *WithSource) Run(
 	// Arguments to pass to bats.
 	args []string,
 ) *Container {
-	return m.Bats.Ctr.WithExec(args)
+	const workdir = "/work"
+
+	return m.Bats.Container.
+		WithWorkdir(workdir).
+		WithMountedDirectory(workdir, m.Source).
+		WithExec(args)
 }

@@ -24,8 +24,8 @@ type Chart struct {
 }
 
 // Lint a Helm chart.
-func (m *Chart) Lint(ctx context.Context) (*Container, error) {
-	return m.Helm.Lint(ctx, m.Directory)
+func (c *Chart) Lint(ctx context.Context) (*Container, error) {
+	return c.Helm.Lint(ctx, c.Directory)
 }
 
 // A Helm chart package.
@@ -37,7 +37,7 @@ type Package struct {
 }
 
 // Build a Helm chart package.
-func (m *Chart) Package(
+func (c *Chart) Package(
 	ctx context.Context,
 
 	// Set the appVersion on the chart to this version.
@@ -55,33 +55,33 @@ func (m *Chart) Package(
 	// +optional
 	dependencyUpdate bool,
 ) (*Package, error) {
-	file, err := m.Helm.Package(ctx, m.Directory, appVersion, version, dependencyUpdate)
+	file, err := c.Helm.Package(ctx, c.Directory, appVersion, version, dependencyUpdate)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Package{
 		File: file,
-		Helm: m.Helm,
+		Helm: c.Helm,
 	}, nil
 }
 
 // Add credentials for a registry.
-func (m *Package) WithRegistryAuth(address string, username string, secret *Secret) *Package {
-	m.Helm = m.Helm.WithRegistryAuth(address, username, secret)
+func (p *Package) WithRegistryAuth(address string, username string, secret *Secret) *Package {
+	p.Helm = p.Helm.WithRegistryAuth(address, username, secret)
 
-	return m
+	return p
 }
 
 // Removes credentials for a registry.
-func (m *Package) WithoutRegistryAuth(address string) *Package {
-	m.Helm = m.Helm.WithoutRegistryAuth(address)
+func (p *Package) WithoutRegistryAuth(address string) *Package {
+	p.Helm = p.Helm.WithoutRegistryAuth(address)
 
-	return m
+	return p
 }
 
 // Publishes this Helm chart package to an OCI registry.
-func (m *Package) Publish(
+func (p *Package) Publish(
 	ctx context.Context,
 
 	// OCI registry to push to (including the path except the chart name).
@@ -112,5 +112,5 @@ func (m *Package) Publish(
 	// +optional
 	keyFile *File,
 ) error {
-	return m.Helm.Push(ctx, m.File, registry, plainHttp, insecureSkipTlsVerify, caFile, certFile, keyFile)
+	return p.Helm.Push(ctx, p.File, registry, plainHttp, insecureSkipTlsVerify, caFile, certFile, keyFile)
 }

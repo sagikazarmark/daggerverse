@@ -15,39 +15,31 @@ const defaultImageRepository = "jnorwood/helm-docs"
 
 type HelmDocs struct {
 	// +private
-	Ctr *Container
+	Container *Container
 }
 
 func New(
 	// Version (image tag) to use from the official image repository as a base container.
+	//
 	// +optional
 	version string,
 
-	// Custom image reference in "repository:tag" format to use as a base container.
-	// +optional
-	image string,
-
 	// Custom container to use as a base container.
+	//
 	// +optional
 	container *Container,
 ) *HelmDocs {
-	var ctr *Container
+	if container == nil {
+		if version == "" {
+			version = "latest"
+		}
 
-	if version != "" {
-		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
-	} else if image != "" {
-		ctr = dag.Container().From(image)
-	} else if container != nil {
-		ctr = container
-	} else {
-		ctr = dag.Container().From(defaultImageRepository)
+		container = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
 	}
 
-	return &HelmDocs{ctr}
-}
-
-func (m *HelmDocs) Container() *Container {
-	return m.Ctr
+	return &HelmDocs{
+		Container: container,
+	}
 }
 
 // Generate markdown documentation for Helm charts from requirements and values files.
@@ -58,10 +50,12 @@ func (m *HelmDocs) Generate(
 	chart *Directory,
 
 	// A list of Go template files to use for rendering the documentation.
+	//
 	// +optional
 	templates []*File,
 
 	// Order in which to sort the values table ("alphanum" or "file"). (default "alphanum")
+	//
 	// +optional
 	sortValuesOrder string,
 ) (*File, error) {
@@ -70,15 +64,11 @@ func (m *HelmDocs) Generate(
 		return nil, err
 	}
 
-	chartPath := path.Join("/src/charts", chartName)
-
-	ctr := m.Ctr.
-		WithWorkdir("/src").
-		WithMountedDirectory(chartPath, chart)
+	chartPath := path.Join("/work/charts", chartName)
 
 	args := []string{
 		// Technically this is not needed, but let's add it anyway
-		"--chart-search-root", "/src/charts",
+		"--chart-search-root", "/work/charts",
 
 		"--chart-to-generate", chartPath,
 		"--output-file", "README.out.md",
@@ -86,20 +76,26 @@ func (m *HelmDocs) Generate(
 		// "--log-level", "trace",
 	}
 
-	for i, template := range templates {
-		templatePath := fmt.Sprintf("/src/templates/template-%d", i)
-
-		args = append(args, "--template-files", templatePath)
-		ctr = ctr.WithMountedFile(templatePath, template)
-	}
-
 	if sortValuesOrder != "" {
 		args = append(args, "--sort-values-order", sortValuesOrder)
 	}
 
-	ctr = ctr.WithExec(args)
+	return m.Container.
+		WithWorkdir("/work").
+		WithMountedDirectory(chartPath, chart).
+		With(func(c *Container) *Container {
+			// TODO: use shell and list files inside template directory?
+			for i, template := range templates {
+				templatePath := fmt.Sprintf("/work/templates/template-%d", i)
 
-	return ctr.File(path.Join(chartPath, "README.out.md")), nil
+				args = append(args, "--template-files", templatePath)
+				c = c.WithMountedFile(templatePath, template)
+			}
+
+			return c
+		}).
+		WithExec(args).
+		File(path.Join(chartPath, "README.out.md")), nil
 }
 
 func getChartName(ctx context.Context, c *Directory) (string, error) {

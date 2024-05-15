@@ -4,7 +4,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"path"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -19,42 +18,37 @@ const (
 // Easily create & extract archives, and compress & decompress files of various formats.
 type Arc struct {
 	// +private
-	Ctr *Container
+	Container *Container
 }
 
 func New(
 	// Version to download from GitHub Releases (default: "3.5.0").
+	//
 	// +optional
 	version string,
 
-	// Custom image reference in "repository:tag" format to use as a base container.
-	// +optional
-	image string,
-
 	// Custom container to use as a base container.
+	//
 	// +optional
 	container *Container,
 ) *Arc {
-	var ctr *Container
+	if container == nil {
+		if version == "" {
+			version = latestVersion
+		}
 
-	if version != "" {
-		ctr = containerWithDownloadedBinary(version)
-	} else if image != "" {
-		ctr = dag.Container().From(image)
-	} else if container != nil {
-		ctr = container
-	} else {
-		ctr = containerWithDownloadedBinary(latestVersion)
+		binary := dag.HTTP(fmt.Sprintf("https://github.com/mholt/archiver/releases/download/v%s/arc_%s_%s_%s", version, version, runtime.GOOS, runtime.GOARCH))
+
+		container = dag.Container().
+			From(alpineBaseImage).
+			WithFile("/usr/local/bin/arc", binary, ContainerWithFileOpts{
+				Permissions: 0755,
+			})
 	}
 
-	return &Arc{ctr}
-}
-
-func containerWithDownloadedBinary(version string) *Container {
-	return dag.Container().
-		From(alpineBaseImage).
-		WithExec([]string{"wget", "-O", "/usr/local/bin/arc", fmt.Sprintf("https://github.com/mholt/archiver/releases/download/v%s/arc_%s_%s_%s", version, version, runtime.GOOS, runtime.GOARCH)}).
-		WithExec([]string{"chmod", "+x", "/usr/local/bin/arc"})
+	return &Arc{
+		Container: container,
+	}
 }
 
 // Create a new archive from a list of files.
@@ -65,16 +59,7 @@ func (m *Arc) ArchiveFiles(
 	// Files to archive.
 	files []*File,
 ) *Archive {
-	dir := dag.Directory()
-	for _, file := range files {
-		dir = dir.WithFile("", file)
-	}
-
-	return &Archive{
-		Name:      name,
-		Directory: dir,
-		Ctr:       m.Ctr,
-	}
+	return m.ArchiveDirectory(name, dag.Directory().WithFiles("", files))
 }
 
 // Create a new archive from the contents of a directory.
@@ -88,7 +73,7 @@ func (m *Arc) ArchiveDirectory(
 	return &Archive{
 		Name:      name,
 		Directory: directory,
-		Ctr:       m.Ctr,
+		Container: m.Container,
 	}
 }
 
@@ -100,7 +85,7 @@ type Archive struct {
 	Directory *Directory
 
 	// +private
-	Ctr *Container
+	Container *Container
 }
 
 var supportedFormats = []string{
@@ -117,8 +102,13 @@ var supportedFormats = []string{
 
 // Create an archive from the provided files or directory.
 func (m *Archive) Create(
-	// One of the supported archive formats. (choices: "zip", "tar", "tar.br", "tbr", "tar.gz", "tgz", "tar.bz2", "tbz2", "tar.xz", "txz", "tar.lz4", "tlz4", "tar.sz", "tsz", "tar.zst")
+	// One of the supported archive formats. (choices: "tar", "tar.br", "tbr", "tar.gz", "tgz", "tar.bz2", "tbz2", "tar.xz", "txz", "tar.lz4", "tlz4", "tar.sz", "tsz", "tar.zst", "zip")
 	format string,
+
+	// Compression level (depends on the format).
+	//
+	// +optional
+	compressionLevel int,
 ) (*File, error) {
 	format = strings.ToLower(format)
 
@@ -126,25 +116,55 @@ func (m *Archive) Create(
 		return nil, fmt.Errorf("unsupported format: %s", format)
 	}
 
-	archiveFilePath := path.Join("/work", m.Name+"."+format)
-	cmd := []string{"arc", "-folder-safe=false", "archive", archiveFilePath, "$(ls)"}
+	const (
+		sourcePath = "/work/src"
+		outPath    = "/work/out"
+	)
 
-	return m.Ctr.
-		WithWorkdir("/work/src").
-		WithMountedDirectory("/work/src", m.Directory).
+	// make sure the file name is not a relative path
+	// TODO: should this be an error instead?
+	archiveFilePath := filepath.Join(outPath, filepath.Base(m.Name)+"."+format)
+
+	cmd := []string{"arc", "-folder-safe=false"}
+
+	if compressionLevel > 0 {
+		cmd = append(cmd, "-level", fmt.Sprintf("%d", compressionLevel))
+	}
+
+	cmd = append(cmd, "archive", archiveFilePath, "$(ls)")
+
+	return m.Container.
+		WithWorkdir(sourcePath).
+		WithMountedDirectory(sourcePath, m.Directory).
+		WithDirectory(outPath, dag.Directory()).
 		WithExec([]string{"sh", "-c", strings.Join(cmd, " ")}).
 		File(archiveFilePath), nil
 }
 
-func (m *Archive) Tar() (*File, error)    { return m.Create("tar") }
-func (m *Archive) TarBr() (*File, error)  { return m.Create("tar.br") }
-func (m *Archive) TarBz2() (*File, error) { return m.Create("tar.bz2") }
-func (m *Archive) TarGz() (*File, error)  { return m.Create("tar.gz") }
-func (m *Archive) TarLz4() (*File, error) { return m.Create("tar.lz4") }
-func (m *Archive) TarSz() (*File, error)  { return m.Create("tar.sz") }
-func (m *Archive) TarXz() (*File, error)  { return m.Create("tar.xz") }
-func (m *Archive) TarZst() (*File, error) { return m.Create("tar.zst") }
-func (m *Archive) Zip() (*File, error)    { return m.Create("zip") }
+func (m *Archive) Tar() (*File, error)   { return m.Create("tar", 0) }
+func (m *Archive) TarBr() (*File, error) { return m.Create("tar.br", 0) }
+
+func (m *Archive) TarBz2(
+	// +optional
+	// +default=9
+	compressionLevel int,
+) (*File, error) {
+	return m.Create("tar.bz2", compressionLevel)
+}
+
+func (m *Archive) TarGz(
+	// +optional
+	// +default=-1
+	compressionLevel int,
+) (*File, error) {
+	return m.Create("tar.gz", compressionLevel)
+}
+
+func (m *Archive) TarLz4() (*File, error) { return m.Create("tar.lz4", 0) }
+func (m *Archive) TarSz() (*File, error)  { return m.Create("tar.sz", 0) }
+func (m *Archive) TarXz() (*File, error)  { return m.Create("tar.xz", 0) }
+func (m *Archive) TarZst() (*File, error) { return m.Create("tar.zst", 0) }
+func (m *Archive) Zip() (*File, error)    { return m.Create("zip", 0) }
 
 // Extract the contents of an archive.
 func (m *Arc) Unarchive(
@@ -159,13 +179,13 @@ func (m *Arc) Unarchive(
 	}
 
 	baseName := trimExt(fileName)
-	destination := path.Join("/work", baseName)
+	destination := filepath.Join("/work", baseName)
 
 	cmd := []string{"arc", "unarchive", fileName, baseName}
 
-	return m.Ctr.
+	return m.Container.
 		WithWorkdir("/work").
-		WithMountedFile(path.Join("/work", fileName), archive).
+		WithMountedFile(filepath.Join("/work", fileName), archive).
 		WithExec([]string{"sh", "-c", strings.Join(cmd, " ")}).
 		Directory(destination), nil
 }
