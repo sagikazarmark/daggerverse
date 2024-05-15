@@ -65,45 +65,6 @@ func (m *RegistryConfig) Secret(
 	return config.toSecret(name)
 }
 
-// Mount a registry configuration secret into a container.
-func (m *RegistryConfig) MountSecret(
-	ctx context.Context,
-
-	// Container to mount the secret into.
-	container *Container,
-
-	// Path to mount the secret into (a common path is ~/.docker/config.json).
-	path string,
-
-	// Name of the secret to create and mount.
-	//
-	// +optional
-	secretName string,
-
-	// Skip mounting the secret if it's empty.
-	//
-	// +optional
-	skipOnEmpty bool,
-
-	// A user:group to set for the mounted secret.
-	//
-	// The user and group can either be an ID (1000:1000) or a name (foo:bar).
-	//
-	// If the group is omitted, it defaults to the same as the user.
-	//
-	// +optional
-	owner string,
-
-	// Permission given to the mounted secret (e.g., 0600).
-	//
-	// This option requires an owner to be set to be active.
-	//
-	// +optional
-	mode int,
-) (*Container, error) {
-	return m.SecretMount(ctx, path, secretName, skipOnEmpty, owner, mode).Mount(ctx, container)
-}
-
 // Create a SecretMount that can be used to mount the registry configuration into a container.
 func (m *RegistryConfig) SecretMount(
 	ctx context.Context,
