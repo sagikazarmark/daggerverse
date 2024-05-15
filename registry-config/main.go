@@ -52,11 +52,6 @@ func (m *RegistryConfig) WithoutRegistryAuth(address string) *RegistryConfig {
 	return m
 }
 
-// Checks whether the config has any registry credentials.
-func (m *RegistryConfig) HasRegistryAuth() bool {
-	return len(m.Auths) > 0
-}
-
 type Config struct {
 	Auths map[string]ConfigAuth `json:"auths"`
 }
@@ -139,7 +134,7 @@ func (m *RegistryConfig) MountSecret(
 	// +optional
 	mode int,
 ) (*Container, error) {
-	if !m.HasRegistryAuth() {
+	if len(m.Auths) == 0 {
 		return container, nil
 	}
 
