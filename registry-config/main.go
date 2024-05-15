@@ -14,10 +14,6 @@ package main
 
 import (
 	"context"
-	"crypto/sha1"
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
 	"slices"
 )
 
@@ -52,19 +48,6 @@ func (m *RegistryConfig) WithoutRegistryAuth(address string) *RegistryConfig {
 	return m
 }
 
-// Checks whether the config has any registry credentials.
-func (m *RegistryConfig) HasRegistryAuth() bool {
-	return len(m.Auths) > 0
-}
-
-type Config struct {
-	Auths map[string]ConfigAuth `json:"auths"`
-}
-
-type ConfigAuth struct {
-	Auth string `json:"auth"`
-}
-
 // Create the registry configuration.
 func (m *RegistryConfig) Secret(
 	ctx context.Context,
@@ -74,46 +57,17 @@ func (m *RegistryConfig) Secret(
 	// +optional
 	name string,
 ) (*Secret, error) {
-	config := Config{
-		Auths: map[string]ConfigAuth{},
-	}
-
-	for _, auth := range m.Auths {
-		plaintext, err := auth.Secret.Plaintext(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		config.Auths[auth.Address] = ConfigAuth{
-			Auth: base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", auth.Username, plaintext))),
-		}
-	}
-
-	out, err := json.Marshal(config)
+	config, err := m.toConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	if name == "" {
-		h := sha1.New()
-
-		_, err := h.Write(out)
-		if err != nil {
-			return nil, err
-		}
-
-		name = fmt.Sprintf("registry-config-%x", h.Sum(nil))
-	}
-
-	return dag.SetSecret(name, string(out)), nil
+	return config.toSecret(name)
 }
 
-// MountSecret mounts a registry configuration secret into a container if there is any confuguration in it.
-func (m *RegistryConfig) MountSecret(
+// Create a SecretMount that can be used to mount the registry configuration into a container.
+func (m *RegistryConfig) SecretMount(
 	ctx context.Context,
-
-	// Container to mount the secret into.
-	container *Container,
 
 	// Path to mount the secret into (a common path is ~/.docker/config.json).
 	path string,
@@ -122,6 +76,11 @@ func (m *RegistryConfig) MountSecret(
 	//
 	// +optional
 	secretName string,
+
+	// Skip mounting the secret if it's empty.
+	//
+	// +optional
+	skipOnEmpty bool,
 
 	// A user:group to set for the mounted secret.
 	//
@@ -138,18 +97,49 @@ func (m *RegistryConfig) MountSecret(
 	//
 	// +optional
 	mode int,
-) (*Container, error) {
-	if !m.HasRegistryAuth() {
+) *SecretMount {
+	return &SecretMount{
+		Path:           path,
+		SecretName:     secretName,
+		SkipOnEmpty:    skipOnEmpty,
+		Owner:          owner,
+		Mode:           mode,
+		RegistryConfig: m,
+	}
+}
+
+type SecretMount struct {
+	// Path to mount the secret into (a common path is ~/.docker/config.json).
+	Path string
+
+	// Name of the secret to create and mount.
+	SecretName string
+
+	// Skip mounting the secret if it's empty.
+	SkipOnEmpty bool
+
+	// A user:group to set for the mounted secret.
+	Owner string
+
+	// Permission given to the mounted secret (e.g., 0600).
+	Mode int
+
+	// +private
+	RegistryConfig *RegistryConfig
+}
+
+func (m *SecretMount) Mount(ctx context.Context, container *Container) (*Container, error) {
+	if m.SkipOnEmpty && len(m.RegistryConfig.Auths) == 0 {
 		return container, nil
 	}
 
-	secret, err := m.Secret(ctx, secretName)
+	secret, err := m.RegistryConfig.Secret(ctx, m.SecretName)
 	if err != nil {
 		return nil, err
 	}
 
-	return container.WithMountedSecret(path, secret, ContainerWithMountedSecretOpts{
-		Owner: owner,
-		Mode:  mode,
+	return container.WithMountedSecret(m.Path, secret, ContainerWithMountedSecretOpts{
+		Owner: m.Owner,
+		Mode:  m.Mode,
 	}), nil
 }

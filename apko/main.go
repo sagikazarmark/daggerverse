@@ -49,10 +49,7 @@ func New(
 
 // use container for actions that need registry credentials
 func (m *Apko) container() *Container {
-	return m.Container.
-		With(func(c *Container) *Container {
-			return m.RegistryConfig.MountSecret(c, "/root/.docker/config.json")
-		})
+	return m.Container.With(m.RegistryConfig.SecretMount("/root/.docker/config.json").Mount)
 }
 
 // Mount a cache volume for apk cache.
