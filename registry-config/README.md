@@ -47,3 +47,12 @@ func (m *Module) WithoutRegistryAuth(address string) *Module {
 	return m
 }
 ```
+
+## Resources
+
+I did a presentation about this module at the Dagger Community Call on 2024-05-15.
+
+Slides: https://slides.sagikazarmark.hu/2024-05-16-secure-registry-access-with-dagger/
+Recording: coming soon
+
+Discussion on the Dagger issue tracker: https://github.com/dagger/dagger/issues/7273

@@ -9,7 +9,7 @@
 //
 // Be advised that using the tool's built-in authentication mechanism may not work with the configuration file (since it's read only).
 //
-// You can read more about the topic in [this issue](https://github.com/dagger/dagger/issues/7273).
+// You can read more about the topic in the readme: https://github.com/sagikazarmark/daggerverse/tree/main/registry-config#resources
 package main
 
 import (
