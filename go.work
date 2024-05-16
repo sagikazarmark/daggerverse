@@ -41,6 +41,8 @@ use (
 	./spectral/tests
 	./ssh-keygen
 	./ssh-keygen/tests
+	./stainless
+	./stainless/tests
 	./xk6
 	./xk6/tests
 )
