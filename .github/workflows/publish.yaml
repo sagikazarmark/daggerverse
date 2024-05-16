@@ -33,6 +33,7 @@ jobs:
           - slsa-verifier
           - spectral
           - ssh-keygen
+          - stainless
           - xk6
 
     steps:
