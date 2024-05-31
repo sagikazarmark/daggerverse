@@ -51,6 +51,6 @@ jobs:
           module: github.com/${{ github.repository }}/${{ matrix.module }}/tests@${{ github.ref }}
           args: ${{ steps.constructor-args.outputs.value }} all
           # cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.11.4"
+          version: "0.11.6"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
