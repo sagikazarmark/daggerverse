@@ -3,7 +3,6 @@ package main
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 )
 
@@ -23,13 +22,8 @@ type Sha256 struct{}
 func (m *Sha256) Calculate(
 	// The files to calculate the checksum for.
 	files []*File,
-
-	// The name of the checksum file.
-	// +optional
-	// +default="checksums.txt"
-	fileName string,
 ) *File {
-	return calculate("sha256", fileName, files)
+	return calculate("sha256", files)
 }
 
 // Check the SHA-256 checksum of the given files.
@@ -43,31 +37,21 @@ func (m *Sha256) Check(
 	return check("sha256", checksums, files)
 }
 
-func calculate(algo string, fileName string, files []*File) *File {
-	dir := dag.Directory()
-
-	for _, file := range files {
-		dir = dir.WithFile("", file)
-	}
-
-	return calculateDirectory(algo, fileName, dir)
+func calculate(algo string, files []*File) *File {
+	return calculateDirectory(algo, dag.Directory().WithFiles("", files))
 }
 
-func calculateDirectory(algo string, fileName string, dir *Directory) *File {
-	if fileName == "" {
-		fileName = "checksums.txt"
-	}
+func calculateDirectory(algo string, dir *Directory) *File {
+	const checksumFile = "/work/checksums.txt"
 
-	file := filepath.Join("/", filepath.Base(fileName))
-
-	cmd := []string{algo + "sum", "$(ls)", ">", file}
+	cmd := []string{algo + "sum", "$(ls)", ">", checksumFile}
 
 	return dag.Container().
 		From(alpineBaseImage).
-		WithWorkdir("/work").
-		WithMountedDirectory("/work", dir).
+		WithWorkdir("/work/src").
+		WithMountedDirectory("/work/src", dir).
 		WithExec([]string{"sh", "-c", strings.Join(cmd, " ")}).
-		File(file)
+		File(checksumFile)
 }
 
 func check(algo string, checksums *File, files []*File) *Container {
