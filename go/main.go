@@ -177,6 +177,16 @@ func (m *Go) Build(
 	// +optional
 	pkg string,
 
+	// Enable data race detection.
+	//
+	// +optional
+	race bool,
+
+	// Arguments to pass on each go tool link invocation.
+	//
+	// +optional
+	ldflags []string,
+
 	// A list of additional build tags to consider satisfied during the build.
 	//
 	// +optional
@@ -197,7 +207,15 @@ func (m *Go) Build(
 	// +optional
 	platform Platform,
 ) *File {
-	return m.WithSource(source).Build(pkg, tags, trimpath, rawArgs, platform)
+	return m.WithSource(source).Build(
+		pkg,
+		race,
+		ldflags,
+		tags,
+		trimpath,
+		rawArgs,
+		platform,
+	)
 }
 
 // Mount a source directory.
@@ -318,6 +336,16 @@ func (m *WithSource) Build(
 	// +optional
 	pkg string,
 
+	// Enable data race detection.
+	//
+	// +optional
+	race bool,
+
+	// Arguments to pass on each go tool link invocation.
+	//
+	// +optional
+	ldflags []string,
+
 	// A list of additional build tags to consider satisfied during the build.
 	//
 	// +optional
@@ -341,6 +369,14 @@ func (m *WithSource) Build(
 	const binaryPath = "/work/out/binary"
 
 	args := []string{"go", "build", "-o", binaryPath}
+
+	if race {
+		args = append(args, "-race")
+	}
+
+	if len(ldflags) > 0 {
+		args = append(args, "-ldflags", strings.Join(ldflags, " "))
+	}
 
 	if len(tags) > 0 {
 		args = append(args, "-tags", strings.Join(tags, ","))

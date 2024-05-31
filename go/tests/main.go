@@ -267,6 +267,29 @@ func (m *Tests) Build(ctx context.Context) error {
 		return nil
 	})
 
+	p.Go(func(ctx context.Context) error {
+		binary, err := dag.Go().
+			WithSource(dag.CurrentModule().Source().Directory("./testdata")).
+			Build(GoWithSourceBuildOpts{
+				Ldflags: []string{"-X", "main.version=1.0.0"},
+			}).
+			Sync(ctx)
+		if err != nil {
+			return err
+		}
+
+		out, err := dag.Container().From("alpine").WithFile("/app", binary).WithExec([]string{"/app", "version"}).Stderr(ctx)
+		if err != nil {
+			return err
+		}
+
+		if out != "1.0.0\n" {
+			return fmt.Errorf("unexpected output: wanted \"1.0.0\", got %q", out)
+		}
+
+		return nil
+	})
+
 	return p.Wait()
 }
 
