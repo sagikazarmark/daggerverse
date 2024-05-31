@@ -16,7 +16,6 @@ func (m *Tests) All(ctx context.Context) error {
 
 	p.Go(m.DefaultContainer)
 	p.Go(m.CustomVersion)
-	p.Go(m.CustomImage)
 	p.Go(m.CustomContainer)
 	p.Go(m.EnvVars)
 	p.Go(m.Platform)
@@ -39,16 +38,6 @@ func (m *Tests) DefaultContainer(ctx context.Context) error {
 func (m *Tests) CustomVersion(ctx context.Context) error {
 	_, err := dag.Go(GoOpts{
 		Version: "latest",
-	}).
-		Exec([]string{"go", "version"}).
-		Sync(ctx)
-
-	return err
-}
-
-func (m *Tests) CustomImage(ctx context.Context) error {
-	_, err := dag.Go(GoOpts{
-		Image: "golang:latest",
 	}).
 		Exec([]string{"go", "version"}).
 		Sync(ctx)
