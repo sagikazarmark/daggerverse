@@ -239,7 +239,7 @@ func (m *Tests) Build(ctx context.Context) error {
 			return err
 		}
 
-		if out != "hello\n" {
+		if out != "hello" {
 			return fmt.Errorf("unexpected output: wanted \"hello\", got %q", out)
 		}
 
@@ -260,7 +260,7 @@ func (m *Tests) Build(ctx context.Context) error {
 			return err
 		}
 
-		if out != "hello\n" {
+		if out != "hello" {
 			return fmt.Errorf("unexpected output: wanted \"hello\", got %q", out)
 		}
 
@@ -283,7 +283,7 @@ func (m *Tests) Build(ctx context.Context) error {
 			return err
 		}
 
-		if out != "1.0.0\n" {
+		if out != "1.0.0" {
 			return fmt.Errorf("unexpected output: wanted \"1.0.0\", got %q", out)
 		}
 
@@ -307,7 +307,7 @@ func (m *Tests) ExecBuild(ctx context.Context) error {
 		return err
 	}
 
-	if out != "hello\n" {
+	if out != "hello" {
 		return fmt.Errorf("unexpected output: wanted \"hello\", got %q", out)
 	}
 
