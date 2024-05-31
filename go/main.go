@@ -67,9 +67,13 @@ func (m *Go) WithEnvVariable(
 	expand bool,
 ) *Go {
 	return &Go{
-		m.Container.WithEnvVariable(name, value, ContainerWithEnvVariableOpts{
-			Expand: expand,
-		}),
+		m.Container.WithEnvVariable(
+			name,
+			value,
+			ContainerWithEnvVariableOpts{
+				Expand: expand,
+			},
+		),
 	}
 }
 
@@ -84,15 +88,18 @@ func (m *Go) WithPlatform(
 
 	p := platforms.MustParse(string(platform))
 
-	ctr := m.Container.
-		WithEnvVariable("GOOS", p.OS).
-		WithEnvVariable("GOARCH", p.Architecture)
+	return &Go{
+		m.Container.
+			WithEnvVariable("GOOS", p.OS).
+			WithEnvVariable("GOARCH", p.Architecture).
+			With(func(c *Container) *Container {
+				if p.Variant != "" {
+					return c.WithEnvVariable("GOARM", p.Variant)
+				}
 
-	if p.Variant != "" {
-		ctr = ctr.WithEnvVariable("GOARM", p.Variant)
+				return c
+			}),
 	}
-
-	return &Go{ctr}
 }
 
 // Set CGO_ENABLED environment variable to 1.
@@ -119,10 +126,16 @@ func (m *Go) WithModuleCache(
 	// +optional
 	sharing CacheSharingMode,
 ) *Go {
-	return &Go{m.Container.WithMountedCache("/go/pkg/mod", cache, ContainerWithMountedCacheOpts{
-		Source:  source,
-		Sharing: sharing,
-	})}
+	return &Go{
+		m.Container.WithMountedCache(
+			"/go/pkg/mod",
+			cache,
+			ContainerWithMountedCacheOpts{
+				Source:  source,
+				Sharing: sharing,
+			},
+		),
+	}
 }
 
 // Mount a cache volume for Go build cache.
@@ -130,17 +143,25 @@ func (m *Go) WithBuildCache(
 	cache *CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
+	//
 	// +optional
 	source *Directory,
 
 	// Sharing mode of the cache volume.
+	//
 	// +optional
 	sharing CacheSharingMode,
 ) *Go {
-	return &Go{m.Container.WithMountedCache("/root/.cache/go-build", cache, ContainerWithMountedCacheOpts{
-		Source:  source,
-		Sharing: sharing,
-	})}
+	return &Go{
+		m.Container.WithMountedCache(
+			"/root/.cache/go-build",
+			cache,
+			ContainerWithMountedCacheOpts{
+				Source:  source,
+				Sharing: sharing,
+			},
+		),
+	}
 }
 
 // Run a Go command.
@@ -149,10 +170,12 @@ func (m *Go) Exec(
 	args []string,
 
 	// Source directory to mount.
+	//
 	// +optional
 	src *Directory,
 
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
+	//
 	// +optional
 	platform Platform,
 ) *Container {
