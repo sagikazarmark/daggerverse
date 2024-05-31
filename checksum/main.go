@@ -2,7 +2,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -22,8 +21,6 @@ type Sha256 struct{}
 
 // Calculate the SHA-256 checksum of the given files.
 func (m *Sha256) Calculate(
-	ctx context.Context,
-
 	// The files to calculate the checksum for.
 	files []*File,
 
@@ -32,7 +29,7 @@ func (m *Sha256) Calculate(
 	// +default="checksums.txt"
 	fileName string,
 ) *File {
-	return calculate(ctx, "sha256", fileName, files)
+	return calculate("sha256", fileName, files)
 }
 
 // Check the SHA-256 checksum of the given files.
@@ -46,17 +43,17 @@ func (m *Sha256) Check(
 	return check("sha256", checksums, files)
 }
 
-func calculate(ctx context.Context, algo string, fileName string, files []*File) *File {
+func calculate(algo string, fileName string, files []*File) *File {
 	dir := dag.Directory()
 
 	for _, file := range files {
 		dir = dir.WithFile("", file)
 	}
 
-	return calculateDirectory(ctx, algo, fileName, dir)
+	return calculateDirectory(algo, fileName, dir)
 }
 
-func calculateDirectory(ctx context.Context, algo string, fileName string, dir *Directory) *File {
+func calculateDirectory(algo string, fileName string, dir *Directory) *File {
 	if fileName == "" {
 		fileName = "checksums.txt"
 	}
