@@ -48,16 +48,16 @@ func calculate(algo string, files []*File) *File {
 }
 
 func calculateDirectory(algo string, dir *Directory) *File {
-	const file = "/checksums.txt"
+	const checksumFile = "/work/checksums.txt"
 
-	cmd := []string{algo + "sum", "$(ls)", ">", file}
+	cmd := []string{algo + "sum", "$(ls)", ">", checksumFile}
 
 	return dag.Container().
 		From(alpineBaseImage).
-		WithWorkdir("/work").
-		WithMountedDirectory("/work", dir).
+		WithWorkdir("/work/src").
+		WithMountedDirectory("/work/src", dir).
 		WithExec([]string{"sh", "-c", strings.Join(cmd, " ")}).
-		File(file)
+		File(checksumFile)
 }
 
 func check(algo string, checksums *File, files []*File) *Container {
