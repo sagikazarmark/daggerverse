@@ -267,25 +267,6 @@ func (m *Tests) Build(ctx context.Context) error {
 		return nil
 	})
 
-	p.Go(func(ctx context.Context) error {
-		binary := dag.Go().
-			WithSource(dag.CurrentModule().Source().Directory("./testdata")).
-			Build(GoWithSourceBuildOpts{
-				Name: "my-binary",
-			})
-
-		binaryName, err := binary.Name(ctx)
-		if err != nil {
-			return err
-		}
-
-		if binaryName != "my-binary" {
-			return fmt.Errorf("unexpected output: wanted \"my-binary\", got %q", binaryName)
-		}
-
-		return nil
-	})
-
 	return p.Wait()
 }
 

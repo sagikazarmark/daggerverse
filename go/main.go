@@ -3,7 +3,6 @@ package main
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/containerd/containerd/platforms"
@@ -178,11 +177,6 @@ func (m *Go) Build(
 	// +optional
 	pkg string,
 
-	// File name of the resulting binary.
-	//
-	// +optional
-	name string,
-
 	// A list of additional build tags to consider satisfied during the build.
 	//
 	// +optional
@@ -203,7 +197,7 @@ func (m *Go) Build(
 	// +optional
 	platform Platform,
 ) *File {
-	return m.WithSource(source).Build(pkg, name, tags, trimpath, rawArgs, platform)
+	return m.WithSource(source).Build(pkg, tags, trimpath, rawArgs, platform)
 }
 
 // Mount a source directory.
@@ -211,7 +205,7 @@ func (m *Go) WithSource(
 	// Source directory to mount.
 	source *Directory,
 ) *WithSource {
-	const workdir = "/work"
+	const workdir = "/work/src"
 
 	return &WithSource{
 		&Go{
@@ -324,11 +318,6 @@ func (m *WithSource) Build(
 	// +optional
 	pkg string,
 
-	// File name of the resulting binary.
-	//
-	// +optional
-	name string,
-
 	// A list of additional build tags to consider satisfied during the build.
 	//
 	// +optional
@@ -349,11 +338,7 @@ func (m *WithSource) Build(
 	// +optional
 	platform Platform,
 ) *File {
-	if name == "" {
-		name = "binary"
-	}
-
-	binaryPath := filepath.Join("/out", filepath.Base(name))
+	const binaryPath = "/work/out/binary"
 
 	args := []string{"go", "build", "-o", binaryPath}
 
