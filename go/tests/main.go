@@ -16,7 +16,6 @@ func (m *Tests) All(ctx context.Context) error {
 
 	p.Go(m.DefaultContainer)
 	p.Go(m.CustomVersion)
-	p.Go(m.CustomImage)
 	p.Go(m.CustomContainer)
 	p.Go(m.EnvVars)
 	p.Go(m.Platform)
@@ -39,16 +38,6 @@ func (m *Tests) DefaultContainer(ctx context.Context) error {
 func (m *Tests) CustomVersion(ctx context.Context) error {
 	_, err := dag.Go(GoOpts{
 		Version: "latest",
-	}).
-		Exec([]string{"go", "version"}).
-		Sync(ctx)
-
-	return err
-}
-
-func (m *Tests) CustomImage(ctx context.Context) error {
-	_, err := dag.Go(GoOpts{
-		Image: "golang:latest",
 	}).
 		Exec([]string{"go", "version"}).
 		Sync(ctx)
@@ -250,7 +239,7 @@ func (m *Tests) Build(ctx context.Context) error {
 			return err
 		}
 
-		if out != "hello\n" {
+		if out != "hello" {
 			return fmt.Errorf("unexpected output: wanted \"hello\", got %q", out)
 		}
 
@@ -271,7 +260,7 @@ func (m *Tests) Build(ctx context.Context) error {
 			return err
 		}
 
-		if out != "hello\n" {
+		if out != "hello" {
 			return fmt.Errorf("unexpected output: wanted \"hello\", got %q", out)
 		}
 
@@ -279,19 +268,23 @@ func (m *Tests) Build(ctx context.Context) error {
 	})
 
 	p.Go(func(ctx context.Context) error {
-		binary := dag.Go().
+		binary, err := dag.Go().
 			WithSource(dag.CurrentModule().Source().Directory("./testdata")).
 			Build(GoWithSourceBuildOpts{
-				Name: "my-binary",
-			})
-
-		binaryName, err := binary.Name(ctx)
+				Ldflags: []string{"-X", "main.version=1.0.0"},
+			}).
+			Sync(ctx)
 		if err != nil {
 			return err
 		}
 
-		if binaryName != "my-binary" {
-			return fmt.Errorf("unexpected output: wanted \"my-binary\", got %q", binaryName)
+		out, err := dag.Container().From("alpine").WithFile("/app", binary).WithExec([]string{"/app", "version"}).Stderr(ctx)
+		if err != nil {
+			return err
+		}
+
+		if out != "1.0.0" {
+			return fmt.Errorf("unexpected output: wanted \"1.0.0\", got %q", out)
 		}
 
 		return nil
@@ -314,7 +307,7 @@ func (m *Tests) ExecBuild(ctx context.Context) error {
 		return err
 	}
 
-	if out != "hello\n" {
+	if out != "hello" {
 		return fmt.Errorf("unexpected output: wanted \"hello\", got %q", out)
 	}
 

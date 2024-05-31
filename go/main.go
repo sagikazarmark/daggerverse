@@ -3,7 +3,6 @@ package main
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/containerd/containerd/platforms"
@@ -13,40 +12,36 @@ import (
 const defaultImageRepository = "golang"
 
 type Go struct {
-	// +private
-	Ctr *Container
+	Container *Container
 }
 
 func New(
 	// Version (image tag) to use from the official image repository as a base container.
+	//
 	// +optional
 	version string,
 
-	// Custom image reference in "repository:tag" format to use as a base container.
-	// +optional
-	image string,
-
 	// Custom container to use as a base container.
+	//
 	// +optional
 	container *Container,
 
 	// Disable mounting cache volumes.
+	//
 	// +optional
 	disableCache bool,
 ) *Go {
-	var ctr *Container
+	if container == nil {
+		if version == "" {
+			version = "latest"
+		}
 
-	if version != "" {
-		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
-	} else if image != "" {
-		ctr = dag.Container().From(image)
-	} else if container != nil {
-		ctr = container
-	} else {
-		ctr = dag.Container().From(defaultImageRepository)
+		container = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
 	}
 
-	m := &Go{ctr}
+	m := &Go{
+		Container: container,
+	}
 
 	if !disableCache {
 		m = m.
@@ -55,10 +50,6 @@ func New(
 	}
 
 	return m
-}
-
-func (m *Go) Container() *Container {
-	return m.Ctr
 }
 
 // Set an environment variable.
@@ -71,11 +62,12 @@ func (m *Go) WithEnvVariable(
 
 	// Replace `${VAR}` or $VAR in the value according to the current environment
 	// variables defined in the container (e.g., "/opt/bin:$PATH").
+	//
 	// +optional
 	expand bool,
 ) *Go {
 	return &Go{
-		m.Ctr.WithEnvVariable(name, value, ContainerWithEnvVariableOpts{
+		m.Container.WithEnvVariable(name, value, ContainerWithEnvVariableOpts{
 			Expand: expand,
 		}),
 	}
@@ -92,7 +84,7 @@ func (m *Go) WithPlatform(
 
 	p := platforms.MustParse(string(platform))
 
-	ctr := m.Ctr.
+	ctr := m.Container.
 		WithEnvVariable("GOOS", p.OS).
 		WithEnvVariable("GOARCH", p.Architecture)
 
@@ -105,12 +97,12 @@ func (m *Go) WithPlatform(
 
 // Set CGO_ENABLED environment variable to 1.
 func (m *Go) WithCgoEnabled() *Go {
-	return &Go{m.Ctr.WithEnvVariable("CGO_ENABLED", "1")}
+	return &Go{m.Container.WithEnvVariable("CGO_ENABLED", "1")}
 }
 
 // Set CGO_ENABLED environment variable to 0.
 func (m *Go) WithCgoDisabled() *Go {
-	return &Go{m.Ctr.WithEnvVariable("CGO_ENABLED", "0")}
+	return &Go{m.Container.WithEnvVariable("CGO_ENABLED", "0")}
 }
 
 // Mount a cache volume for Go module cache.
@@ -118,14 +110,16 @@ func (m *Go) WithModuleCache(
 	cache *CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
+	//
 	// +optional
 	source *Directory,
 
 	// Sharing mode of the cache volume.
+	//
 	// +optional
 	sharing CacheSharingMode,
 ) *Go {
-	return &Go{m.Ctr.WithMountedCache("/go/pkg/mod", cache, ContainerWithMountedCacheOpts{
+	return &Go{m.Container.WithMountedCache("/go/pkg/mod", cache, ContainerWithMountedCacheOpts{
 		Source:  source,
 		Sharing: sharing,
 	})}
@@ -143,7 +137,7 @@ func (m *Go) WithBuildCache(
 	// +optional
 	sharing CacheSharingMode,
 ) *Go {
-	return &Go{m.Ctr.WithMountedCache("/root/.cache/go-build", cache, ContainerWithMountedCacheOpts{
+	return &Go{m.Container.WithMountedCache("/root/.cache/go-build", cache, ContainerWithMountedCacheOpts{
 		Source:  source,
 		Sharing: sharing,
 	})}
@@ -170,7 +164,7 @@ func (m *Go) Exec(
 		return m.WithSource(src).Exec(args, Platform(""))
 	}
 
-	return m.Ctr.WithExec(args)
+	return m.Container.WithExec(args)
 }
 
 // Build a binary.
@@ -179,30 +173,49 @@ func (m *Go) Build(
 	source *Directory,
 
 	// Package to compile.
+	//
 	// +optional
 	pkg string,
 
-	// File name of the resulting binary.
+	// Enable data race detection.
+	//
 	// +optional
-	name string,
+	race bool,
+
+	// Arguments to pass on each go tool link invocation.
+	//
+	// +optional
+	ldflags []string,
 
 	// A list of additional build tags to consider satisfied during the build.
+	//
 	// +optional
 	tags []string,
 
 	// Remove all file system paths from the resulting executable.
+	//
 	// +optional
 	trimpath bool,
 
 	// Additional args to pass to the build command.
+	//
 	// +optional
 	rawArgs []string,
 
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
+	//
 	// +optional
 	platform Platform,
 ) *File {
-	return m.WithSource(source).Build(pkg, name, tags, trimpath, rawArgs, platform)
+	return m.WithSource(source).Build(
+		pkg,
+		race,
+		ldflags,
+		tags,
+		trimpath,
+		rawArgs,
+		platform,
+	)
 }
 
 // Mount a source directory.
@@ -210,11 +223,11 @@ func (m *Go) WithSource(
 	// Source directory to mount.
 	source *Directory,
 ) *WithSource {
-	const workdir = "/work"
+	const workdir = "/work/src"
 
 	return &WithSource{
 		&Go{
-			m.Ctr.
+			m.Container.
 				WithWorkdir(workdir).
 				WithMountedDirectory(workdir, source),
 		},
@@ -227,7 +240,7 @@ type WithSource struct {
 }
 
 func (m *WithSource) Container() *Container {
-	return m.Go.Ctr
+	return m.Go.Container
 }
 
 // Set an environment variable.
@@ -240,6 +253,7 @@ func (m *WithSource) WithEnvVariable(
 
 	// Replace `${VAR}` or $VAR in the value according to the current environment
 	// variables defined in the container (e.g., "/opt/bin:$PATH").
+	//
 	// +optional
 	expand bool,
 ) *WithSource {
@@ -269,10 +283,12 @@ func (m *WithSource) WithModuleCache(
 	cache *CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
+	//
 	// +optional
 	source *Directory,
 
 	// Sharing mode of the cache volume.
+	//
 	// +optional
 	sharing CacheSharingMode,
 ) *WithSource {
@@ -284,10 +300,12 @@ func (m *WithSource) WithBuildCache(
 	cache *CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
+	//
 	// +optional
 	source *Directory,
 
 	// Sharing mode of the cache volume.
+	//
 	// +optional
 	sharing CacheSharingMode,
 ) *WithSource {
@@ -300,6 +318,7 @@ func (m *WithSource) Exec(
 	args []string,
 
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
+	//
 	// +optional
 	platform Platform,
 ) *Container {
@@ -307,42 +326,57 @@ func (m *WithSource) Exec(
 		m = m.WithPlatform(platform)
 	}
 
-	return m.Go.Ctr.WithExec(args)
+	return m.Go.Container.WithExec(args)
 }
 
 // Compile the packages into a binary.
 func (m *WithSource) Build(
 	// Package to compile.
+	//
 	// +optional
 	pkg string,
 
-	// File name of the resulting binary.
+	// Enable data race detection.
+	//
 	// +optional
-	name string,
+	race bool,
+
+	// Arguments to pass on each go tool link invocation.
+	//
+	// +optional
+	ldflags []string,
 
 	// A list of additional build tags to consider satisfied during the build.
+	//
 	// +optional
 	tags []string,
 
 	// Remove all file system paths from the resulting executable.
+	//
 	// +optional
 	trimpath bool,
 
 	// Additional args to pass to the build command.
+	//
 	// +optional
 	rawArgs []string,
 
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
+	//
 	// +optional
 	platform Platform,
 ) *File {
-	if name == "" {
-		name = "binary"
-	}
-
-	binaryPath := filepath.Join("/out", filepath.Base(name))
+	const binaryPath = "/work/out/binary"
 
 	args := []string{"go", "build", "-o", binaryPath}
+
+	if race {
+		args = append(args, "-race")
+	}
+
+	if len(ldflags) > 0 {
+		args = append(args, "-ldflags", strings.Join(ldflags, " "))
+	}
 
 	if len(tags) > 0 {
 		args = append(args, "-tags", strings.Join(tags, ","))

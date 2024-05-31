@@ -38,10 +38,6 @@ func New(
 	// +optional
 	goVersion string,
 
-	// Custom image reference in "repository:tag" format to use as a Go base container.
-	// +optional
-	goImage string,
-
 	// Custom container to use as a Go base container.
 	// +optional
 	goContainer *Container,
@@ -64,7 +60,6 @@ func New(
 
 	ctr := dag.Go(GoOpts{
 		Version:      goVersion,
-		Image:        goImage,
 		Container:    goContainer,
 		DisableCache: disableCache || disableGoCache,
 	}).Container().
