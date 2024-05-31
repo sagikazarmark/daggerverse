@@ -38,13 +38,7 @@ func (m *Sha256) Check(
 }
 
 func calculate(algo string, files []*File) *File {
-	dir := dag.Directory()
-
-	for _, file := range files {
-		dir = dir.WithFile("", file)
-	}
-
-	return calculateDirectory(algo, dir)
+	return calculateDirectory(algo, dag.Directory().WithFiles("", files))
 }
 
 func calculateDirectory(algo string, dir *Directory) *File {
