@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"dagger/xcaddy/tests/internal/dagger"
+	"fmt"
 
 	"github.com/sourcegraph/conc/pool"
 )
@@ -24,13 +25,28 @@ func (m *Tests) All(ctx context.Context) error {
 func (m *Tests) Test(ctx context.Context) error {
 	binary := dag.Xcaddy().Build().Binary()
 
-	_, err := dag.Container().
-		From("alpine").
-		WithFile("/usr/local/bin/caddy", binary).
-		WithExec([]string{"caddy", "version"}).
-		Sync(ctx)
+	caddyService := dag.Container().
+		From("caddy").
+		WithFile("/usr/bin/caddy", binary).
+		WithFile("/etc/caddy/Caddyfile", dag.CurrentModule().Source().File("Caddyfile")).
+		WithExposedPort(80).
+		AsService()
 
-	return err
+	actual, err := dag.Container().
+		From("alpine").
+		WithExec([]string{"apk", "add", "curl"}).
+		WithServiceBinding("caddy", caddyService).
+		WithExec([]string{"curl", "http://caddy"}).
+		Stdout(ctx)
+	if err != nil {
+		return err
+	}
+
+	if actual != "Hello, world!" {
+		return fmt.Errorf("unexpected response from caddy: %q", actual)
+	}
+
+	return nil
 }
 
 func (m *Tests) Version(ctx context.Context) error {
