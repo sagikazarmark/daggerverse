@@ -14,6 +14,7 @@ package main
 
 import (
 	"context"
+	"dagger/registry-config/internal/dagger"
 	"slices"
 )
 
@@ -25,11 +26,11 @@ type RegistryConfig struct {
 type Auth struct {
 	Address  string
 	Username string
-	Secret   *Secret
+	Secret   *dagger.Secret
 }
 
 // Add credentials for a registry.
-func (m *RegistryConfig) WithRegistryAuth(address string, username string, secret *Secret) *RegistryConfig {
+func (m *RegistryConfig) WithRegistryAuth(address string, username string, secret *dagger.Secret) *RegistryConfig {
 	m.Auths = append(m.Auths, Auth{
 		Address:  address,
 		Username: username,
@@ -56,7 +57,7 @@ func (m *RegistryConfig) Secret(
 	//
 	// +optional
 	name string,
-) (*Secret, error) {
+) (*dagger.Secret, error) {
 	config, err := m.toConfig(ctx)
 	if err != nil {
 		return nil, err
@@ -128,7 +129,7 @@ type SecretMount struct {
 	RegistryConfig *RegistryConfig
 }
 
-func (m *SecretMount) Mount(ctx context.Context, container *Container) (*Container, error) {
+func (m *SecretMount) Mount(ctx context.Context, container *dagger.Container) (*dagger.Container, error) {
 	if m.SkipOnEmpty && len(m.RegistryConfig.Auths) == 0 {
 		return container, nil
 	}
@@ -138,7 +139,7 @@ func (m *SecretMount) Mount(ctx context.Context, container *Container) (*Contain
 		return nil, err
 	}
 
-	return container.WithMountedSecret(m.Path, secret, ContainerWithMountedSecretOpts{
+	return container.WithMountedSecret(m.Path, secret, dagger.ContainerWithMountedSecretOpts{
 		Owner: m.Owner,
 		Mode:  m.Mode,
 	}), nil
