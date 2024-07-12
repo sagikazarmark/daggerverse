@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dagger/apko/tests/internal/dagger"
 	"fmt"
 	"strings"
 
@@ -37,7 +38,7 @@ func (m *Tests) Publish(ctx context.Context) error {
 
 	password := dag.SetSecret("registry-password", "password")
 
-	_, err = dag.Apko(ApkoOpts{
+	return dag.Apko(dagger.ApkoOpts{
 		Container: dag.Container().
 			From("cgr.dev/chainguard/apko").
 			WithMountedFile("/etc/ssl/certs/test.pem", ca).
@@ -45,8 +46,6 @@ func (m *Tests) Publish(ctx context.Context) error {
 	}).
 		WithRegistryAuth("zot:8080", "username", password).
 		Publish(ctx, dag.CurrentModule().Source().File("testdata/wolfi-base.yaml"), "zot:8080/wolfi-base")
-
-	return err
 }
 
 func (m *Tests) Wolfi(ctx context.Context) error {
@@ -79,9 +78,9 @@ func (m *Tests) Alpine(ctx context.Context) error {
 	return nil
 }
 
-func registryService(ctx context.Context) (*Service, *File, error) {
+func registryService(ctx context.Context) (*dagger.Service, *dagger.File, error) {
 	const zotRepositoryTemplate = "ghcr.io/project-zot/zot-%s-%s"
-	const zotVersion = "v2.0.0"
+	const zotVersion = "v2.1.0"
 
 	mkcert := dag.Container().
 		From("cgr.dev/chainguard/wolfi-base").
@@ -104,6 +103,8 @@ func registryService(ctx context.Context) (*Service, *File, error) {
 		WithExposedPort(8080).
 		WithMountedDirectory("/etc/zot", dag.CurrentModule().Source().Directory("./testdata/zot")).
 		WithMountedDirectory("/etc/zot/tls", mkcert.Directory("/work")).
-		WithExec([]string{"serve", "/etc/zot/config.json"}).
+		WithExec([]string{"serve", "/etc/zot/config.json"}, dagger.ContainerWithExecOpts{
+			UseEntrypoint: true,
+		}).
 		AsService(), mkcert.File("/root/.local/share/mkcert/rootCA.pem"), nil
 }
