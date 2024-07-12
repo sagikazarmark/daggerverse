@@ -1,6 +1,6 @@
 module dagger/registry-config/tests
 
-go 1.22.2
+go 1.22.5
 
 require (
 	github.com/99designs/gqlgen v0.17.49
