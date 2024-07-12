@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dagger/go/tests/internal/dagger"
 	"fmt"
 	"strings"
 
@@ -36,7 +37,7 @@ func (m *Tests) DefaultContainer(ctx context.Context) error {
 }
 
 func (m *Tests) CustomVersion(ctx context.Context) error {
-	_, err := dag.Go(GoOpts{
+	_, err := dag.Go(dagger.GoOpts{
 		Version: "latest",
 	}).
 		Exec([]string{"go", "version"}).
@@ -46,7 +47,7 @@ func (m *Tests) CustomVersion(ctx context.Context) error {
 }
 
 func (m *Tests) CustomContainer(ctx context.Context) error {
-	_, err := dag.Go(GoOpts{
+	_, err := dag.Go(dagger.GoOpts{
 		Container: dag.Container().From("golang:latest"),
 	}).
 		Exec([]string{"go", "version"}).
@@ -270,7 +271,7 @@ func (m *Tests) Build(ctx context.Context) error {
 	p.Go(func(ctx context.Context) error {
 		binary, err := dag.Go().
 			WithSource(dag.CurrentModule().Source().Directory("./testdata")).
-			Build(GoWithSourceBuildOpts{
+			Build(dagger.GoWithSourceBuildOpts{
 				Ldflags: []string{"-X", "main.version=1.0.0"},
 			}).
 			Sync(ctx)
