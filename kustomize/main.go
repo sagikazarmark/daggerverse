@@ -2,6 +2,7 @@
 package main
 
 import (
+	"dagger/kustomize/internal/dagger"
 	"fmt"
 	"path"
 	"strings"
@@ -14,11 +15,11 @@ const (
 	// defaultVersion is used when no version is specified.
 	//
 	// (there is no latest tag published in the default image repository)
-	defaultVersion = "v5.0.1"
+	defaultVersion = "v5.4.2"
 )
 
 type Kustomize struct {
-	Container *Container
+	Container *dagger.Container
 }
 
 func New(
@@ -30,7 +31,7 @@ func New(
 	// Custom container to use as a base container.
 	//
 	// +optional
-	container *Container,
+	container *dagger.Container,
 ) *Kustomize {
 	if container == nil {
 		if version == "" {
@@ -55,17 +56,17 @@ func cleanPath(s string) string {
 
 // Build a kustomization target from a directory or URL.
 func (m *Kustomize) Build(
-	source *Directory,
+	source *dagger.Directory,
 
 	// Subdirectory within the source to use as the target.
 	//
 	// +optional
 	dir string,
-) *File {
+) *dagger.File {
 	sourcePath := "/work/src"
 	output := "/work/output.yaml"
 
-	args := []string{"build", "--output", output}
+	args := []string{"kustomize", "build", "--output", output}
 
 	if dir != "" {
 		args = append(args, cleanPath(dir))
@@ -80,7 +81,7 @@ func (m *Kustomize) Build(
 
 // Edit a kustomization file.
 func (m *Kustomize) Edit(
-	source *Directory,
+	source *dagger.Directory,
 
 	// Subdirectory within the source to use as the target.
 	//
@@ -99,11 +100,11 @@ func (m *Kustomize) Edit(
 // Edit a kustomization file.
 type Edit struct {
 	// +private
-	Container *Container
+	Container *dagger.Container
 }
 
 // Retrieve the source containing the modifications.
-func (m *Edit) Directory() *Directory {
+func (m *Edit) Directory() *dagger.Directory {
 	return m.Container.Directory("/work")
 }
 
@@ -115,7 +116,7 @@ func (m *Edit) Set() *Set {
 // Set the value of different fields in kustomization file.
 type Set struct {
 	// +private
-	Container *Container
+	Container *dagger.Container
 }
 
 // Sets one or more commonAnnotations in kustomization.yaml.
@@ -125,15 +126,15 @@ func (m *Set) Annotation(key string, value string) *Edit {
 
 // Set images and their new names, new tags or digests in the kustomization file.
 func (m *Set) Image(image string) *Edit {
-	return &Edit{m.Container.WithExec([]string{"edit", "set", "image", image})}
+	return &Edit{m.Container.WithExec([]string{"kustomize", "edit", "set", "image", image})}
 }
 
 // Set the value of the namespace field in the kustomization file.
 func (m *Set) Namespace(namespace string) *Edit {
-	return &Edit{m.Container.WithExec([]string{"edit", "set", "namespace", namespace})}
+	return &Edit{m.Container.WithExec([]string{"kustomize", "edit", "set", "namespace", namespace})}
 }
 
 // Set the value of the nameSuffix field in the kustomization file.
 func (m *Set) Namesuffix(nameSuffix string) *Edit {
-	return &Edit{m.Container.WithExec([]string{"edit", "set", "namesuffix", nameSuffix})}
+	return &Edit{m.Container.WithExec([]string{"kustomize", "edit", "set", "namesuffix", nameSuffix})}
 }
