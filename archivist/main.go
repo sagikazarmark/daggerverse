@@ -1,11 +1,13 @@
 // Dagger-native API for creating and extracting archives.
 package main
 
+import "dagger/archivist/internal/dagger"
+
 // Archivist provides methods to create and extract archives.
 type Archivist struct{}
 
-func arc() *Arc {
-	return dag.Arc(ArcOpts{
+func arc() *dagger.Arc {
+	return dag.Arc(dagger.ArcOpts{
 		Version: "3.5.0", // pin version
 	})
 }
@@ -18,7 +20,7 @@ func (m *Archivist) Tar() *Tar {
 // Create and extract ".tar" archives.
 type Tar struct{}
 
-func (m *Tar) Archive(name string, source *Directory) *File {
+func (m *Tar) Archive(name string, source *dagger.Directory) *dagger.File {
 	return arc().ArchiveDirectory(name, source).Tar()
 }
 
@@ -30,7 +32,7 @@ func (m *Archivist) TarBr() *TarBr {
 // Create and extract ".tar.br" (and ".tbr") archives.
 type TarBr struct{}
 
-func (m *TarBr) Archive(name string, source *Directory) *File {
+func (m *TarBr) Archive(name string, source *dagger.Directory) *dagger.File {
 	return arc().ArchiveDirectory(name, source).TarBr()
 }
 
@@ -49,8 +51,8 @@ type TarBz2 struct {
 	CompressionLevel int
 }
 
-func (m *TarBz2) Archive(name string, source *Directory) *File {
-	return arc().ArchiveDirectory(name, source).TarBz2(ArcArchiveTarBz2Opts{
+func (m *TarBz2) Archive(name string, source *dagger.Directory) *dagger.File {
+	return arc().ArchiveDirectory(name, source).TarBz2(dagger.ArcArchiveTarBz2Opts{
 		CompressionLevel: m.CompressionLevel,
 	})
 }
@@ -68,8 +70,8 @@ type TarGz struct {
 	CompressionLevel int
 }
 
-func (m *TarGz) Archive(name string, source *Directory) *File {
-	return arc().ArchiveDirectory(name, source).TarGz(ArcArchiveTarGzOpts{
+func (m *TarGz) Archive(name string, source *dagger.Directory) *dagger.File {
+	return arc().ArchiveDirectory(name, source).TarGz(dagger.ArcArchiveTarGzOpts{
 		CompressionLevel: m.CompressionLevel,
 	})
 }
@@ -82,7 +84,7 @@ func (m *Archivist) TarLz4() *TarLz4 {
 // Create and extract ".tar.lz4" (and ".tlz4") archives.
 type TarLz4 struct{}
 
-func (m *TarLz4) Archive(name string, source *Directory) *File {
+func (m *TarLz4) Archive(name string, source *dagger.Directory) *dagger.File {
 	return arc().ArchiveDirectory(name, source).TarLz4()
 }
 
@@ -94,7 +96,7 @@ func (m *Archivist) TarSz() *TarSz {
 // Create and extract ".tar.sz" (and ".tsz") archives.
 type TarSz struct{}
 
-func (m *TarSz) Archive(name string, source *Directory) *File {
+func (m *TarSz) Archive(name string, source *dagger.Directory) *dagger.File {
 	return arc().ArchiveDirectory(name, source).TarSz()
 }
 
@@ -106,7 +108,7 @@ func (m *Archivist) TarXz() *TarXz {
 // Create and extract ".tar.xz" (and ".txz") archives.
 type TarXz struct{}
 
-func (m *TarXz) Archive(name string, source *Directory) *File {
+func (m *TarXz) Archive(name string, source *dagger.Directory) *dagger.File {
 	return arc().ArchiveDirectory(name, source).TarXz()
 }
 
@@ -118,7 +120,7 @@ func (m *Archivist) TarZst() *TarZst {
 // Create and extract ".tar.zst" archives.
 type TarZst struct{}
 
-func (m *TarZst) Archive(name string, source *Directory) *File {
+func (m *TarZst) Archive(name string, source *dagger.Directory) *dagger.File {
 	return arc().ArchiveDirectory(name, source).TarZst()
 }
 
@@ -130,6 +132,6 @@ func (m *Archivist) Zip() *Zip {
 // Create and extract ".zip" archives.
 type Zip struct{}
 
-func (m *Zip) Archive(name string, source *Directory) *File {
+func (m *Zip) Archive(name string, source *dagger.Directory) *dagger.File {
 	return arc().ArchiveDirectory(name, source).Zip()
 }

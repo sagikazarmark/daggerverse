@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
+	"dagger/ssh-keygen/internal/dagger"
 )
 
 // Generate a new SSH key pair using the Ed25519 algorithm.
@@ -29,7 +30,7 @@ func (*Ed25519) Generate(
 	// Encrypt the private key with the given passphrase.
 	//
 	// +optional
-	passphrase *Secret,
+	passphrase *dagger.Secret,
 ) (*KeyPair, error) {
 	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {

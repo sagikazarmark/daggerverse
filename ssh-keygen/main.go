@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"crypto"
+	"dagger/ssh-keygen/internal/dagger"
 	"encoding/pem"
 
 	"golang.org/x/crypto/ssh"
@@ -14,8 +15,8 @@ type SshKeygen struct{}
 
 // An SSH key pair.
 type KeyPair struct {
-	PublicKey  *File
-	PrivateKey *Secret
+	PublicKey  *dagger.File
+	PrivateKey *dagger.Secret
 }
 
 func formatKeys(
@@ -23,7 +24,7 @@ func formatKeys(
 	name string,
 	publicKey crypto.PublicKey,
 	privateKey crypto.PrivateKey,
-	passphrase *Secret,
+	passphrase *dagger.Secret,
 ) (*KeyPair, error) {
 	sshPublicKey, err := ssh.NewPublicKey(publicKey)
 	if err != nil {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dagger/registry-config/tests/internal/dagger"
 	"fmt"
 
 	"github.com/sourcegraph/conc/pool"
@@ -107,7 +108,7 @@ func (m *Tests) SecretMount_SkipOnEmpty(ctx context.Context) error {
 
 	_, err := dag.Container().
 		From("alpine").
-		With(registryConfig.SecretMount("/empty.json", RegistryConfigSecretMountOpts{SkipOnEmpty: true}).Mount).
+		With(registryConfig.SecretMount("/empty.json", dagger.RegistryConfigSecretMountOpts{SkipOnEmpty: true}).Mount).
 		WithExec([]string{"sh", "-c", "test ! -f /empty.json"}).
 		Sync(ctx)
 

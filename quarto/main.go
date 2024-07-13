@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"dagger/quarto/internal/dagger"
 	"fmt"
 
 	"golang.org/x/exp/slices"
@@ -13,7 +14,7 @@ const defaultImageRepository = "ghcr.io/quarto-dev/quarto"
 
 type Quarto struct {
 	// +private
-	Ctr *Container
+	Ctr *dagger.Container
 }
 
 func New(
@@ -27,9 +28,9 @@ func New(
 
 	// Custom container to use as a base container.
 	// +optional
-	container *Container,
+	container *dagger.Container,
 ) *Quarto {
-	var ctr *Container
+	var ctr *dagger.Container
 
 	if version != "" {
 		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
@@ -44,7 +45,7 @@ func New(
 	return &Quarto{ctr}
 }
 
-func (m *Quarto) Container() *Container {
+func (m *Quarto) Container() *dagger.Container {
 	return m.Ctr
 }
 
@@ -53,7 +54,7 @@ func (m *Quarto) Render(
 	ctx context.Context,
 
 	// Quarto source directory.
-	source *Directory,
+	source *dagger.Directory,
 
 	// Input to render within the project.
 	// +optional
@@ -83,24 +84,24 @@ func (m *Quarto) Render(
 
 type Renderer struct {
 	// +private
-	Ctr *Container
+	Ctr *dagger.Container
 
 	// +private
 	Args []string
 }
 
-func (m *Renderer) run(args ...string) *Container {
+func (m *Renderer) run(args ...string) *dagger.Container {
 	args = append(slices.Clone(m.Args), args...)
 
 	return m.Ctr.WithExec(args)
 }
 
 // Get the output directory after rendering.
-func (m *Renderer) Directory() *Directory {
+func (m *Renderer) Directory() *dagger.Directory {
 	return m.run("--output-dir", "../output").Directory("/work/output")
 }
 
 // Get the output file after rendering.
-func (m *Renderer) File(name string) *Directory {
+func (m *Renderer) File(name string) *dagger.Directory {
 	return m.run("--output", "/work/source/_site/"+name).Directory("/work/source/_site/" + name)
 }

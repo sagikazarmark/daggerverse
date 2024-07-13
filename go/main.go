@@ -2,6 +2,7 @@
 package main
 
 import (
+	"dagger/go/internal/dagger"
 	"fmt"
 	"strings"
 
@@ -12,7 +13,7 @@ import (
 const defaultImageRepository = "golang"
 
 type Go struct {
-	Container *Container
+	Container *dagger.Container
 }
 
 func New(
@@ -24,7 +25,7 @@ func New(
 	// Custom container to use as a base container.
 	//
 	// +optional
-	container *Container,
+	container *dagger.Container,
 
 	// Disable mounting cache volumes.
 	//
@@ -70,7 +71,7 @@ func (m *Go) WithEnvVariable(
 		m.Container.WithEnvVariable(
 			name,
 			value,
-			ContainerWithEnvVariableOpts{
+			dagger.ContainerWithEnvVariableOpts{
 				Expand: expand,
 			},
 		),
@@ -80,7 +81,7 @@ func (m *Go) WithEnvVariable(
 // Set GOOS, GOARCH and GOARM environment variables.
 func (m *Go) WithPlatform(
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
-	platform Platform,
+	platform dagger.Platform,
 ) *Go {
 	if platform == "" {
 		return m
@@ -92,7 +93,7 @@ func (m *Go) WithPlatform(
 		m.Container.
 			WithEnvVariable("GOOS", p.OS).
 			WithEnvVariable("GOARCH", p.Architecture).
-			With(func(c *Container) *Container {
+			With(func(c *dagger.Container) *dagger.Container {
 				if p.Variant != "" {
 					return c.WithEnvVariable("GOARM", p.Variant)
 				}
@@ -114,23 +115,23 @@ func (m *Go) WithCgoDisabled() *Go {
 
 // Mount a cache volume for Go module cache.
 func (m *Go) WithModuleCache(
-	cache *CacheVolume,
+	cache *dagger.CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
 	//
 	// +optional
-	source *Directory,
+	source *dagger.Directory,
 
 	// Sharing mode of the cache volume.
 	//
 	// +optional
-	sharing CacheSharingMode,
+	sharing dagger.CacheSharingMode,
 ) *Go {
 	return &Go{
 		m.Container.WithMountedCache(
 			"/go/pkg/mod",
 			cache,
-			ContainerWithMountedCacheOpts{
+			dagger.ContainerWithMountedCacheOpts{
 				Source:  source,
 				Sharing: sharing,
 			},
@@ -140,23 +141,23 @@ func (m *Go) WithModuleCache(
 
 // Mount a cache volume for Go build cache.
 func (m *Go) WithBuildCache(
-	cache *CacheVolume,
+	cache *dagger.CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
 	//
 	// +optional
-	source *Directory,
+	source *dagger.Directory,
 
 	// Sharing mode of the cache volume.
 	//
 	// +optional
-	sharing CacheSharingMode,
+	sharing dagger.CacheSharingMode,
 ) *Go {
 	return &Go{
 		m.Container.WithMountedCache(
 			"/root/.cache/go-build",
 			cache,
-			ContainerWithMountedCacheOpts{
+			dagger.ContainerWithMountedCacheOpts{
 				Source:  source,
 				Sharing: sharing,
 			},
@@ -172,19 +173,19 @@ func (m *Go) Exec(
 	// Source directory to mount.
 	//
 	// +optional
-	src *Directory,
+	src *dagger.Directory,
 
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	//
 	// +optional
-	platform Platform,
-) *Container {
+	platform dagger.Platform,
+) *dagger.Container {
 	if platform != "" {
 		m = m.WithPlatform(platform)
 	}
 
 	if src != nil {
-		return m.WithSource(src).Exec(args, Platform(""))
+		return m.WithSource(src).Exec(args, dagger.Platform(""))
 	}
 
 	return m.Container.WithExec(args)
@@ -193,7 +194,7 @@ func (m *Go) Exec(
 // Build a binary.
 func (m *Go) Build(
 	// Source directory to mount.
-	source *Directory,
+	source *dagger.Directory,
 
 	// Package to compile.
 	//
@@ -228,8 +229,8 @@ func (m *Go) Build(
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	//
 	// +optional
-	platform Platform,
-) *File {
+	platform dagger.Platform,
+) *dagger.File {
 	return m.WithSource(source).Build(
 		pkg,
 		race,
@@ -244,7 +245,7 @@ func (m *Go) Build(
 // Mount a source directory.
 func (m *Go) WithSource(
 	// Source directory to mount.
-	source *Directory,
+	source *dagger.Directory,
 ) *WithSource {
 	const workdir = "/work/src"
 
@@ -262,7 +263,7 @@ type WithSource struct {
 	Go *Go
 }
 
-func (m *WithSource) Container() *Container {
+func (m *WithSource) Container() *dagger.Container {
 	return m.Go.Container
 }
 
@@ -286,7 +287,7 @@ func (m *WithSource) WithEnvVariable(
 // Set GOOS, GOARCH and GOARM environment variables.
 func (m *WithSource) WithPlatform(
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
-	platform Platform,
+	platform dagger.Platform,
 ) *WithSource {
 	return &WithSource{m.Go.WithPlatform(platform)}
 }
@@ -303,34 +304,34 @@ func (m *WithSource) WithCgoDisabled() *WithSource {
 
 // Mount a cache volume for Go module cache.
 func (m *WithSource) WithModuleCache(
-	cache *CacheVolume,
+	cache *dagger.CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
 	//
 	// +optional
-	source *Directory,
+	source *dagger.Directory,
 
 	// Sharing mode of the cache volume.
 	//
 	// +optional
-	sharing CacheSharingMode,
+	sharing dagger.CacheSharingMode,
 ) *WithSource {
 	return &WithSource{m.Go.WithModuleCache(cache, source, sharing)}
 }
 
 // Mount a cache volume for Go build cache.
 func (m *WithSource) WithBuildCache(
-	cache *CacheVolume,
+	cache *dagger.CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
 	//
 	// +optional
-	source *Directory,
+	source *dagger.Directory,
 
 	// Sharing mode of the cache volume.
 	//
 	// +optional
-	sharing CacheSharingMode,
+	sharing dagger.CacheSharingMode,
 ) *WithSource {
 	return &WithSource{m.Go.WithBuildCache(cache, source, sharing)}
 }
@@ -343,8 +344,8 @@ func (m *WithSource) Exec(
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	//
 	// +optional
-	platform Platform,
-) *Container {
+	platform dagger.Platform,
+) *dagger.Container {
 	if platform != "" {
 		m = m.WithPlatform(platform)
 	}
@@ -387,8 +388,8 @@ func (m *WithSource) Build(
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	//
 	// +optional
-	platform Platform,
-) *File {
+	platform dagger.Platform,
+) *dagger.File {
 	const binaryPath = "/work/out/binary"
 
 	args := []string{"go", "build", "-o", binaryPath}

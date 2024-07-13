@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/sha1"
+	"dagger/registry-config/internal/dagger"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -35,7 +36,7 @@ func (m *RegistryConfig) toConfig(ctx context.Context) (*Config, error) {
 	return config, nil
 }
 
-func (c *Config) toSecret(name string) (*Secret, error) {
+func (c *Config) toSecret(name string) (*dagger.Secret, error) {
 	out, err := json.Marshal(c)
 	if err != nil {
 		return nil, err

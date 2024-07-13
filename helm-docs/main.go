@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"dagger/helm-docs/internal/dagger"
 	"fmt"
 	"path"
 
@@ -15,7 +16,7 @@ const defaultImageRepository = "jnorwood/helm-docs"
 
 type HelmDocs struct {
 	// +private
-	Container *Container
+	Container *dagger.Container
 }
 
 func New(
@@ -27,7 +28,7 @@ func New(
 	// Custom container to use as a base container.
 	//
 	// +optional
-	container *Container,
+	container *dagger.Container,
 ) *HelmDocs {
 	if container == nil {
 		if version == "" {
@@ -47,18 +48,18 @@ func (m *HelmDocs) Generate(
 	ctx context.Context,
 
 	// A directory containing a Helm chart.
-	chart *Directory,
+	chart *dagger.Directory,
 
 	// A list of Go template files to use for rendering the documentation.
 	//
 	// +optional
-	templates []*File,
+	templates []*dagger.File,
 
 	// Order in which to sort the values table ("alphanum" or "file"). (default "alphanum")
 	//
 	// +optional
 	sortValuesOrder string,
-) (*File, error) {
+) (*dagger.File, error) {
 	chartName, err := getChartName(ctx, chart)
 	if err != nil {
 		return nil, err
@@ -67,6 +68,8 @@ func (m *HelmDocs) Generate(
 	chartPath := path.Join("/work/charts", chartName)
 
 	args := []string{
+		"helm-docs",
+
 		// Technically this is not needed, but let's add it anyway
 		"--chart-search-root", "/work/charts",
 
@@ -83,7 +86,7 @@ func (m *HelmDocs) Generate(
 	return m.Container.
 		WithWorkdir("/work").
 		WithMountedDirectory(chartPath, chart).
-		With(func(c *Container) *Container {
+		With(func(c *dagger.Container) *dagger.Container {
 			// TODO: use shell and list files inside template directory?
 			for i, template := range templates {
 				templatePath := fmt.Sprintf("/work/templates/template-%d", i)
@@ -98,8 +101,8 @@ func (m *HelmDocs) Generate(
 		File(path.Join(chartPath, "README.out.md")), nil
 }
 
-func getChartName(ctx context.Context, c *Directory) (string, error) {
-	chartYaml, err := c.File("Chart.yaml").Contents(ctx)
+func getChartName(ctx context.Context, dir *dagger.Directory) (string, error) {
+	chartYaml, err := dir.File("Chart.yaml").Contents(ctx)
 	if err != nil {
 		return "", err
 	}

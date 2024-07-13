@@ -10,10 +10,10 @@
   ],
   "dependencies": [
     {
-      "name": "wolfi",
-      "source": "github.com/shykes/daggerverse/wolfi@3338120927f8e291c4780de691ef63a7c9d825c0"
+      "name": "apko",
+      "source": "../apko"
     }
   ],
   "source": ".",
-  "engineVersion": "v0.11.8"
+  "engineVersion": "v0.12.0"
 }

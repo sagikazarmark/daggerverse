@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"dagger/apko/internal/dagger"
 	"strings"
 	"time"
 )
@@ -14,17 +15,17 @@ const cachePath = "/work/cache"
 
 type Apko struct {
 	// +private
-	Container *Container
+	Container *dagger.Container
 
 	// +private
-	RegistryConfig *RegistryConfig
+	RegistryConfig *dagger.RegistryConfig
 }
 
 func New(
 	// Custom container to use as a base container.
 	//
 	// +optional
-	container *Container,
+	container *dagger.Container,
 
 	// Disable mounting a default cache volume.
 	//
@@ -48,29 +49,29 @@ func New(
 }
 
 // use container for actions that need registry credentials
-func (m *Apko) container() *Container {
+func (m *Apko) container() *dagger.Container {
 	return m.Container.With(m.RegistryConfig.SecretMount("/root/.docker/config.json").Mount)
 }
 
 // Mount a cache volume for apk cache.
 func (m *Apko) WithCache(
-	cache *CacheVolume,
+	cache *dagger.CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
 	//
 	// +optional
-	source *Directory,
+	source *dagger.Directory,
 
 	// Sharing mode of the cache volume.
 	//
 	// +optional
-	sharing CacheSharingMode,
+	sharing dagger.CacheSharingMode,
 ) *Apko {
 	return &Apko{
 		Container: m.Container.WithMountedCache(
 			cachePath,
 			cache,
-			ContainerWithMountedCacheOpts{
+			dagger.ContainerWithMountedCacheOpts{
 				Source:  source,
 				Sharing: sharing,
 			},
@@ -79,7 +80,7 @@ func (m *Apko) WithCache(
 }
 
 // Add credentials for a registry.
-func (m *Apko) WithRegistryAuth(address string, username string, secret *Secret) *Apko {
+func (m *Apko) WithRegistryAuth(address string, username string, secret *dagger.Secret) *Apko {
 	m.RegistryConfig = m.RegistryConfig.WithRegistryAuth(address, username, secret)
 
 	return m
@@ -156,7 +157,7 @@ func (o buildAndPublishArgs) Process(args []string) []string {
 // Build an image from a YAML configuration file.
 func (m *Apko) Build(
 	// Configuration file.
-	config *File,
+	config *dagger.File,
 
 	// Image tag.
 	tag string,
@@ -164,7 +165,7 @@ func (m *Apko) Build(
 	// A .lock.json file (e.g. produced by apko lock) that constraints versions of packages to the listed ones.
 	//
 	// +optional
-	lockfile *File,
+	lockfile *dagger.File,
 
 	// OCI annotations to add. Separate with colon (key:value).
 	//
@@ -210,6 +211,7 @@ func (m *Apko) Build(
 	vcs bool,
 ) *BuildResult {
 	args := []string{
+		"apko",
 		"build",
 		"/work/config.yaml", tag, "image.tar",
 
@@ -243,12 +245,12 @@ func (m *Apko) Build(
 }
 
 type BuildResult struct {
-	File *File
+	File *dagger.File
 	Tag  string
 }
 
 // Import the image into a container.
-func (m *BuildResult) AsContainer() *Container {
+func (m *BuildResult) AsContainer() *dagger.Container {
 	return dag.Container().Import(m.File)
 }
 
@@ -257,7 +259,7 @@ func (m *Apko) Publish(
 	ctx context.Context,
 
 	// Configuration file.
-	config *File,
+	config *dagger.File,
 
 	// Image tag.
 	tag string,
@@ -306,6 +308,7 @@ func (m *Apko) Publish(
 	vcs bool,
 ) error {
 	args := []string{
+		"apko",
 		"publish",
 		"/work/config.yaml", tag,
 

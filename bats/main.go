@@ -2,6 +2,7 @@
 package main
 
 import (
+	"dagger/bats/internal/dagger"
 	"fmt"
 )
 
@@ -10,7 +11,7 @@ const defaultImageRepository = "bats/bats"
 
 type Bats struct {
 	// +private
-	Container *Container
+	Container *dagger.Container
 }
 
 func New(
@@ -22,7 +23,7 @@ func New(
 	// Custom container to use as a base container.
 	//
 	// +optional
-	container *Container,
+	container *dagger.Container,
 ) *Bats {
 	if container == nil {
 		if version == "" {
@@ -40,7 +41,7 @@ func New(
 // Mount a source directory.
 func (m *Bats) WithSource(
 	// Source directory.
-	source *Directory,
+	source *dagger.Directory,
 ) *WithSource {
 	const workdir = "/work"
 
@@ -58,8 +59,8 @@ func (m *Bats) Run(
 	// Source directory to mount.
 	//
 	// +optional
-	source *Directory,
-) *Container {
+	source *dagger.Directory,
+) *dagger.Container {
 	if source != nil {
 		return m.WithSource(source).Run(args)
 	}
@@ -69,7 +70,7 @@ func (m *Bats) Run(
 
 type WithSource struct {
 	// +private
-	Source *Directory
+	Source *dagger.Directory
 
 	// +private
 	Bats *Bats
@@ -79,11 +80,11 @@ type WithSource struct {
 func (m *WithSource) Run(
 	// Arguments to pass to bats.
 	args []string,
-) *Container {
+) *dagger.Container {
 	const workdir = "/work"
 
 	return m.Bats.Container.
 		WithWorkdir(workdir).
 		WithMountedDirectory(workdir, m.Source).
-		WithExec(args)
+		WithExec(append([]string{"bats"}, args...))
 }

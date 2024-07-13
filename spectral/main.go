@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"dagger/spectral/internal/dagger"
 	"fmt"
 	"path"
 )
@@ -12,7 +13,7 @@ const defaultImageRepository = "stoplight/spectral"
 
 type Spectral struct {
 	// +private
-	Ctr *Container
+	Ctr *dagger.Container
 }
 
 func New(
@@ -26,9 +27,9 @@ func New(
 
 	// Custom container to use as a base container.
 	// +optional
-	container *Container,
+	container *dagger.Container,
 ) *Spectral {
-	var ctr *Container
+	var ctr *dagger.Container
 
 	if version != "" {
 		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
@@ -43,7 +44,7 @@ func New(
 	return &Spectral{ctr}
 }
 
-func (m *Spectral) Container() *Container {
+func (m *Spectral) Container() *dagger.Container {
 	return m.Ctr
 }
 
@@ -52,10 +53,10 @@ func (m *Spectral) Lint(
 	ctx context.Context,
 
 	// JSON/YAML OpenAPI documents.
-	documents []*File,
+	documents []*dagger.File,
 
 	// Ruleset file.
-	ruleset *File,
+	ruleset *dagger.File,
 
 	// Results of this level or above will trigger a failure exit code. (choices: "error", "warn", "info", "hint") (default "error")
 	// +optional
@@ -67,7 +68,7 @@ func (m *Spectral) Lint(
 
 	// Custom json-ref-resolver instance.
 	// +optional
-	resolver *File,
+	resolver *dagger.File,
 
 	// Text encoding to use. (choices: "utf8", "ascii", "utf-8", "utf16le", "ucs2", "ucs-2", "base64", "latin1") (default "utf8")
 	// +optional
@@ -80,9 +81,9 @@ func (m *Spectral) Lint(
 	// No logging, output only.
 	// +optional
 	quiet bool,
-) (*Container, error) {
+) (*dagger.Container, error) {
 	ctr := m.Ctr
-	args := []string{"lint"}
+	args := []string{"spectral", "lint"}
 
 	{
 		dir := dag.Directory().WithFile("", ruleset)

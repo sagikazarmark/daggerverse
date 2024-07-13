@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dagger/archivist/tests/internal/dagger"
 	"fmt"
 	"slices"
 
@@ -64,7 +65,7 @@ func (m *Tests) Zip(ctx context.Context) error {
 }
 
 type archiver interface {
-	Archive(name string, source *Directory) *File
+	Archive(name string, source *dagger.Directory) *dagger.File
 }
 
 func test(ctx context.Context, a archiver) error {

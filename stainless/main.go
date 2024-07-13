@@ -4,6 +4,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"dagger/stainless/internal/dagger"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -12,10 +13,10 @@ import (
 
 type Stainless struct {
 	// +private
-	Token *Secret
+	Token *dagger.Secret
 }
 
-func New(token *Secret) *Stainless {
+func New(token *dagger.Secret) *Stainless {
 	return &Stainless{
 		Token: token,
 	}
@@ -28,18 +29,18 @@ func (m *Stainless) UploadSpec(
 	projectName string,
 
 	// OpenAPI spec file.
-	openapi *File,
+	openapi *dagger.File,
 
 	// Stainless config file.
 	//
 	// +optional
-	config *File,
+	config *dagger.File,
 
 	// Commit message (following conventional commit format).
 	//
 	// +optional
 	commitMessage string,
-) (*File, error) {
+) (*dagger.File, error) {
 	var buf bytes.Buffer
 
 	body := multipart.NewWriter(&buf)

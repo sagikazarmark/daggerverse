@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"dagger/helm/internal/dagger"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -14,10 +15,10 @@ import (
 const defaultImageRepository = "alpine/helm"
 
 type Helm struct {
-	Container *Container
+	Container *dagger.Container
 
 	// +private
-	RegistryConfig *RegistryConfig
+	RegistryConfig *dagger.RegistryConfig
 }
 
 func New(
@@ -27,7 +28,7 @@ func New(
 
 	// Custom container to use as a base container.
 	// +optional
-	container *Container,
+	container *dagger.Container,
 ) *Helm {
 	if container == nil {
 		if version == "" {
@@ -61,14 +62,14 @@ func New(
 }
 
 // use container for actions that need registry credentials
-func (m *Helm) container() *Container {
+func (m *Helm) container() *dagger.Container {
 	return m.Container.With(m.RegistryConfig.SecretMount("/root/.config/helm/registry/config.json").Mount)
 }
 
 // Add credentials for a registry.
 //
 // Note: WithRegistryAuth overrides any previous or subsequent calls to Login/Logout.
-func (m *Helm) WithRegistryAuth(address string, username string, secret *Secret) *Helm {
+func (m *Helm) WithRegistryAuth(address string, username string, secret *dagger.Secret) *Helm {
 	m.RegistryConfig = m.RegistryConfig.WithRegistryAuth(address, username, secret)
 
 	return m
@@ -82,14 +83,14 @@ func (m *Helm) WithoutRegistryAuth(address string) *Helm {
 }
 
 // Create a new chart directory along with the common files and directories used in a chart.
-func (m *Helm) Create(name string) *Directory {
+func (m *Helm) Create(name string) *dagger.Directory {
 	const workdir = "/work"
 
 	name = path.Clean(name)
 
 	return m.Container.
 		WithWorkdir(workdir).
-		WithExec([]string{"create", name}).
+		WithExec([]string{"helm", "create", name}).
 		Directory(path.Join(workdir, name))
 }
 
@@ -98,8 +99,8 @@ func (m *Helm) Lint(
 	ctx context.Context,
 
 	// A directory containing a Helm chart.
-	chart *Directory,
-) (*Container, error) {
+	chart *dagger.Directory,
+) (*dagger.Container, error) {
 	chartMetadata, err := getChartMetadata(ctx, chart)
 	if err != nil {
 		return nil, err
@@ -111,6 +112,7 @@ func (m *Helm) Lint(
 	chartPath := path.Join(workdir, chartName)
 
 	args := []string{
+		"helm",
 		"lint",
 		chartPath,
 	}
@@ -125,7 +127,7 @@ func (m *Helm) Package(
 	ctx context.Context,
 
 	// A directory containing a Helm chart.
-	chart *Directory,
+	chart *dagger.Directory,
 
 	// Set the appVersion on the chart to this version.
 	//
@@ -141,7 +143,7 @@ func (m *Helm) Package(
 	//
 	// +optional
 	dependencyUpdate bool,
-) (*File, error) {
+) (*dagger.File, error) {
 	chartMetadata, err := getChartMetadata(ctx, chart)
 	if err != nil {
 		return nil, err
@@ -153,6 +155,7 @@ func (m *Helm) Package(
 	chartPath := filepath.Join(workdir, chartName)
 
 	args := []string{
+		"helm",
 		"package",
 
 		"--destination", workdir,
@@ -194,7 +197,7 @@ func (m *Helm) Login(
 	username string,
 
 	// Registry password.
-	password *Secret,
+	password *dagger.Secret,
 
 	// Allow connections to TLS registry without certs.
 	//
@@ -216,7 +219,7 @@ func (m *Helm) Login(
 
 	m.Container = m.Container.
 		WithSecretVariable("HELM_PASSWORD", password).
-		WithExec([]string{"sh", "-c", strings.Join(args, " ")}, ContainerWithExecOpts{SkipEntrypoint: true}).
+		WithExec([]string{"sh", "-c", strings.Join(args, " ")}).
 		WithoutSecretVariable("HELM_PASSWORD")
 
 	return m
@@ -240,7 +243,7 @@ func (m *Helm) Push(
 	ctx context.Context,
 
 	// Packaged Helm chart.
-	pkg *File,
+	pkg *dagger.File,
 
 	// OCI registry to push to (including the path except the chart name).
 	registry string,
@@ -258,17 +261,17 @@ func (m *Helm) Push(
 	// Verify certificates of HTTPS-enabled servers using this CA bundle.
 	//
 	// +optional
-	caFile *File,
+	caFile *dagger.File,
 
 	// Identify registry client using this SSL certificate file.
 	//
 	// +optional
-	certFile *File,
+	certFile *dagger.File,
 
 	// Identify registry client using this SSL key file.
 	//
 	// +optional
-	keyFile *File,
+	keyFile *dagger.File,
 ) error {
 	const workdir = "/work"
 
@@ -279,6 +282,7 @@ func (m *Helm) Push(
 		WithMountedFile(chartPath, pkg)
 
 	args := []string{
+		"helm",
 		"push",
 
 		chartPath,

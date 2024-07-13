@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"dagger/ssh-keygen/internal/dagger"
 )
 
 // Generate a new SSH key pair using the RSA algorithm.
@@ -39,7 +40,7 @@ func (algo *Rsa) Generate(
 	// Encrypt the private key with the given passphrase.
 	//
 	// +optional
-	passphrase *Secret,
+	passphrase *dagger.Secret,
 ) (*KeyPair, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, algo.Bits)
 	if err != nil {

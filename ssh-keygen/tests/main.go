@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dagger/ssh-keygen/tests/internal/dagger"
 
 	"github.com/sourcegraph/conc/pool"
 )
@@ -37,7 +38,7 @@ func (m *Tests) Ecdsa(ctx context.Context) error {
 	return verify(ctx, keyPair)
 }
 
-func verify(ctx context.Context, keyPair *SSHKeygenKeyPair) error {
+func verify(ctx context.Context, keyPair *dagger.SSHKeygenKeyPair) error {
 	_, err := dag.Container().
 		From("cgr.dev/chainguard/wolfi-base:latest").
 		WithExec([]string{"apk", "add", "openssh-keygen"}).

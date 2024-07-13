@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"dagger/slsa-verifier/internal/dagger"
 	"errors"
 	"fmt"
 	"os"
@@ -35,10 +36,10 @@ func (m *SlsaVerifier) VerifyArtifact(
 	ctx context.Context,
 
 	// Artifacts to verify.
-	artifacts []*File,
+	artifacts []*dagger.File,
 
 	// Provenance file.
-	provenance *File,
+	provenance *dagger.File,
 
 	// Expected source repository that should have produced the binary, e.g. github.com/some/repo
 	sourceURI string,
@@ -62,7 +63,7 @@ func (m *SlsaVerifier) VerifyArtifact(
 	// Expected version the binary was compiled from. Uses semantic version to match the tag.
 	// +optional
 	sourceVersionedTag string,
-) (*Container, error) {
+) (*dagger.Container, error) {
 	if len(artifacts) == 0 {
 		return nil, errors.New("no artifacts provided")
 	}
@@ -95,7 +96,7 @@ func (m *SlsaVerifier) VerifyArtifact(
 		cmd = append(cmd, "--source-versioned-tag", sourceVersionedTag)
 	}
 
-	artifactsDir := dag.Directory().With(func(d *Directory) *Directory {
+	artifactsDir := dag.Directory().With(func(d *dagger.Directory) *dagger.Directory {
 		for _, artifact := range artifacts {
 			d = d.WithFile("", artifact)
 		}
@@ -109,10 +110,10 @@ func (m *SlsaVerifier) VerifyArtifact(
 		WithWorkdir("/work/artifacts").
 		WithMountedDirectory("/work/artifacts", artifactsDir).
 		WithMountedFile("/work/provenance", provenance).
-		WithExec([]string{"sh", "-c", strings.Join(cmd, " ")}, ContainerWithExecOpts{SkipEntrypoint: true}), nil
+		WithExec([]string{"sh", "-c", strings.Join(cmd, " ")}), nil
 }
 
-func (m *SlsaVerifier) container(ctx context.Context) (*Container, error) {
+func (m *SlsaVerifier) container(ctx context.Context) (*dagger.Container, error) {
 	binary, err := m.get(ctx, "")
 	if err != nil {
 		return nil, err
@@ -120,7 +121,7 @@ func (m *SlsaVerifier) container(ctx context.Context) (*Container, error) {
 
 	container := dag.Container().
 		From("alpine:latest"). // TODO: make this configurable
-		WithFile("/usr/local/bin/slsa-verifier", binary, ContainerWithFileOpts{Permissions: 0755}).
+		WithFile("/usr/local/bin/slsa-verifier", binary, dagger.ContainerWithFileOpts{Permissions: 0755}).
 		WithEntrypoint([]string{"/usr/local/bin/slsa-verifier"})
 
 	return container, nil
@@ -128,7 +129,7 @@ func (m *SlsaVerifier) container(ctx context.Context) (*Container, error) {
 
 // Get the slsa-verifier binary.
 // TODO: add checksum verification
-func (m *SlsaVerifier) get(ctx context.Context, version string) (*File, error) {
+func (m *SlsaVerifier) get(ctx context.Context, version string) (*dagger.File, error) {
 	if version == "" {
 		version = m.Version
 	}
@@ -160,7 +161,7 @@ func getLatestVersion(ctx context.Context) (string, error) {
 
 const binaryDownloadURL = "https://github.com/slsa-framework/slsa-verifier/releases/download/v%s/slsa-verifier-%s-%s"
 
-func downloadBinary(ctx context.Context, version string) (*File, error) {
+func downloadBinary(ctx context.Context, version string) (*dagger.File, error) {
 	// slsa-verifier versions are prefixed with "v", but it looks better in parmeters without it.
 	version = strings.TrimPrefix(version, "v")
 

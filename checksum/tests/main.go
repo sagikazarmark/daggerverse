@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dagger/checksum/tests/internal/dagger"
 
 	"github.com/sourcegraph/conc/pool"
 )
@@ -18,7 +19,7 @@ func (m *Tests) All(ctx context.Context) error {
 }
 
 func (m *Tests) CalculateAndCheck(ctx context.Context) error {
-	files := []*File{
+	files := []*dagger.File{
 		dag.CurrentModule().Source().File("./testdata/foo"),
 		dag.CurrentModule().Source().File("./testdata/bar"),
 	}

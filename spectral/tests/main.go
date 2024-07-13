@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dagger/spectral/tests/internal/dagger"
 
 	"github.com/sourcegraph/conc/pool"
 )
@@ -20,7 +21,7 @@ func (m *Tests) All(ctx context.Context) error {
 func (m *Tests) Lint(ctx context.Context) error {
 	source := dag.CurrentModule().Source().Directory("./testdata")
 
-	_, err := dag.Spectral().Lint([]*File{source.File("openapi.json")}, source.File(".spectral.yaml")).Sync(ctx)
+	_, err := dag.Spectral().Lint([]*dagger.File{source.File("openapi.json")}, source.File(".spectral.yaml")).Sync(ctx)
 
 	return err
 }

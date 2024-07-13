@@ -1,5 +1,7 @@
 package main
 
+import "dagger/apko/internal/dagger"
+
 // Load the Wolfi base configuration.
 func (m *Apko) Wolfi() *Config {
 	return m.Preset("wolfi-base")
@@ -19,7 +21,7 @@ func (m *Apko) Preset(name string) *Config {
 }
 
 // Load a configuration file.
-func (m *Apko) Config(file *File) *Config {
+func (m *Apko) Config(file *dagger.File) *Config {
 	return &Config{
 		File: file,
 		Apko: m,
@@ -27,7 +29,7 @@ func (m *Apko) Config(file *File) *Config {
 }
 
 type Config struct {
-	File *File
+	File *dagger.File
 
 	Repositories []string
 	Keyrings     []string
@@ -79,6 +81,6 @@ func (m *Config) Build(tag string) *BuildResult {
 }
 
 // Build a container from configuration.
-func (m *Config) Container() *Container {
+func (m *Config) Container() *dagger.Container {
 	return m.Build("latest").AsContainer()
 }

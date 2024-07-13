@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dagger/gh/internal/dagger"
 	"path"
 )
 
@@ -28,7 +29,7 @@ func (m *Release) Create(
 	// Release assets to upload.
 	//
 	// +optional
-	files []*File,
+	files []*dagger.File,
 
 	// Save the release as a draft instead of publishing it.
 	//
@@ -53,7 +54,7 @@ func (m *Release) Create(
 	// Read release notes from file.
 	//
 	// +optional
-	notesFile *File,
+	notesFile *dagger.File,
 
 	// Start a discussion in the specified category.
 	//
@@ -88,7 +89,7 @@ func (m *Release) Create(
 	// GitHub token.
 	//
 	// +optional
-	token *Secret,
+	token *dagger.Secret,
 
 	// GitHub repository (e.g. "owner/repo").
 	//
