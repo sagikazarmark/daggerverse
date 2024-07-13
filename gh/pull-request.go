@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dagger/gh/internal/dagger"
 	"errors"
 )
 
@@ -37,7 +38,7 @@ func (m *PullRequest) Create(
 	// Read body text from file.
 	//
 	// +optional
-	bodyFile *File,
+	bodyFile *dagger.File,
 
 	// Mark pull request as a draft.
 	//
@@ -92,7 +93,7 @@ func (m *PullRequest) Create(
 	// Template file to use as starting body text.
 	//
 	// +optional
-	template *File,
+	template *dagger.File,
 
 	// Title for the pull request.
 	//
@@ -102,7 +103,7 @@ func (m *PullRequest) Create(
 	// GitHub token.
 	//
 	// +optional
-	token *Secret,
+	token *dagger.Secret,
 
 	// GitHub repository (e.g. "owner/repo").
 	//
@@ -211,7 +212,7 @@ func (m *PullRequest) Review(
 	// Read body text from file.
 	//
 	// +optional
-	bodyFile *File,
+	bodyFile *dagger.File,
 ) *PullRequestReview {
 	return &PullRequestReview{
 		PullRequest: pullRequest,
@@ -230,7 +231,7 @@ type PullRequestReview struct {
 	Body string
 
 	// +private
-	BodyFile *File
+	BodyFile *dagger.File
 
 	// +private
 	Gh *Gh
@@ -256,7 +257,7 @@ func (m *PullRequestReview) do(ctx context.Context, action string) error {
 	args := []string{"gh", "pr", "review", m.PullRequest, "--" + action}
 
 	_, err := m.Gh.container(nil, "").
-		With(func(c *Container) *Container {
+		With(func(c *dagger.Container) *dagger.Container {
 			if m.Body != "" {
 				args = append(args, "--body", m.Body)
 			}

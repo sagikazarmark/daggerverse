@@ -2,17 +2,18 @@ package main
 
 import (
 	"context"
+	"dagger/gh/tests/internal/dagger"
 
 	"github.com/sourcegraph/conc/pool"
 )
 
 type Tests struct {
-	GitHubToken *Secret
+	GitHubToken *dagger.Secret
 }
 
 func New(
 	// +optional
-	githubToken *Secret,
+	githubToken *dagger.Secret,
 ) *Tests {
 	return &Tests{
 		GitHubToken: githubToken,
@@ -37,7 +38,7 @@ func (m *Tests) Help(ctx context.Context) error {
 
 func (m *Tests) Clone(ctx context.Context) error {
 	_, err := dag.Gh().
-		With(func(g *Gh) *Gh {
+		With(func(g *dagger.Gh) *dagger.Gh {
 			if m.GitHubToken != nil {
 				g = g.WithToken(m.GitHubToken)
 			}
@@ -54,7 +55,7 @@ func (m *Tests) Clone(ctx context.Context) error {
 
 func (m *Tests) WithGitExec(ctx context.Context) error {
 	_, err := dag.Gh().
-		With(func(g *Gh) *Gh {
+		With(func(g *dagger.Gh) *dagger.Gh {
 			if m.GitHubToken != nil {
 				g = g.WithToken(m.GitHubToken)
 			}

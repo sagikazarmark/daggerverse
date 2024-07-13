@@ -2,6 +2,7 @@
 package main
 
 import (
+	"dagger/gh/internal/dagger"
 	"errors"
 	"strings"
 	"time"
@@ -11,7 +12,7 @@ type Gh struct {
 	// GitHub token.
 	//
 	// +private
-	Token *Secret
+	Token *dagger.Secret
 
 	// GitHub repository (e.g. "owner/repo").
 	//
@@ -19,14 +20,14 @@ type Gh struct {
 	Repository string
 
 	// Git repository source (with .git directory).
-	Source *Directory
+	Source *dagger.Directory
 }
 
 func New(
 	// GitHub token.
 	//
 	// +optional
-	token *Secret,
+	token *dagger.Secret,
 
 	// GitHub repository (e.g. "owner/repo").
 	//
@@ -36,7 +37,7 @@ func New(
 	// Git repository source (with .git directory).
 	//
 	// +optional
-	source *Directory,
+	source *dagger.Directory,
 ) (*Gh, error) {
 	return &Gh{
 		Token:      token,
@@ -47,7 +48,7 @@ func New(
 // Set a GitHub token.
 func (m *Gh) WithToken(
 	// GitHub token.
-	token *Secret,
+	token *dagger.Secret,
 ) *Gh {
 	gh := *m
 
@@ -71,7 +72,7 @@ func (m *Gh) WithRepo(
 // Load a Git repository source (with .git directory).
 func (m *Gh) WithSource(
 	// Git repository source (with .git directory).
-	source *Directory,
+	source *dagger.Directory,
 ) *Gh {
 	gh := *m
 
@@ -106,13 +107,13 @@ func (m *Gh) Run(
 	// GitHub token.
 	//
 	// +optional
-	token *Secret,
+	token *dagger.Secret,
 
 	// GitHub repository (e.g. "owner/repo").
 	//
 	// +optional
 	repo string,
-) *Container {
+) *dagger.Container {
 	return m.container(token, repo).WithExec([]string{"sh", "-c", strings.Join([]string{"gh", cmd}, " ")})
 }
 
@@ -124,13 +125,13 @@ func (m *Gh) Exec(
 	// GitHub token.
 	//
 	// +optional
-	token *Secret,
+	token *dagger.Secret,
 
 	// GitHub repository (e.g. "owner/repo").
 	//
 	// +optional
 	repo string,
-) *Container {
+) *dagger.Container {
 	args = append([]string{"gh"}, args...)
 
 	return m.container(token, repo).WithExec(args)
@@ -155,31 +156,31 @@ func (m *Gh) Terminal(
 	// GitHub token.
 	//
 	// +optional
-	token *Secret,
+	token *dagger.Secret,
 
 	// GitHub repository (e.g. "owner/repo").
 	//
 	// +optional
 	repo string,
-) *Terminal {
+) *dagger.Container {
 	return m.container(token, repo).Terminal()
 }
 
-func (m *Gh) base() *Container {
+func (m *Gh) base() *dagger.Container {
 	return dag.
+		Apko().
 		Wolfi().
-		Container(WolfiContainerOpts{
-			Packages: []string{
-				"gh",
-				"git",
-			},
+		WithPackages([]string{
+			"gh",
+			"git",
 		}).
+		Container().
 		WithEnvVariable("GH_PROMPT_DISABLED", "true").
 		WithEnvVariable("GH_NO_UPDATE_NOTIFIER", "true").
 		WithExec([]string{"gh", "auth", "setup-git", "--force", "--hostname", "github.com"}) // Use force to avoid network call and cache setup even when no token is provided.
 }
 
-func (m *Gh) container(token *Secret, repo string) *Container {
+func (m *Gh) container(token *dagger.Secret, repo string) *dagger.Container {
 	if token == nil {
 		token = m.Token
 	}
@@ -190,7 +191,7 @@ func (m *Gh) container(token *Secret, repo string) *Container {
 
 	return m.base().
 		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
-		With(func(c *Container) *Container {
+		With(func(c *dagger.Container) *dagger.Container {
 			if token != nil {
 				c = c.WithSecretVariable("GITHUB_TOKEN", token)
 			}
