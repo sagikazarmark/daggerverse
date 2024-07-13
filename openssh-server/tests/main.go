@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dagger/openssh-server/tests/internal/dagger"
 	"time"
 
 	"github.com/sourcegraph/conc/pool"
@@ -9,10 +10,10 @@ import (
 
 type Tests struct {
 	// +private
-	PublicKey *File
+	PublicKey *dagger.File
 
 	// +private
-	PrivateKey *Secret
+	PrivateKey *dagger.Secret
 }
 
 func New() *Tests {
@@ -57,9 +58,9 @@ func (m *Tests) CustomPort(ctx context.Context) error {
 }
 
 func (m *Tests) User(ctx context.Context) error {
-	server := dag.OpensshServer(OpensshServerOpts{
+	server := dag.OpensshServer(dagger.OpensshServerOpts{
 		Container: dag.Apko().Config(dag.CurrentModule().Source().File("testdata/git.apko.yaml")).Container(),
-	}).WithAuthorizedKey(m.PublicKey, OpensshServerWithAuthorizedKeyOpts{User: "git"})
+	}).WithAuthorizedKey(m.PublicKey, dagger.OpensshServerWithAuthorizedKeyOpts{User: "git"})
 
 	_, err := client(server, m.PrivateKey).
 		WithExec([]string{"ssh", "-vvv", "-T", "git@server"}).
@@ -80,7 +81,7 @@ func (m *Tests) Config(ctx context.Context) error {
 	return err
 }
 
-func client(server *OpensshServer, privateKey *Secret) *Container {
+func client(server *dagger.OpensshServer, privateKey *dagger.Secret) *dagger.Container {
 	return dag.Apko().Wolfi().
 		WithPackages([]string{"openssh-client"}).
 		Container().

@@ -2,6 +2,7 @@
 package main
 
 import (
+	"dagger/openssh-server/internal/dagger"
 	"fmt"
 	"strings"
 )
@@ -10,14 +11,14 @@ type OpensshServer struct {
 	Port int
 
 	// +private
-	Container *Container
+	Container *dagger.Container
 }
 
 func New(
 	// Custom container to use as a base container. OpenSSH server MUST be installed.
 	//
 	// +optional
-	container *Container,
+	container *dagger.Container,
 ) *OpensshServer {
 	if container == nil {
 		container = dag.Apko().
@@ -46,7 +47,7 @@ func New(
 }
 
 // Mount a custom SSH configuration file (with .conf extension).
-func (m *OpensshServer) WithConfig(name string, file *File) *OpensshServer {
+func (m *OpensshServer) WithConfig(name string, file *dagger.File) *OpensshServer {
 	return &OpensshServer{
 		Port:      m.Port,
 		Container: m.Container.WithFile(fmt.Sprintf("/etc/ssh/sshd_config.d/%s.conf", name), file),
@@ -54,14 +55,14 @@ func (m *OpensshServer) WithConfig(name string, file *File) *OpensshServer {
 }
 
 // Returns the SSH host keys.
-func (m *OpensshServer) HostKeys() *Directory {
+func (m *OpensshServer) HostKeys() *dagger.Directory {
 	sshDir := m.Container.Directory("/etc/ssh")
 
-	return dag.Directory().WithFiles("", []*File{sshDir.File("ssh_host_ecdsa_key.pub"), sshDir.File("ssh_host_ed25519_key.pub"), sshDir.File("ssh_host_rsa_key.pub")})
+	return dag.Directory().WithFiles("", []*dagger.File{sshDir.File("ssh_host_ecdsa_key.pub"), sshDir.File("ssh_host_ed25519_key.pub"), sshDir.File("ssh_host_rsa_key.pub")})
 }
 
 // Return a formatted SSH known_hosts file.
-func (m *OpensshServer) KnownHosts(host string) *File {
+func (m *OpensshServer) KnownHosts(host string) *dagger.File {
 	return m.Container.
 		WithWorkdir("/etc/ssh").
 		WithExec([]string{"sh", "-c", fmt.Sprintf("echo %s $(cat ssh_host_ecdsa_key.pub) > /known_hosts", host)}).
@@ -73,7 +74,7 @@ func (m *OpensshServer) KnownHosts(host string) *File {
 // Authorize a public key.
 // By default, the key is authorized for the root user.
 func (m *OpensshServer) WithAuthorizedKey(
-	publicKey *File,
+	publicKey *dagger.File,
 
 	// Authorize the key for this user.
 	//
@@ -85,7 +86,7 @@ func (m *OpensshServer) WithAuthorizedKey(
 	return &OpensshServer{
 		Port: m.Port,
 		Container: m.Container.
-			With(func(c *Container) *Container {
+			With(func(c *dagger.Container) *dagger.Container {
 				if user != "" && user != "root" {
 					c = c.WithUser(user)
 				}
@@ -97,7 +98,7 @@ func (m *OpensshServer) WithAuthorizedKey(
 			WithExec([]string{"sh", "-c", "cat /tmp/public-key >> ~/.ssh/authorized_keys"}).
 			WithoutFile("/tmp/public-key").
 			WithExec([]string{"sh", "-c", "chmod 600 ~/.ssh/authorized_keys"}).
-			With(func(c *Container) *Container {
+			With(func(c *dagger.Container) *dagger.Container {
 				if user != "" && user != "root" {
 					c = c.WithUser("root")
 				}
@@ -120,7 +121,7 @@ func (m *OpensshServer) WithPort(port int) (*OpensshServer, error) {
 }
 
 // Return a service that runs the OpenSSH server.
-func (m *OpensshServer) Service() *Service {
+func (m *OpensshServer) Service() *dagger.Service {
 	return m.Container.
 		WithExec([]string{"/usr/sbin/sshd", "-D", "-e", "-p", fmt.Sprintf("%d", m.Port)}).
 		WithExposedPort(m.Port).
