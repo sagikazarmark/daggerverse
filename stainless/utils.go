@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dagger/stainless/internal/dagger"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -25,7 +26,7 @@ func createFormFile(w *multipart.Writer, fieldName string, fileName string) (io.
 	return w.CreatePart(h)
 }
 
-func writeFormFile(ctx context.Context, w *multipart.Writer, fieldName string, file *File, defaultFileName string) error {
+func writeFormFile(ctx context.Context, w *multipart.Writer, fieldName string, file *dagger.File, defaultFileName string) error {
 	name, err := file.Name(ctx)
 	if err != nil {
 		return err
