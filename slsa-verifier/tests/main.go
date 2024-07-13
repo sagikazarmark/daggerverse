@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dagger/slsa-verifier/tests/internal/dagger"
 	"fmt"
 
 	"github.com/sourcegraph/conc/pool"
@@ -26,10 +27,10 @@ func (m *Tests) Verify(ctx context.Context) error {
 	provenance := dag.HTTP(fmt.Sprintf("https://github.com/slsa-framework/slsa-verifier/releases/download/v%s/slsa-verifier-linux-amd64.intoto.jsonl", version))
 
 	_, err := dag.SlsaVerifier().VerifyArtifact(
-		[]*File{artifact},
+		[]*dagger.File{artifact},
 		provenance,
 		"github.com/slsa-framework/slsa-verifier",
-		SlsaVerifierVerifyArtifactOpts{
+		dagger.SlsaVerifierVerifyArtifactOpts{
 			SourceTag: "v2.4.1",
 		},
 	).Sync(ctx)
