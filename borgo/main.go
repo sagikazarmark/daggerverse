@@ -1,12 +1,14 @@
 // Borgo is a statically typed language that compiles to Go.
 package main
 
+import "dagger/borgo/internal/dagger"
+
 type Borgo struct {
 	// +private
-	Container *Container
+	Container *dagger.Container
 
 	// +private
-	Std *Directory
+	Std *dagger.Directory
 }
 
 func New(
@@ -34,7 +36,7 @@ func New(
 	}
 }
 
-func (m *Borgo) Compile(source *Directory) *Directory {
+func (m *Borgo) Compile(source *dagger.Directory) *dagger.Directory {
 	return m.Container.
 		WithWorkdir("/work").
 		WithDirectory("/work", source).
@@ -43,7 +45,7 @@ func (m *Borgo) Compile(source *Directory) *Directory {
 		Directory("/work")
 }
 
-func (m *Borgo) Terminal(source *Directory) *Terminal {
+func (m *Borgo) Terminal(source *dagger.Directory) *dagger.Container {
 	return m.Container.
 		WithWorkdir("/work").
 		WithDirectory("/work", source).
