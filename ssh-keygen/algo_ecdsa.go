@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"dagger/ssh-keygen/internal/dagger"
 	"fmt"
 	"slices"
 )
@@ -46,7 +47,7 @@ func (algo *Ecdsa) Generate(
 	// Encrypt the private key with the given passphrase.
 	//
 	// +optional
-	passphrase *Secret,
+	passphrase *dagger.Secret,
 ) (*KeyPair, error) {
 	var curve elliptic.Curve
 
