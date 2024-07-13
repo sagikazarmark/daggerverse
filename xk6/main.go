@@ -2,6 +2,7 @@
 package main
 
 import (
+	"dagger/xk6/internal/dagger"
 	"fmt"
 
 	"github.com/containerd/containerd/platforms"
@@ -12,7 +13,7 @@ const defaultImageRepository = "grafana/xk6"
 
 type Xk6 struct {
 	// +private
-	Ctr *Container
+	Ctr *dagger.Container
 }
 
 func New(
@@ -26,9 +27,9 @@ func New(
 
 	// Custom container to use as a base container.
 	// +optional
-	container *Container,
+	container *dagger.Container,
 ) *Xk6 {
-	var ctr *Container
+	var ctr *dagger.Container
 
 	if version != "" {
 		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
@@ -43,14 +44,14 @@ func New(
 	return &Xk6{ctr}
 }
 
-func (m *Xk6) Container() *Container {
+func (m *Xk6) Container() *dagger.Container {
 	return m.Ctr
 }
 
 // Set GOOS, GOARCH and GOARM environment variables.
 func (m *Xk6) WithPlatform(
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
-	platform Platform,
+	platform dagger.Platform,
 ) *Xk6 {
 	if platform == "" {
 		return m
@@ -85,13 +86,13 @@ func (m *Xk6) Build(
 
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	// +optional
-	platform Platform,
-) *File {
+	platform dagger.Platform,
+) *dagger.File {
 	if version == "" {
 		version = "latest"
 	}
 
-	args := []string{"build", version}
+	args := []string{"xk6", "build", version}
 
 	for _, w := range with {
 		args = append(args, "--with", w)
