@@ -2,6 +2,7 @@
 package main
 
 import (
+	"dagger/checksum/internal/dagger"
 	"fmt"
 	"strings"
 )
@@ -21,27 +22,27 @@ type Sha256 struct{}
 // Calculate the SHA-256 checksum of the given files.
 func (m *Sha256) Calculate(
 	// The files to calculate the checksum for.
-	files []*File,
-) *File {
+	files []*dagger.File,
+) *dagger.File {
 	return calculate("sha256", files)
 }
 
 // Check the SHA-256 checksum of the given files.
 func (m *Sha256) Check(
 	// Checksum file.
-	checksums *File,
+	checksums *dagger.File,
 
 	// The files to check the checksum if.
-	files []*File,
-) *Container {
+	files []*dagger.File,
+) *dagger.Container {
 	return check("sha256", checksums, files)
 }
 
-func calculate(algo string, files []*File) *File {
+func calculate(algo string, files []*dagger.File) *dagger.File {
 	return calculateDirectory(algo, dag.Directory().WithFiles("", files))
 }
 
-func calculateDirectory(algo string, dir *Directory) *File {
+func calculateDirectory(algo string, dir *dagger.Directory) *dagger.File {
 	const checksumFile = "/work/checksums.txt"
 
 	cmd := []string{algo + "sum", "$(ls)", ">", checksumFile}
@@ -54,7 +55,7 @@ func calculateDirectory(algo string, dir *Directory) *File {
 		File(checksumFile)
 }
 
-func check(algo string, checksums *File, files []*File) *Container {
+func check(algo string, checksums *dagger.File, files []*dagger.File) *dagger.Container {
 	dir := dag.Directory()
 
 	for _, file := range files {
@@ -64,7 +65,7 @@ func check(algo string, checksums *File, files []*File) *Container {
 	return checkDirectory(algo, checksums, dir)
 }
 
-func checkDirectory(algo string, checksums *File, dir *Directory) *Container {
+func checkDirectory(algo string, checksums *dagger.File, dir *dagger.Directory) *dagger.Container {
 	dir = dir.WithFile("checksums.txt", checksums)
 
 	return dag.Container().
