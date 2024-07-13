@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"dagger/arc/internal/dagger"
 	"fmt"
 	"path/filepath"
 	"runtime"
@@ -18,7 +19,7 @@ const (
 // Easily create & extract archives, and compress & decompress files of various formats.
 type Arc struct {
 	// +private
-	Container *Container
+	Container *dagger.Container
 }
 
 func New(
@@ -30,7 +31,7 @@ func New(
 	// Custom container to use as a base container.
 	//
 	// +optional
-	container *Container,
+	container *dagger.Container,
 ) *Arc {
 	if container == nil {
 		if version == "" {
@@ -41,7 +42,7 @@ func New(
 
 		container = dag.Container().
 			From(alpineBaseImage).
-			WithFile("/usr/local/bin/arc", binary, ContainerWithFileOpts{
+			WithFile("/usr/local/bin/arc", binary, dagger.ContainerWithFileOpts{
 				Permissions: 0755,
 			})
 	}
@@ -57,7 +58,7 @@ func (m *Arc) ArchiveFiles(
 	name string,
 
 	// Files to archive.
-	files []*File,
+	files []*dagger.File,
 ) *Archive {
 	return m.ArchiveDirectory(name, dag.Directory().WithFiles("", files))
 }
@@ -68,7 +69,7 @@ func (m *Arc) ArchiveDirectory(
 	name string,
 
 	// Directory to archive.
-	directory *Directory,
+	directory *dagger.Directory,
 ) *Archive {
 	return &Archive{
 		Name:      name,
@@ -82,10 +83,10 @@ type Archive struct {
 	Name string
 
 	// +private
-	Directory *Directory
+	Directory *dagger.Directory
 
 	// +private
-	Container *Container
+	Container *dagger.Container
 }
 
 var supportedFormats = []string{
@@ -109,7 +110,7 @@ func (m *Archive) Create(
 	//
 	// +optional
 	compressionLevel int,
-) (*File, error) {
+) (*dagger.File, error) {
 	format = strings.ToLower(format)
 
 	if !slices.Contains(supportedFormats, format) {
@@ -141,14 +142,14 @@ func (m *Archive) Create(
 		File(archiveFilePath), nil
 }
 
-func (m *Archive) Tar() (*File, error)   { return m.Create("tar", 0) }
-func (m *Archive) TarBr() (*File, error) { return m.Create("tar.br", 0) }
+func (m *Archive) Tar() (*dagger.File, error)   { return m.Create("tar", 0) }
+func (m *Archive) TarBr() (*dagger.File, error) { return m.Create("tar.br", 0) }
 
 func (m *Archive) TarBz2(
 	// +optional
 	// +default=9
 	compressionLevel int,
-) (*File, error) {
+) (*dagger.File, error) {
 	return m.Create("tar.bz2", compressionLevel)
 }
 
@@ -156,23 +157,23 @@ func (m *Archive) TarGz(
 	// +optional
 	// +default=-1
 	compressionLevel int,
-) (*File, error) {
+) (*dagger.File, error) {
 	return m.Create("tar.gz", compressionLevel)
 }
 
-func (m *Archive) TarLz4() (*File, error) { return m.Create("tar.lz4", 0) }
-func (m *Archive) TarSz() (*File, error)  { return m.Create("tar.sz", 0) }
-func (m *Archive) TarXz() (*File, error)  { return m.Create("tar.xz", 0) }
-func (m *Archive) TarZst() (*File, error) { return m.Create("tar.zst", 0) }
-func (m *Archive) Zip() (*File, error)    { return m.Create("zip", 0) }
+func (m *Archive) TarLz4() (*dagger.File, error) { return m.Create("tar.lz4", 0) }
+func (m *Archive) TarSz() (*dagger.File, error)  { return m.Create("tar.sz", 0) }
+func (m *Archive) TarXz() (*dagger.File, error)  { return m.Create("tar.xz", 0) }
+func (m *Archive) TarZst() (*dagger.File, error) { return m.Create("tar.zst", 0) }
+func (m *Archive) Zip() (*dagger.File, error)    { return m.Create("zip", 0) }
 
 // Extract the contents of an archive.
 func (m *Arc) Unarchive(
 	ctx context.Context,
 
 	// Archive file (in one of the supported formats).
-	archive *File,
-) (*Directory, error) {
+	archive *dagger.File,
+) (*dagger.Directory, error) {
 	fileName, err := archive.Name(ctx)
 	if err != nil {
 		return nil, err
