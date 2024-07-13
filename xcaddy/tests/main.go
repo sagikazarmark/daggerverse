@@ -46,7 +46,7 @@ func (m *Tests) Test(ctx context.Context) error {
 }
 
 func (m *Tests) Version(ctx context.Context) error {
-	binary := dag.Xcaddy().Build(XcaddyBuildOpts{Version: "v2.8.4"}).Binary()
+	binary := dag.Xcaddy().Build(dagger.XcaddyBuildOpts{Version: "v2.8.4"}).Binary()
 
 	_, err := dag.Container().
 		From("alpine").

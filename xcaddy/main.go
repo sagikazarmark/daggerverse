@@ -2,6 +2,7 @@
 package main
 
 import (
+	"dagger/xcaddy/internal/dagger"
 	"fmt"
 	"runtime"
 	"strings"
@@ -15,7 +16,7 @@ const defaultGoImageRepository = "golang"
 
 type Xcaddy struct {
 	// +private
-	Container *Container
+	Container *dagger.Container
 }
 
 func New(
@@ -27,7 +28,7 @@ func New(
 	// Custom container to use as an xcaddy (and Go) base container.
 	//
 	// +optional
-	container *Container,
+	container *dagger.Container,
 
 	// Version (image tag) to use from the official image repository as a Go base container.
 	//
@@ -37,7 +38,7 @@ func New(
 	// Custom container to use as a Go base container.
 	//
 	// +optional
-	goContainer *Container,
+	goContainer *dagger.Container,
 ) *Xcaddy {
 	if container == nil {
 		if goContainer == nil {
@@ -48,7 +49,7 @@ func New(
 			goContainer = dag.Container().From(fmt.Sprintf("%s:%s", defaultGoImageRepository, goVersion))
 		}
 
-		var binary *File
+		var binary *dagger.File
 
 		if version == "" {
 			binary = goContainer.
@@ -76,7 +77,7 @@ func New(
 	}
 }
 
-func resetEnvVariables(c *Container) *Container {
+func resetEnvVariables(c *dagger.Container) *dagger.Container {
 	return c.
 		WithoutEnvVariable("CADDY_VERSION").
 		WithoutEnvVariable("XCADDY_SKIP_BUILD").
@@ -141,7 +142,7 @@ type GoModule struct {
 	Version string
 
 	// Local replacement directory (optional).
-	Replacement *Directory
+	Replacement *dagger.Directory
 }
 
 type Embed struct {
@@ -149,7 +150,7 @@ type Embed struct {
 	Alias string
 
 	// Directory to embed in the binary.
-	Directory *Directory
+	Directory *dagger.Directory
 }
 
 // Add plugins to the Caddy build.
@@ -165,7 +166,7 @@ func (b *Build) Plugin(
 	// Local replacement directory.
 	//
 	// +optional
-	replacement *Directory,
+	replacement *dagger.Directory,
 ) (*Build, error) {
 	// This is to make sure there is no path magic applied to the module to escape the working directory.
 	if err := mod.CheckPath(module); err != nil {
@@ -194,7 +195,7 @@ func (b *Build) Replace(
 	// Local replacement directory.
 	//
 	// +optional
-	replacement *Directory,
+	replacement *dagger.Directory,
 ) (*Build, error) {
 	// This is to make sure there is no path magic applied to the module to escape the working directory.
 	if err := mod.CheckPath(module); err != nil {
@@ -216,7 +217,7 @@ func (b *Build) Embed(
 	alias string,
 
 	// Directory to embed in the binary.
-	directory *Directory,
+	directory *dagger.Directory,
 ) (*Build, error) {
 	if strings.Contains(alias, "/") {
 		return nil, fmt.Errorf("alias cannot contain a slash")
@@ -231,12 +232,12 @@ func (b *Build) Embed(
 }
 
 func (b *Build) build(
-	platform Platform,
+	platform dagger.Platform,
 	skipBuild bool,
-) *Container {
+) *dagger.Container {
 	container := b.Xcaddy.Container.
 		WithWorkdir("/work").
-		With(func(c *Container) *Container {
+		With(func(c *dagger.Container) *dagger.Container {
 			if platform == "" {
 				return c
 			}
@@ -271,7 +272,7 @@ func (b *Build) build(
 	}
 
 	return container.
-		With(func(c *Container) *Container {
+		With(func(c *dagger.Container) *dagger.Container {
 			if b.Race {
 				c = c.WithEnvVariable("XCADDY_RACE_DETECTOR", "1")
 			}
@@ -289,7 +290,7 @@ func (b *Build) build(
 		WithExec(args)
 }
 
-func appendGoModules(container *Container, args []string, kind string, modules []GoModule) (*Container, []string) {
+func appendGoModules(container *dagger.Container, args []string, kind string, modules []GoModule) (*dagger.Container, []string) {
 	for _, module := range modules {
 		arg := module.Path
 
@@ -316,8 +317,8 @@ func (b *Build) Binary(
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	//
 	// +optional
-	platform Platform,
-) *File {
+	platform dagger.Platform,
+) *dagger.File {
 	return b.build(platform, false).File("/work/caddy")
 }
 
@@ -332,9 +333,9 @@ func (b *Build) Container(
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	//
 	// +optional
-	platform Platform,
-) *Container {
-	var opts ContainerOpts
+	platform dagger.Platform,
+) *dagger.Container {
+	var opts dagger.ContainerOpts
 
 	if platform != "" {
 		opts.Platform = platform
@@ -346,6 +347,6 @@ func (b *Build) Container(
 }
 
 // Open a terminal to inspect the build files.
-func (b *Build) Inspect() *Terminal {
-	return b.build(Platform(""), true).Terminal()
+func (b *Build) Inspect() *dagger.Container {
+	return b.build(dagger.Platform(""), true).Terminal()
 }
