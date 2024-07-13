@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
+	"dagger/helm/internal/dagger"
 )
 
 // Returns a Helm chart from a source directory.
 func (m *Helm) Chart(
 	// A directory containing a Helm chart.
-	source *Directory,
+	source *dagger.Directory,
 ) *Chart {
 	return &Chart{
 		Directory: source,
@@ -17,20 +18,20 @@ func (m *Helm) Chart(
 
 // A Helm chart.
 type Chart struct {
-	Directory *Directory
+	Directory *dagger.Directory
 
 	// +private
 	Helm *Helm
 }
 
 // Lint a Helm chart.
-func (c *Chart) Lint(ctx context.Context) (*Container, error) {
+func (c *Chart) Lint(ctx context.Context) (*dagger.Container, error) {
 	return c.Helm.Lint(ctx, c.Directory)
 }
 
 // A Helm chart package.
 type Package struct {
-	File *File
+	File *dagger.File
 
 	// +private
 	Helm *Helm
@@ -67,7 +68,7 @@ func (c *Chart) Package(
 }
 
 // Add credentials for a registry.
-func (p *Package) WithRegistryAuth(address string, username string, secret *Secret) *Package {
+func (p *Package) WithRegistryAuth(address string, username string, secret *dagger.Secret) *Package {
 	p.Helm = p.Helm.WithRegistryAuth(address, username, secret)
 
 	return p
@@ -100,17 +101,17 @@ func (p *Package) Publish(
 	// Verify certificates of HTTPS-enabled servers using this CA bundle.
 	//
 	// +optional
-	caFile *File,
+	caFile *dagger.File,
 
 	// Identify registry client using this SSL certificate file.
 	//
 	// +optional
-	certFile *File,
+	certFile *dagger.File,
 
 	// Identify registry client using this SSL key file.
 	//
 	// +optional
-	keyFile *File,
+	keyFile *dagger.File,
 ) error {
 	return p.Helm.Push(ctx, p.File, registry, plainHttp, insecureSkipTlsVerify, caFile, certFile, keyFile)
 }

@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
+	"dagger/helm/internal/dagger"
 
 	"helm.sh/helm/v3/pkg/chart"
 	"sigs.k8s.io/yaml"
 )
 
-func getChartMetadata(ctx context.Context, c *Directory) (*chart.Metadata, error) {
+func getChartMetadata(ctx context.Context, c *dagger.Directory) (*chart.Metadata, error) {
 	chartYaml, err := c.File("Chart.yaml").Contents(ctx)
 	if err != nil {
 		return nil, err

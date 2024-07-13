@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dagger/helm/tests/internal/dagger"
 	"fmt"
 	"slices"
 	"strings"
@@ -11,8 +12,8 @@ import (
 
 const helmVersion = "3.13.2"
 
-func newHelm() *Helm {
-	return dag.Helm(HelmOpts{
+func newHelm() *dagger.Helm {
+	return dag.Helm(dagger.HelmOpts{
 		Version: helmVersion,
 	})
 }
@@ -68,11 +69,11 @@ func (m *Tests) Login(ctx context.Context) error {
 
 	password := dag.SetSecret("registry-password", "password")
 
-	_, err = dag.Helm(HelmOpts{
+	_, err = dag.Helm(dagger.HelmOpts{
 		Container: newHelm().Container().
 			WithServiceBinding("zot", registry),
 	}).
-		Login("zot:8080", "username", password, HelmLoginOpts{
+		Login("zot:8080", "username", password, dagger.HelmLoginOpts{
 			Insecure: true,
 		}).Container().Sync(ctx)
 
@@ -99,15 +100,13 @@ func (m *Tests) Push(ctx context.Context) error {
 
 	password := dag.SetSecret("registry-password", "password")
 
-	_, err = dag.Helm(HelmOpts{
+	return dag.Helm(dagger.HelmOpts{
 		Container: newHelm().Container().WithServiceBinding("zot", registry),
 	}).
 		WithRegistryAuth("zot:8080", "username", password).
-		Push(ctx, pkg, "oci://zot:8080/helm-charts", HelmPushOpts{
+		Push(ctx, pkg, "oci://zot:8080/helm-charts", dagger.HelmPushOpts{
 			PlainHTTP: true,
 		})
-
-	return err
 }
 
 // TODO: improve this test
@@ -140,20 +139,18 @@ func (m *Tests) ChartPublish(ctx context.Context) error {
 
 	password := dag.SetSecret("registry-password", "password")
 
-	_, err = dag.Helm(HelmOpts{
+	return dag.Helm(dagger.HelmOpts{
 		Container: newHelm().Container().WithServiceBinding("zot", registry),
 	}).
 		Chart(dag.CurrentModule().Source().Directory("./testdata/charts/package")).
 		Package().
 		WithRegistryAuth("zot:8080", "username", password).
-		Publish(ctx, "oci://zot:8080/helm-charts", HelmPackagePublishOpts{
+		Publish(ctx, "oci://zot:8080/helm-charts", dagger.HelmPackagePublishOpts{
 			PlainHTTP: true,
 		})
-
-	return err
 }
 
-func registryService(ctx context.Context) (*Service, error) {
+func registryService(ctx context.Context) (*dagger.Service, error) {
 	const zotRepositoryTemplate = "ghcr.io/project-zot/zot-%s-%s"
 	const zotVersion = "v2.0.0"
 
@@ -170,6 +167,6 @@ func registryService(ctx context.Context) (*Service, error) {
 		From(fmt.Sprintf("%s:%s", zotRepository, zotVersion)).
 		WithExposedPort(8080).
 		WithMountedDirectory("/etc/zot", dag.CurrentModule().Source().Directory("./testdata/zot")).
-		WithExec([]string{"serve", "/etc/zot/config.json"}).
+		WithExec([]string{"serve", "/etc/zot/config.json"}, dagger.ContainerWithExecOpts{UseEntrypoint: true}).
 		AsService(), nil
 }
