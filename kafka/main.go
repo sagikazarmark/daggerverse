@@ -1,14 +1,17 @@
 // Kafka service module for Dagger.
 package main
 
-import "fmt"
+import (
+	"dagger/kafka/internal/dagger"
+	"fmt"
+)
 
 // defaultImageRepository is used when no image is specified.
 const defaultImageRepository = "bitnami/kafka"
 
 type Kafka struct {
 	// +private
-	Ctr *Container
+	Ctr *dagger.Container
 }
 
 func New(
@@ -22,9 +25,9 @@ func New(
 
 	// Custom container to use as a base container.
 	// +optional
-	container *Container,
+	container *dagger.Container,
 ) *Kafka {
-	var ctr *Container
+	var ctr *dagger.Container
 
 	if version != "" {
 		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
@@ -55,7 +58,7 @@ func New(
 	return &Kafka{ctr}
 }
 
-func (m *Kafka) Container() *Container {
+func (m *Kafka) Container() *dagger.Container {
 	return m.Ctr
 }
 
@@ -73,13 +76,13 @@ func (m *Kafka) WithEnvVariable(
 	expand bool,
 ) *Kafka {
 	return &Kafka{
-		m.Ctr.WithEnvVariable(name, value, ContainerWithEnvVariableOpts{
+		m.Ctr.WithEnvVariable(name, value, dagger.ContainerWithEnvVariableOpts{
 			Expand: expand,
 		}),
 	}
 }
 
 // Launch a Kafka service.
-func (m *Kafka) Service() *Service {
+func (m *Kafka) Service() *dagger.Service {
 	return m.Ctr.AsService()
 }
