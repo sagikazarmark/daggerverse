@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/sourcegraph/conc/pool"
 )
@@ -12,17 +13,21 @@ type Tests struct{}
 func (m *Tests) All(ctx context.Context) error {
 	p := pool.New().WithErrors().WithContext(ctx)
 
-	// p.Go(m.Default)
+	p.Go(m.SingleNode_Connect)
 
 	return p.Wait()
 }
 
-func (m *Tests) Connect(ctx context.Context) error {
-	kafka := dag.Kafka()
+func (m *Tests) SingleNode_Connect(ctx context.Context) error {
+	cluster := dag.Kafka().SingleNode()
+	serviceName, err := cluster.ServiceName(ctx)
+	if err != nil {
+		return err
+	}
 
-	_, err := kafka.Container().
-		WithServiceBinding("kafka", kafka.Service()).
-		WithExec([]string{"kafka-topics.sh", "--list", "--bootstrap-server", "kafka:9092"}).
+	_, err = dag.Kafka().Container().
+		WithServiceBinding(serviceName, cluster.Service()).
+		WithExec([]string{"kafka-topics.sh", "--list", "--bootstrap-server", fmt.Sprintf("%s:9092", serviceName)}).
 		Sync(ctx)
 
 	return err
