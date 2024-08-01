@@ -10,36 +10,29 @@ import (
 const defaultImageRepository = "bitnami/kafka"
 
 type Kafka struct {
-	// +private
-	Ctr *dagger.Container
+	Container *dagger.Container
 }
 
 func New(
 	// Version (image tag) to use from the official image repository as a base container.
+	//
 	// +optional
 	version string,
 
-	// Custom image reference in "repository:tag" format to use as a base container.
-	// +optional
-	image string,
-
 	// Custom container to use as a base container.
+	//
 	// +optional
 	container *dagger.Container,
 ) *Kafka {
-	var ctr *dagger.Container
+	if container == nil {
+		if version == "" {
+			version = "latest"
+		}
 
-	if version != "" {
-		ctr = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
-	} else if image != "" {
-		ctr = dag.Container().From(image)
-	} else if container != nil {
-		ctr = container
-	} else {
-		ctr = dag.Container().From(defaultImageRepository)
+		container = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
 	}
 
-	ctr = ctr.
+	container = container.
 		// https://github.com/bitnami/charts/issues/22552#issuecomment-1905721850
 		WithEnvVariable("KAFKA_CFG_MESSAGE_MAX_BYTES", "1048588").
 
@@ -55,11 +48,7 @@ func New(
 		WithEnvVariable("KAFKA_CFG_INTER_BROKER_LISTENER_NAME", "PLAINTEXT").
 		WithExposedPort(9092)
 
-	return &Kafka{ctr}
-}
-
-func (m *Kafka) Container() *dagger.Container {
-	return m.Ctr
+	return &Kafka{container}
 }
 
 // Set an environment variable.
@@ -72,11 +61,12 @@ func (m *Kafka) WithEnvVariable(
 
 	// Replace `${VAR}` or $VAR in the value according to the current environment
 	// variables defined in the container (e.g., "/opt/bin:$PATH").
+	//
 	// +optional
 	expand bool,
 ) *Kafka {
 	return &Kafka{
-		m.Ctr.WithEnvVariable(name, value, dagger.ContainerWithEnvVariableOpts{
+		m.Container.WithEnvVariable(name, value, dagger.ContainerWithEnvVariableOpts{
 			Expand: expand,
 		}),
 	}
@@ -84,5 +74,5 @@ func (m *Kafka) WithEnvVariable(
 
 // Launch a Kafka service.
 func (m *Kafka) Service() *dagger.Service {
-	return m.Ctr.AsService()
+	return m.Container.AsService()
 }
