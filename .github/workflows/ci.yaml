@@ -27,6 +27,7 @@ jobs:
           - kafka
           - kustomize
           - openssh-server
+          - psql
           - python
           - quarto
           - registry-config
