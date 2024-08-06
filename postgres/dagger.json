@@ -8,6 +8,12 @@
     "../go.work.sum",
     "tests"
   ],
+  "dependencies": [
+    {
+      "name": "psql",
+      "source": "../psql"
+    }
+  ],
   "source": ".",
   "engineVersion": "v0.12.0"
 }

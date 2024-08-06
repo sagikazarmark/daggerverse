@@ -10,6 +10,7 @@ import (
 	"context"
 	"dagger/psql/internal/dagger"
 	"fmt"
+	"time"
 
 	"github.com/jszwec/csvutil"
 )
@@ -167,6 +168,7 @@ type DatabaseListEntry struct {
 // List all available databases.
 func (m *Psql) List(ctx context.Context) ([]DatabaseListEntry, error) {
 	output, err := m.Container.
+		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
 		WithExec([]string{"psql", "-l", "--csv"}).
 		Stdout(ctx)
 	if err != nil {
@@ -184,12 +186,16 @@ func (m *Psql) List(ctx context.Context) ([]DatabaseListEntry, error) {
 
 // Run a single command.
 func (m *Psql) RunCommand(ctx context.Context, command string) (string, error) {
-	return m.Container.WithExec([]string{"psql", "-c", command}).Stdout(ctx)
+	return m.Container.
+		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
+		WithExec([]string{"psql", "-c", command}).
+		Stdout(ctx)
 }
 
 // Run a single command from a file.
 func (m *Psql) RunFile(ctx context.Context, file *dagger.File) (string, error) {
 	return m.Container.
+		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
 		WithMountedFile("/work/command", file).
 		WithExec([]string{"psql", "-f", "/work/command"}).
 		Stdout(ctx)
@@ -237,8 +243,7 @@ func (m *Run) WithFile(file *dagger.File) *Run {
 
 // Add a command to the list of commands from a file.
 func (m *Run) Execute(ctx context.Context) (string, error) {
-	container := m.Container.
-		WithDirectory("/work/commands", dag.Directory())
+	container := m.Container
 
 	args := []string{"psql"}
 
@@ -257,5 +262,8 @@ func (m *Run) Execute(ctx context.Context) (string, error) {
 		}
 	}
 
-	return container.WithExec(args).Stdout(ctx)
+	return container.
+		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
+		WithExec(args).
+		Stdout(ctx)
 }

@@ -23,6 +23,7 @@ import (
 const defaultImageRepository = "postgres"
 
 type Postgres struct {
+	// +private
 	Container *dagger.Container
 }
 
@@ -48,4 +49,15 @@ func New(
 	return &Postgres{
 		Container: container,
 	}, nil
+}
+
+type Client struct {
+	// +private
+	Psql *dagger.Psql
+}
+
+func (m *Postgres) Client() *Client {
+	return &Client{
+		Psql: dag.Psql(),
+	}
 }
