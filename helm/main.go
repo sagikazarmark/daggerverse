@@ -83,15 +83,17 @@ func (m *Helm) WithoutRegistryAuth(address string) *Helm {
 }
 
 // Create a new chart directory along with the common files and directories used in a chart.
-func (m *Helm) Create(name string) *dagger.Directory {
+func (m *Helm) Create(name string) *Chart {
 	const workdir = "/work"
 
 	name = path.Clean(name)
 
-	return m.Container.
+	dir := m.Container.
 		WithWorkdir(workdir).
 		WithExec([]string{"helm", "create", name}).
 		Directory(path.Join(workdir, name))
+
+	return m.Chart(dir)
 }
 
 // Lint a Helm chart directory.
@@ -271,7 +273,7 @@ func (m *Helm) Push(
 	// Identify registry client using this SSL key file.
 	//
 	// +optional
-	keyFile *dagger.File,
+	keyFile *dagger.Secret,
 ) error {
 	const workdir = "/work"
 
@@ -308,7 +310,7 @@ func (m *Helm) Push(
 	}
 
 	if keyFile != nil {
-		container = container.WithMountedFile("/etc/helm/key.pem", keyFile)
+		container = container.WithMountedSecret("/etc/helm/key.pem", keyFile)
 		args = append(args, "--key-file", "/etc/helm/key.pem")
 	}
 
