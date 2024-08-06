@@ -33,6 +33,9 @@ func (m *Tests) All(ctx context.Context) error {
 	p.Go(m.ChartPackage)
 	p.Go(m.ChartPublish)
 
+	p.Go(m.ChartInstall)
+	p.Go(m.PackageInstall)
+
 	return p.Wait()
 }
 
@@ -169,4 +172,58 @@ func registryService(ctx context.Context) (*dagger.Service, error) {
 		WithMountedDirectory("/etc/zot", dag.CurrentModule().Source().Directory("./testdata/zot")).
 		WithExec([]string{"serve", "/etc/zot/config.json"}, dagger.ContainerWithExecOpts{UseEntrypoint: true}).
 		AsService(), nil
+}
+
+func (m *Tests) ChartInstall(ctx context.Context) error {
+	k8s := dag.K3S("daggerverse-helm-chart-install")
+
+	_, err := k8s.Server().Start(ctx)
+	if err != nil {
+		return err
+	}
+
+	helm := dag.Helm(dagger.HelmOpts{
+		Container: newHelm().Container().
+			WithMountedFile("/root/.kube/config", k8s.Config(false)),
+	})
+
+	release := helm.Create("foo").Install("foo", dagger.HelmChartInstallOpts{
+		Wait: true,
+	})
+
+	_, err = release.Test(ctx, dagger.HelmReleaseTestOpts{
+		Logs: true,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Tests) PackageInstall(ctx context.Context) error {
+	k8s := dag.K3S("daggerverse-helm-package-install")
+
+	_, err := k8s.Server().Start(ctx)
+	if err != nil {
+		return err
+	}
+
+	helm := dag.Helm(dagger.HelmOpts{
+		Container: newHelm().Container().
+			WithMountedFile("/root/.kube/config", k8s.Config(false)),
+	})
+
+	release := helm.Create("foo").Package().Install("foo", dagger.HelmPackageInstallOpts{
+		Wait: true,
+	})
+
+	_, err = release.Test(ctx, dagger.HelmReleaseTestOpts{
+		Logs: true,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

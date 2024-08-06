@@ -35,6 +35,9 @@ type Package struct {
 
 	// +private
 	Helm *Helm
+
+	// +private
+	Chart *Chart
 }
 
 // Build a Helm chart package.
@@ -62,8 +65,9 @@ func (c *Chart) Package(
 	}
 
 	return &Package{
-		File: file,
-		Helm: c.Helm,
+		File:  file,
+		Helm:  c.Helm,
+		Chart: c,
 	}, nil
 }
 
@@ -111,7 +115,7 @@ func (p *Package) Publish(
 	// Identify registry client using this SSL key file.
 	//
 	// +optional
-	keyFile *dagger.File,
+	keyFile *dagger.Secret,
 ) error {
 	return p.Helm.Push(ctx, p.File, registry, plainHttp, insecureSkipTlsVerify, caFile, certFile, keyFile)
 }

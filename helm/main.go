@@ -273,7 +273,7 @@ func (m *Helm) Push(
 	// Identify registry client using this SSL key file.
 	//
 	// +optional
-	keyFile *dagger.File,
+	keyFile *dagger.Secret,
 ) error {
 	const workdir = "/work"
 
@@ -310,7 +310,7 @@ func (m *Helm) Push(
 	}
 
 	if keyFile != nil {
-		container = container.WithMountedFile("/etc/helm/key.pem", keyFile)
+		container = container.WithMountedSecret("/etc/helm/key.pem", keyFile)
 		args = append(args, "--key-file", "/etc/helm/key.pem")
 	}
 
