@@ -29,6 +29,8 @@ use (
 	./kustomize/tests
 	./openssh-server
 	./openssh-server/tests
+	./psql
+	./psql/tests
 	./python
 	./python/tests
 	./quarto
