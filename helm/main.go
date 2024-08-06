@@ -83,15 +83,17 @@ func (m *Helm) WithoutRegistryAuth(address string) *Helm {
 }
 
 // Create a new chart directory along with the common files and directories used in a chart.
-func (m *Helm) Create(name string) *dagger.Directory {
+func (m *Helm) Create(name string) *Chart {
 	const workdir = "/work"
 
 	name = path.Clean(name)
 
-	return m.Container.
+	dir := m.Container.
 		WithWorkdir(workdir).
 		WithExec([]string{"helm", "create", name}).
 		Directory(path.Join(workdir, name))
+
+	return m.Chart(dir)
 }
 
 // Lint a Helm chart directory.

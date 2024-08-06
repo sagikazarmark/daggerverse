@@ -37,7 +37,7 @@ func (m *Tests) All(ctx context.Context) error {
 }
 
 func (m *Tests) Create(ctx context.Context) error {
-	dir := newHelm().Create("foo")
+	dir := newHelm().Create("foo").Directory()
 
 	entries, err := dir.Entries(ctx)
 	if err != nil {
