@@ -46,6 +46,16 @@ const (
 )
 
 func New(
+	// Version (image tag) to use from the official image repository as a base container.
+	//
+	// +optional
+	version string,
+
+	// Custom container to use as a base container. Takes precedence over version.
+	//
+	// +optional
+	container *dagger.Container,
+
 	// Name of host to connect to.
 	//
 	// +optional
@@ -81,16 +91,6 @@ func New(
 	//
 	// +optional
 	sslmode string,
-
-	// Version (image tag) to use from the official image repository as a base container.
-	//
-	// +optional
-	version string,
-
-	// Custom container to use as a base container. Takes precedence over version.
-	//
-	// +optional
-	container *dagger.Container,
 ) (*Psql, error) {
 	if container == nil {
 		if version == "" {
