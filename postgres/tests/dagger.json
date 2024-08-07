@@ -9,11 +9,11 @@
   ],
   "dependencies": [
     {
-      "name": "postgres",
-      "source": "../../postgres"
+      "name": "psql",
+      "source": "../../psql"
     },
     {
-      "name": "psql",
+      "name": "postgres",
       "source": ".."
     }
   ],

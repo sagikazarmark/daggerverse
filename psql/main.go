@@ -10,6 +10,7 @@ import (
 	"context"
 	"dagger/psql/internal/dagger"
 	"fmt"
+	"time"
 
 	"github.com/jszwec/csvutil"
 )
@@ -45,6 +46,16 @@ const (
 )
 
 func New(
+	// Version (image tag) to use from the official image repository as a base container.
+	//
+	// +optional
+	version string,
+
+	// Custom container to use as a base container. Takes precedence over version.
+	//
+	// +optional
+	container *dagger.Container,
+
 	// Name of host to connect to.
 	//
 	// +optional
@@ -61,11 +72,10 @@ func New(
 	// +default=5432
 	port int,
 
-	// PostgreSQL user name to connect as.
+	// PostgreSQL user name to connect as. (default "postgres")
 	//
 	// +optional
-	// +default="postgres"
-	user string,
+	user *dagger.Secret,
 
 	// Password to be used if the server demands password authentication.
 	//
@@ -81,16 +91,6 @@ func New(
 	//
 	// +optional
 	sslmode string,
-
-	// Version (image tag) to use from the official image repository as a base container.
-	//
-	// +optional
-	version string,
-
-	// Custom container to use as a base container. Takes precedence over version.
-	//
-	// +optional
-	container *dagger.Container,
 ) (*Psql, error) {
 	if container == nil {
 		if version == "" {
@@ -120,8 +120,10 @@ func New(
 		WithEnvVariable("PGPORT", fmt.Sprintf("%d", port)).
 		WithEnvVariable("PGDATABASE", "postgres").
 		With(func(c *dagger.Container) *dagger.Container {
-			if user != "" {
-				c = c.WithEnvVariable("PGUSER", user)
+			if user != nil {
+				c = c.WithSecretVariable("PGUSER", user)
+			} else {
+				c = c.WithEnvVariable("PGUSER", "postgres")
 			}
 
 			if password != nil {
@@ -167,6 +169,7 @@ type DatabaseListEntry struct {
 // List all available databases.
 func (m *Psql) List(ctx context.Context) ([]DatabaseListEntry, error) {
 	output, err := m.Container.
+		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
 		WithExec([]string{"psql", "-l", "--csv"}).
 		Stdout(ctx)
 	if err != nil {
@@ -184,12 +187,16 @@ func (m *Psql) List(ctx context.Context) ([]DatabaseListEntry, error) {
 
 // Run a single command.
 func (m *Psql) RunCommand(ctx context.Context, command string) (string, error) {
-	return m.Container.WithExec([]string{"psql", "-c", command}).Stdout(ctx)
+	return m.Container.
+		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
+		WithExec([]string{"psql", "-c", command}).
+		Stdout(ctx)
 }
 
 // Run a single command from a file.
 func (m *Psql) RunFile(ctx context.Context, file *dagger.File) (string, error) {
 	return m.Container.
+		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
 		WithMountedFile("/work/command", file).
 		WithExec([]string{"psql", "-f", "/work/command"}).
 		Stdout(ctx)
@@ -237,8 +244,7 @@ func (m *Run) WithFile(file *dagger.File) *Run {
 
 // Add a command to the list of commands from a file.
 func (m *Run) Execute(ctx context.Context) (string, error) {
-	container := m.Container.
-		WithDirectory("/work/commands", dag.Directory())
+	container := m.Container
 
 	args := []string{"psql"}
 
@@ -257,5 +263,8 @@ func (m *Run) Execute(ctx context.Context) (string, error) {
 		}
 	}
 
-	return container.WithExec(args).Stdout(ctx)
+	return container.
+		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
+		WithExec(args).
+		Stdout(ctx)
 }
