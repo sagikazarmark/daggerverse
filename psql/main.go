@@ -72,7 +72,7 @@ func New(
 	// +default=5432
 	port int,
 
-	// PostgreSQL user name to connect as. (default="postgres")
+	// PostgreSQL user name to connect as. (default "postgres")
 	//
 	// +optional
 	user *dagger.Secret,
