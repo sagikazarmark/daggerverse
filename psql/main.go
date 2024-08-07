@@ -62,11 +62,10 @@ func New(
 	// +default=5432
 	port int,
 
-	// PostgreSQL user name to connect as.
+	// PostgreSQL user name to connect as. (default="postgres")
 	//
 	// +optional
-	// +default="postgres"
-	user string,
+	user *dagger.Secret,
 
 	// Password to be used if the server demands password authentication.
 	//
@@ -121,8 +120,10 @@ func New(
 		WithEnvVariable("PGPORT", fmt.Sprintf("%d", port)).
 		WithEnvVariable("PGDATABASE", "postgres").
 		With(func(c *dagger.Container) *dagger.Container {
-			if user != "" {
-				c = c.WithEnvVariable("PGUSER", user)
+			if user != nil {
+				c = c.WithSecretVariable("PGUSER", user)
+			} else {
+				c = c.WithEnvVariable("PGUSER", "postgres")
 			}
 
 			if password != nil {

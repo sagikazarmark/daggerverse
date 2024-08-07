@@ -27,7 +27,7 @@ func (m *Tests) All(ctx context.Context) error {
 func newPsql() *dagger.Psql {
 	return dag.Psql(dagger.PsqlOpts{
 		Service:  postgres(),
-		User:     "postgres",
+		User:     dag.SetSecret("postgres-user", "postgres"),
 		Password: dag.SetSecret("postgres-password", "foo"),
 		Version:  postgresVersion,
 	})
