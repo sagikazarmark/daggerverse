@@ -8,7 +8,7 @@ import (
 	"github.com/sourcegraph/conc/pool"
 )
 
-const postgresVersion = "15.3"
+const postgresVersion = "16.3"
 
 type Tests struct{}
 
@@ -25,26 +25,23 @@ func (m *Tests) All(ctx context.Context) error {
 }
 
 func newPsql() *dagger.Psql {
-	return dag.Psql(dagger.PsqlOpts{
-		Service:  postgres(),
-		User:     dag.SetSecret("postgres-user", "postgres"),
-		Password: dag.SetSecret("postgres-password", "foo"),
+	user := dag.SetSecret("postgres-user", "foo")
+	password := dag.SetSecret("postgres-password", "bar")
+	database := "postgres"
+
+	postgres := dag.Postgres(dagger.PostgresOpts{
 		Version:  postgresVersion,
+		User:     user,
+		Password: password,
+		Database: database,
 	})
-}
 
-func postgres() *dagger.Service {
-	return dag.Container().
-		From(fmt.Sprintf("postgres:%s", postgresVersion)).
-		WithEnvVariable("POSTGRES_USER", "postgres").
-		WithEnvVariable("POSTGRES_PASSWORD", "foo").
-		WithEnvVariable("POSTGRES_DB", "postgres").
-		WithExposedPort(5432).
-		AsService()
-}
-
-func (m *Tests) Postgres() *dagger.Service {
-	return postgres()
+	return dag.Psql(dagger.PsqlOpts{
+		Version:  postgresVersion,
+		Service:  postgres.Service(),
+		User:     user,
+		Password: password,
+	})
 }
 
 func (m *Tests) List(ctx context.Context) error {
