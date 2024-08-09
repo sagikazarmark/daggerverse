@@ -57,3 +57,31 @@ jobs:
           version: "0.12.0"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  examples:
+    name: Examples
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - helm
+
+    steps:
+      - uses: dkershner6/switch-case-action@v1
+        id: constructor-args
+        with:
+          default: ""
+          conditionals-with-values: |
+            ${{ matrix.module == 'gh' }} => --github-token env:GITHUB_TOKEN
+
+      - name: Run pipeline
+        uses: dagger/dagger-for-github@29a88e72255e732147ba18a670978b90bcc59efd # v6.4.0
+        with:
+          verb: call
+          module: github.com/${{ github.repository }}/${{ matrix.module }}/examples/go@${{ github.ref }}
+          args: ${{ steps.constructor-args.outputs.value }} all
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: "0.12.0"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

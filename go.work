@@ -22,6 +22,7 @@ use (
 	./helm
 	./helm-docs
 	./helm-docs/tests
+	./helm/examples/go
 	./helm/tests
 	./kafka
 	./kafka/tests
