@@ -15,8 +15,8 @@ func (m *Examples) All(ctx context.Context) error {
 	p := pool.New().WithErrors().WithContext(ctx)
 
 	p.Go(m.Trivy_Output)
-	p.Go(m.Trivy_ScanContainer)
-	p.Go(m.Trivy_ScanHelmChart)
+	p.Go(m.Trivy_Container)
+	p.Go(m.Trivy_Helm)
 
 	return p.Wait()
 }
@@ -81,7 +81,7 @@ func (m *Examples) Trivy_Output(ctx context.Context) error {
 }
 
 // This example showcases how to scan a container with Trivy.
-func (m *Examples) Trivy_ScanContainer(ctx context.Context) error {
+func (m *Examples) Trivy_Container(ctx context.Context) error {
 	// Initialize Trivy module
 	// See "New" example.
 	trivy := m.trivy()
@@ -102,7 +102,7 @@ func (m *Examples) Trivy_ScanContainer(ctx context.Context) error {
 }
 
 // This example showcases how to scan a Helm chart with Trivy.
-func (m *Examples) Trivy_ScanHelmChart(ctx context.Context) error {
+func (m *Examples) Trivy_Helm(ctx context.Context) error {
 	// Initialize Trivy module
 	// See "New" example.
 	trivy := m.trivy()
