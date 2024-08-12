@@ -69,7 +69,7 @@ func (m *Examples) Trivy_Output(ctx context.Context) error {
 
 	// Grab the report as a file
 	{
-		output, err := scans[0].Report("json").Sync(ctx)
+		output, err := scans[1].Report("json").Sync(ctx)
 		if err != nil {
 			return err
 		}
