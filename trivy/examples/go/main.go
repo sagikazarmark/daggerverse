@@ -50,7 +50,10 @@ func (m *Examples) Trivy_ScanContainer(ctx context.Context) error {
 
 	// Grab the the report output
 	{
-		output, err := report.Output(ctx)
+		output, err := report.Output(ctx, dagger.TrivyScanOutputOpts{
+			// This is the default, but you can pass a format to this function as well
+			Format: "table",
+		})
 		if err != nil {
 			return err
 		}
@@ -60,9 +63,7 @@ func (m *Examples) Trivy_ScanContainer(ctx context.Context) error {
 
 	// Grab the report as a file
 	{
-		output, err := report.Report(dagger.TrivyScanReportOpts{
-			Format: "json",
-		}).Sync(ctx)
+		output, err := report.Report("json").Sync(ctx)
 		if err != nil {
 			return err
 		}

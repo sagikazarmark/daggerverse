@@ -116,14 +116,7 @@ type Scan struct {
 	Command *ScanCommand
 }
 
-// Get the scan results.
-func (m *Scan) Output(ctx context.Context) (string, error) {
-	return m.Container.
-		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
-		WithExec(m.Command.args()).
-		Stdout(ctx)
-}
-
+// TODO: enabled report format enum once it's fixed
 // type ReportFormat string
 //
 // const (
@@ -138,13 +131,30 @@ func (m *Scan) Output(ctx context.Context) (string, error) {
 // 	CosignVuln ReportFormat = "cosign_vuln"
 // )
 
-// Get the scan report as a file.
-func (m *Scan) Report(
+// Get the scan results.
+func (m *Scan) Output(
 	ctx context.Context,
 
 	// Trivy report format.
 	//
 	// +optional
+	format string,
+) (string, error) {
+	if format != "" {
+		m.Command.Format = format
+	}
+
+	return m.Container.
+		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
+		WithExec(m.Command.args()).
+		Stdout(ctx)
+}
+
+// Get the scan report as a file.
+func (m *Scan) Report(
+	ctx context.Context,
+
+	// Trivy report format.
 	format string,
 ) *dagger.File {
 	reportPath := "/work/report"
