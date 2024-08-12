@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"dagger/trivy/internal/dagger"
+	"strings"
 	"time"
 )
 
@@ -223,4 +224,93 @@ func (m *Trivy) Container(
 		Container: ctr,
 		Command:   cmd,
 	}
+}
+
+// Scan a Helm chart.
+func (m *Trivy) HelmChart(
+	ctx context.Context,
+
+	// Helm chart package to scan.
+	chart *dagger.File,
+
+	// Inline values for the Helm chart (equivalent of --set parameter of the helm install command).
+	//
+	// +optional
+	set []string,
+
+	// Inline values for the Helm chart (equivalent of --set-string parameter of the helm install command).
+	//
+	// +optional
+	setString []string,
+
+	// Values files for the Helm chart (equivalent of --values parameter of the helm install command).
+	//
+	// +optional
+	values []*dagger.File,
+
+	// Kubernetes version used for Capabilities.KubeVersion.
+	//
+	// +optional
+	kubeVersion string,
+
+	// Available API versions used for Capabilities.APIVersions.
+	//
+	// +optional
+	apiVersions []string,
+
+	// Trivy configuration file.
+	//
+	// +optional
+	config *dagger.File,
+) (*Scan, error) {
+	chartPath := "/work/chart.tgz"
+
+	ctr := m.Ctr
+
+	cmd := &ScanCommand{
+		Command: "config",
+	}
+
+	cmd.Args = append(cmd.Args, chartPath)
+
+	if len(set) > 0 {
+		cmd.Args = append(cmd.Args, "--helm-set", strings.Join(set, ","))
+	}
+
+	if len(setString) > 0 {
+		cmd.Args = append(cmd.Args, "--helm-set-string", strings.Join(setString, ","))
+	}
+
+	if len(values) > 0 {
+		dir := dag.Directory().WithFiles("", values)
+
+		entries, err := dir.Entries(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		for i, v := range entries {
+			entries[i] = "/work/values/" + v
+		}
+
+		cmd.Args = append(cmd.Args, "--helm-values", strings.Join(entries, ","))
+		ctr = ctr.WithMountedDirectory("/work/values", dir)
+	}
+
+	if kubeVersion != "" {
+		cmd.Args = append(cmd.Args, "--helm-kube-version", kubeVersion)
+	}
+
+	if len(apiVersions) > 0 {
+		cmd.Args = append(cmd.Args, "--helm-api-versions", strings.Join(apiVersions, ","))
+	}
+
+	ctr = ctr.
+		With(withConfigFunc(config)).
+		WithMountedFile(chartPath, chart)
+
+	return &Scan{
+		Container: ctr,
+		Command:   cmd,
+	}, nil
 }

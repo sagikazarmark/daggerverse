@@ -9,6 +9,10 @@
   ],
   "dependencies": [
     {
+      "name": "helm",
+      "source": "../../../helm"
+    },
+    {
       "name": "trivy",
       "source": "../.."
     }
