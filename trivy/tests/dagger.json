@@ -1,0 +1,18 @@
+{
+  "name": "tests",
+  "sdk": "go",
+  "exclude": [
+    "../../.direnv",
+    "../../.devenv",
+    "../../go.work",
+    "../../go.work.sum"
+  ],
+  "dependencies": [
+    {
+      "name": "trivy",
+      "source": ".."
+    }
+  ],
+  "source": ".",
+  "engineVersion": "v0.12.0"
+}

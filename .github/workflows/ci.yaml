@@ -36,6 +36,7 @@ jobs:
           - spectral
           - ssh-keygen
           - stainless
+          - trivy
           - xcaddy
           - xk6
 
@@ -66,6 +67,7 @@ jobs:
       matrix:
         module:
           - helm
+          - trivy
 
     steps:
       - uses: dkershner6/switch-case-action@v1
