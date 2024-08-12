@@ -59,7 +59,7 @@ func (m *Examples) Trivy_Container(ctx context.Context) error {
 
 	// Grab the report as a file
 	{
-		output, err := report.File(dagger.TrivyReportFileOpts{
+		output, err := report.Report(dagger.TrivyScanReportOpts{
 			Format: "json",
 		}).Sync(ctx)
 		if err != nil {
