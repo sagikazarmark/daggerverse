@@ -113,14 +113,14 @@ type Report struct {
 	Container *dagger.Container
 
 	// +private
-	Args []string
+	Command *ScanCommand
 }
 
 // Return the report output.
 func (m *Report) Output(ctx context.Context) (string, error) {
 	return m.Container.
 		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
-		WithExec(m.Args).
+		WithExec(m.Command.args()).
 		Stdout(ctx)
 }
 
@@ -148,20 +148,45 @@ func (m *Report) File(
 ) *dagger.File {
 	reportPath := "/work/report"
 
-	args := m.Args
+	cmd := m.Command
 
 	if format != "" {
 		reportPath += "." + string(format)
 
-		args = append(args, "--format", string(format))
+		cmd.Format = format
 	}
 
-	args = append(args, "--output", reportPath)
+	cmd.Output = reportPath
 
 	return m.Container.
 		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
-		WithExec(args).
+		WithExec(cmd.args()).
 		File(reportPath)
+}
+
+type ScanCommand struct {
+	Command string
+
+	Format string
+	Output string
+
+	Args []string
+}
+
+func (c *ScanCommand) args() []string {
+	args := []string{"trivy", c.Command}
+
+	if c.Format != "" {
+		args = append(args, "--format", c.Format)
+	}
+
+	if c.Output != "" {
+		args = append(args, "--output", c.Output)
+	}
+
+	args = append(args, c.Args...)
+
+	return args
 }
 
 // Scan a container.
@@ -176,7 +201,12 @@ func (m *Trivy) Container(
 ) *Report {
 	imagePath := "/work/image.tar"
 
-	args := []string{"trivy", "image", "--input", imagePath}
+	cmd := &ScanCommand{
+		Command: "image",
+		Args: []string{
+			"--input", imagePath,
+		},
+	}
 
 	ctr := m.Ctr.
 		With(withConfigFunc(config)).
@@ -184,6 +214,6 @@ func (m *Trivy) Container(
 
 	return &Report{
 		Container: ctr,
-		Args:      args,
+		Command:   cmd,
 	}
 }
