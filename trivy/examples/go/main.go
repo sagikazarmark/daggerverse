@@ -22,19 +22,22 @@ func (m *Examples) All(ctx context.Context) error {
 // This example showcases how to initialize the Trivy module.
 func (m *Examples) Trivy_New() {
 	dag.Trivy(dagger.TrivyOpts{
+		// Persist cache between runs
 		Cache: dag.CacheVolume("trivy"),
-	}).
+
 		// Preheat vulnerability database cache
-		DownloadDb()
+		WarmDatabaseCache: true,
+	})
 }
 
 func (m *Examples) trivy() *dagger.Trivy {
 	return dag.Trivy(dagger.TrivyOpts{
 		// Persist cache between runs
 		Cache: dag.CacheVolume("trivy"),
-	}).
+
 		// Preheat vulnerability database cache
-		DownloadDb()
+		WarmDatabaseCache: true,
+	})
 }
 
 // This example showcases how to scan a container with Trivy.

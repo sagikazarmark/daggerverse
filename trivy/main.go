@@ -36,6 +36,16 @@ func New(
 	//
 	// +optional
 	cache *dagger.CacheVolume,
+
+	// OCI repository to retrieve trivy-db from. (default "ghcr.io/aquasecurity/trivy-db:2")
+	//
+	// +optional
+	databaseRepository string,
+
+	// Warm the vulnerability database cache.
+	//
+	// +optional
+	warmDatabaseCache bool,
 ) *Trivy {
 	if container == nil {
 		if version == "" {
@@ -59,39 +69,25 @@ func New(
 		const cachePath = "/tmp/cache/trivy"
 
 		container = container.
-			// Make sure parent container has no custom cache setting
+			// Make sure parent container has no custom cache settings
 			WithEnvVariable("TRIVY_CACHE_BACKEND", "fs").
 			WithEnvVariable("TRIVY_CACHE_DIR", cachePath).
 			WithMountedCache(cachePath, cache)
 	}
 
+	if databaseRepository != "" {
+		container = container.WithEnvVariable("TRIVY_DB_REPOSITORY", databaseRepository)
+	}
+
+	if warmDatabaseCache {
+		container = container.
+			WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)). // We want to keep the database up-to-date
+			WithExec([]string{"trivy", "image", "--download-db-only"})
+	}
+
 	return &Trivy{
 		Ctr: container,
 	}
-}
-
-// Download vulnerability database.
-//
-// This is done automatically when scanning, but can be called manually to warm the cache.
-// This is useful when a cache volume is used.
-func (m *Trivy) DownloadDB(
-	// Override the default Trivy database URL.
-	//
-	// +optional
-	repository string,
-) *Trivy {
-	m.Ctr = m.Ctr.
-		With(func(c *dagger.Container) *dagger.Container {
-			if repository != "" {
-				c = c.WithEnvVariable("TRIVY_DB_REPOSITORY", repository)
-			}
-
-			return c
-		}).
-		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)). // We want to keep the database up-to-date
-		WithExec([]string{"trivy", "image", "--download-db-only"})
-
-	return m
 }
 
 func withConfigFunc(config *dagger.File) func(*dagger.Container) *dagger.Container {
