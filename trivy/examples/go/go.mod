@@ -1,4 +1,4 @@
-module dagger/helm/examples/go
+module dagger/trivy/examples/go
 
 go 1.22.5
 

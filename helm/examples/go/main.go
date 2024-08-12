@@ -4,7 +4,7 @@ package main
 
 import (
 	"context"
-	"dagger/examples/internal/dagger"
+	"dagger/helm/examples/go/internal/dagger"
 
 	"github.com/sourcegraph/conc/pool"
 )

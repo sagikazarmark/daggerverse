@@ -48,6 +48,9 @@ use (
 	./ssh-keygen/tests
 	./stainless
 	./stainless/tests
+	./trivy
+	./trivy/examples/go
+	./trivy/tests
 	./xcaddy
 	./xcaddy/tests
 	./xk6

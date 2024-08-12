@@ -36,6 +36,7 @@ jobs:
           - spectral
           - ssh-keygen
           - stainless
+          - trivy
           - xcaddy
           - xk6
 
