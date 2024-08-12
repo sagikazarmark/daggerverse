@@ -14,14 +14,14 @@ type Examples struct{}
 func (m *Examples) All(ctx context.Context) error {
 	p := pool.New().WithErrors().WithContext(ctx)
 
-	p.Go(m.Trivy_Container)
+	p.Go(m.Trivy_ScanContainer)
 
 	return p.Wait()
 }
 
-func (m *Examples) Trivy_Init() {
+// This example showcases how to initialize the Trivy module.
+func (m *Examples) Trivy_New() {
 	dag.Trivy(dagger.TrivyOpts{
-		// Persist cache between runs
 		Cache: dag.CacheVolume("trivy"),
 	}).
 		// Preheat vulnerability database cache
@@ -37,7 +37,8 @@ func (m *Examples) trivy() *dagger.Trivy {
 		DownloadDb()
 }
 
-func (m *Examples) Trivy_Container(ctx context.Context) error {
+// This example showcases how to scan a container with Trivy.
+func (m *Examples) Trivy_ScanContainer(ctx context.Context) error {
 	// Initialize Trivy module
 	trivy := m.trivy()
 
