@@ -108,7 +108,7 @@ func withConfigFunc(config *dagger.File) func(*dagger.Container) *dagger.Contain
 	}
 }
 
-type Report struct {
+type Scan struct {
 	// +private
 	Container *dagger.Container
 
@@ -116,8 +116,8 @@ type Report struct {
 	Command *ScanCommand
 }
 
-// Return the report output.
-func (m *Report) Output(ctx context.Context) (string, error) {
+// Get the scan results.
+func (m *Scan) Output(ctx context.Context) (string, error) {
 	return m.Container.
 		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
 		WithExec(m.Command.args()).
@@ -138,7 +138,8 @@ func (m *Report) Output(ctx context.Context) (string, error) {
 // 	CosignVuln ReportFormat = "cosign_vuln"
 // )
 
-func (m *Report) File(
+// Get the scan report as a file.
+func (m *Scan) Report(
 	ctx context.Context,
 
 	// Trivy report format.
@@ -198,7 +199,7 @@ func (m *Trivy) Container(
 	//
 	// +optional
 	config *dagger.File,
-) *Report {
+) *Scan {
 	imagePath := "/work/image.tar"
 
 	cmd := &ScanCommand{
@@ -212,7 +213,7 @@ func (m *Trivy) Container(
 		With(withConfigFunc(config)).
 		WithMountedFile(imagePath, container.AsTarball())
 
-	return &Report{
+	return &Scan{
 		Container: ctr,
 		Command:   cmd,
 	}
