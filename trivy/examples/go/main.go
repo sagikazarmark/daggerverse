@@ -34,6 +34,7 @@ func (m *Examples) All(ctx context.Context) error {
 	p.Go(m.Trivy_ImageFile)
 	p.Go(m.Trivy_Container)
 	p.Go(m.Trivy_Helm)
+	p.Go(m.Trivy_Filesystem)
 	p.Go(m.Trivy_Rootfs)
 	p.Go(m.Trivy_Binary)
 
@@ -151,6 +152,22 @@ func (m *Examples) Trivy_Helm(ctx context.Context) error {
 
 	// Scan the Helm chart
 	scan := trivy.HelmChart(chart.File())
+
+	// See "Output" example.
+	return output(ctx, scan)
+}
+
+// This example showcases how to scan a filesystem with Trivy.
+func (m *Examples) Trivy_Filesystem(ctx context.Context) error {
+	// Initialize Trivy module
+	// See "New" example.
+	trivy := m.Trivy
+
+	// Grab a directory
+	directory := dag.Git("https://github.com/sagikazarmark/daggerverse.git").Head().Tree()
+
+	// Scan the filesystem
+	scan := trivy.Filesystem(directory)
 
 	// See "Output" example.
 	return output(ctx, scan)

@@ -361,6 +361,42 @@ func (m *Trivy) HelmChart(
 	}, nil
 }
 
+// Scan a filesystem.
+//
+// See https://aquasecurity.github.io/trivy/latest/docs/target/filesystem/ for more information.
+func (m *Trivy) Filesystem(
+	// Directory to scan.
+	directory *dagger.Directory,
+
+	// Subpath within the directory to scan.
+	//
+	// +optional
+	// +default="."
+	target string,
+
+	// Trivy configuration file.
+	//
+	// +optional
+	config *dagger.File,
+) *Scan {
+	const workDir = "/work/source"
+
+	cmd := &ScanCommand{
+		Command: "filesystem",
+		Args:    []string{target},
+	}
+
+	ctr := m.Ctr.
+		With(withConfigFunc(config)).
+		WithMountedDirectory(workDir, directory).
+		WithWorkdir(workDir)
+
+	return &Scan{
+		Container: ctr,
+		Command:   cmd,
+	}
+}
+
 // Scan a root filesystem.
 //
 // See https://aquasecurity.github.io/trivy/latest/docs/target/rootfs/ for more information.
