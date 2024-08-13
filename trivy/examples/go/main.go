@@ -15,6 +15,8 @@ func (m *Examples) All(ctx context.Context) error {
 	p := pool.New().WithErrors().WithContext(ctx)
 
 	p.Go(m.Trivy_Output)
+	p.Go(m.Trivy_Image)
+	p.Go(m.Trivy_ImageFile)
 	p.Go(m.Trivy_Container)
 	p.Go(m.Trivy_Helm)
 
@@ -75,6 +77,42 @@ func (m *Examples) Trivy_Output(ctx context.Context) error {
 		}
 
 		_ = output
+	}
+
+	return nil
+}
+
+// This example showcases how to scan an image (pulled from a remote repository) with Trivy.
+func (m *Examples) Trivy_Image(ctx context.Context) error {
+	// Initialize Trivy module
+	// See "New" example.
+	trivy := m.trivy()
+
+	// Scan the image
+	scan := trivy.Image("alpine:latest")
+
+	// See "Output" example.
+	_, err := scan.Output(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// This example showcases how to scan an image archive with Trivy.
+func (m *Examples) Trivy_ImageFile(ctx context.Context) error {
+	// Initialize Trivy module
+	// See "New" example.
+	trivy := m.trivy()
+
+	// Scan the image file (using a container here for simplicity, but any image file will do)
+	scan := trivy.ImageFile(dag.Container().From("alpine:latest").AsTarball())
+
+	// See "Output" example.
+	_, err := scan.Output(ctx)
+	if err != nil {
+		return err
 	}
 
 	return nil

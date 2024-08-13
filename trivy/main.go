@@ -197,6 +197,61 @@ func (c *ScanCommand) args() []string {
 	return args
 }
 
+// Scan a container image.
+func (m *Trivy) Image(
+	// Name of the image to scan.
+	image string,
+
+	// Trivy configuration file.
+	//
+	// +optional
+	config *dagger.File,
+) *Scan {
+	cmd := &ScanCommand{
+		Command: "image",
+		Args:    []string{image},
+	}
+
+	ctr := m.Ctr.
+		With(withConfigFunc(config)).
+		WithWorkdir("/work")
+
+	return &Scan{
+		Container: ctr,
+		Command:   cmd,
+	}
+}
+
+// Scan a container image file.
+func (m *Trivy) ImageFile(
+	// Input file to the image (to use instead of pulling).
+	input *dagger.File,
+
+	// Trivy configuration file.
+	//
+	// +optional
+	config *dagger.File,
+) *Scan {
+	const inputName = "image.tar"
+
+	cmd := &ScanCommand{
+		Command: "image",
+		Args:    []string{"--input", inputName},
+	}
+
+	const workDir = "/work/source"
+
+	ctr := m.Ctr.
+		With(withConfigFunc(config)).
+		WithMountedFile(workDir+"/"+inputName, input).
+		WithWorkdir(workDir)
+
+	return &Scan{
+		Container: ctr,
+		Command:   cmd,
+	}
+}
+
 // Scan a container.
 func (m *Trivy) Container(
 	// Image container to scan.
@@ -207,25 +262,7 @@ func (m *Trivy) Container(
 	// +optional
 	config *dagger.File,
 ) *Scan {
-	const workDir = "/work/source"
-	const input = "image.tar"
-
-	cmd := &ScanCommand{
-		Command: "image",
-		Args: []string{
-			"--input", input,
-		},
-	}
-
-	ctr := m.Ctr.
-		With(withConfigFunc(config)).
-		WithMountedFile(workDir+"/"+input, container.AsTarball()).
-		WithWorkdir(workDir)
-
-	return &Scan{
-		Container: ctr,
-		Command:   cmd,
-	}
+	return m.ImageFile(container.AsTarball(), config)
 }
 
 // Scan a Helm chart.
