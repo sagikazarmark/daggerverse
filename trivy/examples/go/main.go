@@ -30,6 +30,7 @@ func (m *Examples) All(ctx context.Context) error {
 	p := pool.New().WithErrors().WithContext(ctx)
 
 	p.Go(m.Trivy_Output)
+	p.Go(m.Trivy_Config)
 	p.Go(m.Trivy_Image)
 	p.Go(m.Trivy_ImageFile)
 	p.Go(m.Trivy_Container)
@@ -97,6 +98,22 @@ func (m *Examples) Trivy_Output(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// This example showcases how to pass configuration to the Trivy module.
+func (m *Examples) Trivy_Config(ctx context.Context) error {
+	// Initialize Trivy module with custom configuration...
+	trivy := dag.Trivy(dagger.TrivyOpts{
+		Config: dag.CurrentModule().Source().File("trivy.yaml"),
+	})
+
+	// ...or pass it directly to the scan
+	scan := trivy.Image("alpine:latest", dagger.TrivyImageOpts{
+		Config: dag.CurrentModule().Source().File("trivy.yaml"),
+	})
+
+	// See "Output" example.
+	return output(ctx, scan)
 }
 
 // This example showcases how to scan an image (pulled from a remote repository) with Trivy.
