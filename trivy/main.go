@@ -105,12 +105,63 @@ func withConfigFunc(config *dagger.File) func(*dagger.Container) *dagger.Contain
 	}
 }
 
+// Supported Trivy scan kinds.
+type ScanKind string
+
+const (
+	Image      ScanKind = "image"
+	Filesystem ScanKind = "filesystem"
+	Rootfs     ScanKind = "rootfs"
+	Config     ScanKind = "config"
+)
+
 type Scan struct {
 	// +private
 	Container *dagger.Container
 
 	// +private
-	Command *ScanCommand
+	Config *dagger.File
+
+	// +private
+	Kind ScanKind
+
+	// +private
+	Source *dagger.Directory
+
+	// +private
+	Target string
+
+	// +private
+	Args []string
+}
+
+func (m *Scan) container(extraArgs []string) *dagger.Container {
+	container := m.Container.
+		WithWorkdir("/work") // default workdir
+
+	args := []string{"trivy", string(m.Kind)}
+
+	if m.Config != nil {
+		container = container.WithMountedFile("/work/trivy.yaml", m.Config)
+		args = append(args, "--config", "/work/trivy.yaml")
+	}
+
+	if m.Source != nil {
+		container = container.
+			WithMountedDirectory("/work/source", m.Source).
+			WithWorkdir("/work/source")
+	}
+
+	args = append(args, m.Args...)
+	args = append(args, extraArgs...)
+
+	if m.Target != "" {
+		args = append(args, m.Target)
+	}
+
+	return container.
+		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
+		WithExec(args)
 }
 
 // TODO: enabled report format enum once it's fixed
@@ -137,14 +188,13 @@ func (m *Scan) Output(
 	// +optional
 	format string,
 ) (string, error) {
+	var args []string
+
 	if format != "" {
-		m.Command.Format = format
+		args = append(args, "--format", format)
 	}
 
-	return m.Container.
-		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
-		WithExec(m.Command.args()).
-		Stdout(ctx)
+	return m.container(args).Stdout(ctx)
 }
 
 // Get the scan report as a file.
@@ -156,48 +206,66 @@ func (m *Scan) Report(
 ) *dagger.File {
 	reportPath := "/work/report"
 
-	cmd := m.Command
+	var args []string
 
 	if format != "" {
+		args = append(args, "--format", format)
 		reportPath += "." + string(format)
-
-		cmd.Format = format
 	}
 
-	cmd.Output = reportPath
+	args = append(args, "--output", reportPath)
 
-	return m.Container.
-		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
-		WithExec(cmd.args()).
-		File(reportPath)
+	return m.container(args).File(reportPath)
 }
 
-type ScanCommand struct {
-	Command string
+// Scan a container image.
+//
+// See https://aquasecurity.github.io/trivy/latest/docs/target/container_image/ for more information.
+func (m *Trivy) Image(
+	// Name of the image to scan.
+	image string,
 
-	Format string
-	Output string
-
-	Args []string
+	// Trivy configuration file.
+	//
+	// +optional
+	config *dagger.File,
+) *Scan {
+	return &Scan{
+		Container: m.Ctr,
+		Config:    config,
+		Kind:      Image,
+		Target:    image,
+	}
 }
 
-func (c *ScanCommand) args() []string {
-	args := []string{"trivy", c.Command}
+// Scan a container image file.
+//
+// See https://aquasecurity.github.io/trivy/latest/docs/target/container_image/ for more information.
+func (m *Trivy) ImageFile(
+	// Input file to the image (to use instead of pulling).
+	image *dagger.File,
 
-	if c.Format != "" {
-		args = append(args, "--format", c.Format)
+	// Trivy configuration file.
+	//
+	// +optional
+	config *dagger.File,
+) *Scan {
+	const inputName = "image.tar"
+
+	source := dag.Directory().WithFile(inputName, image)
+
+	return &Scan{
+		Container: m.Ctr,
+		Config:    config,
+		Kind:      Image,
+		Source:    source,
+		Args:      []string{"--input", inputName},
 	}
-
-	if c.Output != "" {
-		args = append(args, "--output", c.Output)
-	}
-
-	args = append(args, c.Args...)
-
-	return args
 }
 
 // Scan a container.
+//
+// See https://aquasecurity.github.io/trivy/latest/docs/target/container_image/ for more information.
 func (m *Trivy) Container(
 	// Image container to scan.
 	container *dagger.Container,
@@ -207,23 +275,7 @@ func (m *Trivy) Container(
 	// +optional
 	config *dagger.File,
 ) *Scan {
-	imagePath := "/work/image.tar"
-
-	cmd := &ScanCommand{
-		Command: "image",
-		Args: []string{
-			"--input", imagePath,
-		},
-	}
-
-	ctr := m.Ctr.
-		With(withConfigFunc(config)).
-		WithMountedFile(imagePath, container.AsTarball())
-
-	return &Scan{
-		Container: ctr,
-		Command:   cmd,
-	}
+	return m.ImageFile(container.AsTarball(), config)
 }
 
 // Scan a Helm chart.
@@ -263,22 +315,18 @@ func (m *Trivy) HelmChart(
 	// +optional
 	config *dagger.File,
 ) (*Scan, error) {
-	chartPath := "/work/chart.tgz"
+	const input = "chart.tgz"
 
-	ctr := m.Ctr
+	source := dag.Directory().WithFile(input, chart)
 
-	cmd := &ScanCommand{
-		Command: "config",
-	}
-
-	cmd.Args = append(cmd.Args, chartPath)
+	var args []string
 
 	if len(set) > 0 {
-		cmd.Args = append(cmd.Args, "--helm-set", strings.Join(set, ","))
+		args = append(args, "--helm-set", strings.Join(set, ","))
 	}
 
 	if len(setString) > 0 {
-		cmd.Args = append(cmd.Args, "--helm-set-string", strings.Join(setString, ","))
+		args = append(args, "--helm-set-string", strings.Join(setString, ","))
 	}
 
 	if len(values) > 0 {
@@ -290,27 +338,111 @@ func (m *Trivy) HelmChart(
 		}
 
 		for i, v := range entries {
-			entries[i] = "/work/values/" + v
+			entries[i] = "values/" + v
 		}
 
-		cmd.Args = append(cmd.Args, "--helm-values", strings.Join(entries, ","))
-		ctr = ctr.WithMountedDirectory("/work/values", dir)
+		args = append(args, "--helm-values", strings.Join(entries, ","))
+		source = source.WithDirectory("values", dir)
 	}
 
 	if kubeVersion != "" {
-		cmd.Args = append(cmd.Args, "--helm-kube-version", kubeVersion)
+		args = append(args, "--helm-kube-version", kubeVersion)
 	}
 
 	if len(apiVersions) > 0 {
-		cmd.Args = append(cmd.Args, "--helm-api-versions", strings.Join(apiVersions, ","))
+		args = append(args, "--helm-api-versions", strings.Join(apiVersions, ","))
 	}
 
-	ctr = ctr.
-		With(withConfigFunc(config)).
-		WithMountedFile(chartPath, chart)
-
 	return &Scan{
-		Container: ctr,
-		Command:   cmd,
+		Container: m.Ctr,
+		Config:    config,
+		Kind:      Config,
+		Source:    source,
+		Target:    input,
 	}, nil
+}
+
+// Scan a filesystem.
+//
+// See https://aquasecurity.github.io/trivy/latest/docs/target/filesystem/ for more information.
+func (m *Trivy) Filesystem(
+	// Directory to scan.
+	directory *dagger.Directory,
+
+	// Subpath within the directory to scan.
+	//
+	// +optional
+	// +default="."
+	target string,
+
+	// Trivy configuration file.
+	//
+	// +optional
+	config *dagger.File,
+) *Scan {
+	return &Scan{
+		Container: m.Ctr,
+		Config:    config,
+		Kind:      Filesystem,
+		Source:    directory,
+		Target:    target,
+	}
+}
+
+// Scan a root filesystem.
+//
+// See https://aquasecurity.github.io/trivy/latest/docs/target/rootfs/ for more information.
+func (m *Trivy) Rootfs(
+	// Directory to scan.
+	directory *dagger.Directory,
+
+	// Subpath within the directory to scan.
+	//
+	// +optional
+	// +default="."
+	target string,
+
+	// Trivy configuration file.
+	//
+	// +optional
+	config *dagger.File,
+) *Scan {
+	return &Scan{
+		Container: m.Ctr,
+		Config:    config,
+		Kind:      Rootfs,
+		Source:    directory,
+		Target:    target,
+	}
+}
+
+// Scan a binary.
+//
+// This is a convenience method to scan a binary file that normally falls under the rootfs target.
+//
+// See https://aquasecurity.github.io/trivy/latest/docs/target/rootfs/ for more information.
+func (m *Trivy) Binary(
+	ctx context.Context,
+
+	// Binary to scan.
+	file *dagger.File,
+
+	// Trivy configuration file.
+	//
+	// +optional
+	config *dagger.File,
+) (*Scan, error) {
+	name, err := file.Name(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: is this even possible?
+	if name == "" {
+		name = "binary"
+	}
+
+	dir := dag.Directory().WithFile(name, file)
+
+	return m.Rootfs(dir, name, config), nil
 }
