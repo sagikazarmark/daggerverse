@@ -32,7 +32,7 @@ func (m *Examples) All(ctx context.Context) error {
 	p.Go(m.Trivy_Output)
 	p.Go(m.Trivy_Config)
 	p.Go(m.Trivy_Image)
-	p.Go(m.Trivy_ImageFile)
+	p.Go(m.Trivy_ImageTarball)
 	p.Go(m.Trivy_Container)
 	p.Go(m.Trivy_Helm)
 	p.Go(m.Trivy_Filesystem)
@@ -130,14 +130,14 @@ func (m *Examples) Trivy_Image(ctx context.Context) error {
 	return output(ctx, scan)
 }
 
-// This example showcases how to scan an image archive with Trivy.
-func (m *Examples) Trivy_ImageFile(ctx context.Context) error {
+// This example showcases how to scan an image tarball with Trivy.
+func (m *Examples) Trivy_ImageTarball(ctx context.Context) error {
 	// Initialize Trivy module
 	// See "New" example.
 	trivy := m.Trivy
 
 	// Scan the image file (using a container here for simplicity, but any image file will do)
-	scan := trivy.ImageFile(dag.Container().From("alpine:latest").AsTarball())
+	scan := trivy.ImageTarball(dag.Container().From("alpine:latest").AsTarball())
 
 	// See "Output" example.
 	return output(ctx, scan)
