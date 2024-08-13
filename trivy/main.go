@@ -198,6 +198,8 @@ func (c *ScanCommand) args() []string {
 }
 
 // Scan a container image.
+//
+// See https://aquasecurity.github.io/trivy/latest/docs/target/container_image/ for more information.
 func (m *Trivy) Image(
 	// Name of the image to scan.
 	image string,
@@ -223,6 +225,8 @@ func (m *Trivy) Image(
 }
 
 // Scan a container image file.
+//
+// See https://aquasecurity.github.io/trivy/latest/docs/target/container_image/ for more information.
 func (m *Trivy) ImageFile(
 	// Input file to the image (to use instead of pulling).
 	input *dagger.File,
@@ -253,6 +257,8 @@ func (m *Trivy) ImageFile(
 }
 
 // Scan a container.
+//
+// See https://aquasecurity.github.io/trivy/latest/docs/target/container_image/ for more information.
 func (m *Trivy) Container(
 	// Image container to scan.
 	container *dagger.Container,
@@ -353,4 +359,71 @@ func (m *Trivy) HelmChart(
 		Container: ctr,
 		Command:   cmd,
 	}, nil
+}
+
+// Scan a root filesystem.
+//
+// See https://aquasecurity.github.io/trivy/latest/docs/target/rootfs/ for more information.
+func (m *Trivy) Rootfs(
+	// Directory to scan.
+	directory *dagger.Directory,
+
+	// Subpath within the directory to scan.
+	//
+	// +optional
+	// +default="."
+	target string,
+
+	// Trivy configuration file.
+	//
+	// +optional
+	config *dagger.File,
+) *Scan {
+	const workDir = "/work/source"
+
+	cmd := &ScanCommand{
+		Command: "rootfs",
+		Args:    []string{target},
+	}
+
+	ctr := m.Ctr.
+		With(withConfigFunc(config)).
+		WithMountedDirectory(workDir, directory).
+		WithWorkdir(workDir)
+
+	return &Scan{
+		Container: ctr,
+		Command:   cmd,
+	}
+}
+
+// Scan a binary.
+//
+// This is a convenience method to scan a binary file that normally falls under the rootfs target.
+//
+// See https://aquasecurity.github.io/trivy/latest/docs/target/rootfs/ for more information.
+func (m *Trivy) Binary(
+	ctx context.Context,
+
+	// Binary to scan.
+	file *dagger.File,
+
+	// Trivy configuration file.
+	//
+	// +optional
+	config *dagger.File,
+) (*Scan, error) {
+	name, err := file.Name(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: is this even possible?
+	if name == "" {
+		name = "binary"
+	}
+
+	dir := dag.Directory().WithFile(name, file)
+
+	return m.Rootfs(dir, name, config), nil
 }

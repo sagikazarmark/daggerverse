@@ -9,6 +9,7 @@ import (
 	"github.com/sourcegraph/conc/pool"
 )
 
+// TODO: initialize trivy module once
 type Examples struct{}
 
 func (m *Examples) All(ctx context.Context) error {
@@ -19,6 +20,8 @@ func (m *Examples) All(ctx context.Context) error {
 	p.Go(m.Trivy_ImageFile)
 	p.Go(m.Trivy_Container)
 	p.Go(m.Trivy_Helm)
+	p.Go(m.Trivy_Rootfs)
+	p.Go(m.Trivy_Binary)
 
 	return p.Wait()
 }
@@ -150,6 +153,48 @@ func (m *Examples) Trivy_Helm(ctx context.Context) error {
 
 	// Scan the Helm chart
 	scan := trivy.HelmChart(chart.File())
+
+	// See "Output" example.
+	_, err := scan.Output(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// This example showcases how to scan a rootfs with Trivy.
+func (m *Examples) Trivy_Rootfs(ctx context.Context) error {
+	// Initialize Trivy module
+	// See "New" example.
+	trivy := m.trivy()
+
+	// Grab the rootfs of a container
+	rootfs := dag.Container().From("alpine:latest").Rootfs()
+
+	// Scan the rootfs
+	scan := trivy.Rootfs(rootfs)
+
+	// See "Output" example.
+	_, err := scan.Output(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// This example showcases how to scan a binary with Trivy.
+func (m *Examples) Trivy_Binary(ctx context.Context) error {
+	// Initialize Trivy module
+	// See "New" example.
+	trivy := m.trivy()
+
+	// Grab a binary file
+	binary := dag.Container().From("alpine:latest").File("/usr/bin/env")
+
+	// Scan the binary
+	scan := trivy.Binary(binary)
 
 	// See "Output" example.
 	_, err := scan.Output(ctx)
