@@ -427,14 +427,14 @@ func (m *Trivy) Binary(
 	ctx context.Context,
 
 	// Binary to scan.
-	file *dagger.File,
+	binary *dagger.File,
 
 	// Trivy configuration file.
 	//
 	// +optional
 	config *dagger.File,
 ) (*Scan, error) {
-	name, err := file.Name(ctx)
+	name, err := binary.Name(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -444,7 +444,7 @@ func (m *Trivy) Binary(
 		name = "binary"
 	}
 
-	dir := dag.Directory().WithFile(name, file)
+	dir := dag.Directory().WithFile(name, binary)
 
 	return m.Rootfs(dir, name, config), nil
 }
