@@ -240,10 +240,10 @@ func (m *Trivy) Image(
 	}
 }
 
-// Scan a container image file.
+// Scan a container image tarball.
 //
 // See https://aquasecurity.github.io/trivy/latest/docs/target/container_image/ for more information.
-func (m *Trivy) ImageFile(
+func (m *Trivy) ImageTarball(
 	// Input file to the image (to use instead of pulling).
 	image *dagger.File,
 
@@ -277,7 +277,7 @@ func (m *Trivy) Container(
 	// +optional
 	config *dagger.File,
 ) *Scan {
-	return m.ImageFile(container.AsTarball(), config)
+	return m.ImageTarball(container.AsTarball(), config)
 }
 
 // Scan a Helm chart.
