@@ -105,12 +105,63 @@ func withConfigFunc(config *dagger.File) func(*dagger.Container) *dagger.Contain
 	}
 }
 
+// Supported Trivy scan kinds.
+type ScanKind string
+
+const (
+	Image      ScanKind = "image"
+	Filesystem ScanKind = "filesystem"
+	Rootfs     ScanKind = "rootfs"
+	Config     ScanKind = "config"
+)
+
 type Scan struct {
 	// +private
 	Container *dagger.Container
 
 	// +private
-	Command *ScanCommand
+	Config *dagger.File
+
+	// +private
+	Kind ScanKind
+
+	// +private
+	Source *dagger.Directory
+
+	// +private
+	Target string
+
+	// +private
+	Args []string
+}
+
+func (m *Scan) container(extraArgs []string) *dagger.Container {
+	container := m.Container.
+		WithWorkdir("/work") // default workdir
+
+	args := []string{"trivy", string(m.Kind)}
+
+	if m.Config != nil {
+		container = container.WithMountedFile("/work/trivy.yaml", m.Config)
+		args = append(args, "--config", "/work/trivy.yaml")
+	}
+
+	if m.Source != nil {
+		container = container.
+			WithMountedDirectory("/work/source", m.Source).
+			WithWorkdir("/work/source")
+	}
+
+	args = append(args, m.Args...)
+	args = append(args, extraArgs...)
+
+	if m.Target != "" {
+		args = append(args, m.Target)
+	}
+
+	return container.
+		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
+		WithExec(args)
 }
 
 // TODO: enabled report format enum once it's fixed
@@ -137,14 +188,13 @@ func (m *Scan) Output(
 	// +optional
 	format string,
 ) (string, error) {
+	var args []string
+
 	if format != "" {
-		m.Command.Format = format
+		args = append(args, "--format", format)
 	}
 
-	return m.Container.
-		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
-		WithExec(m.Command.args()).
-		Stdout(ctx)
+	return m.container(args).Stdout(ctx)
 }
 
 // Get the scan report as a file.
@@ -156,45 +206,16 @@ func (m *Scan) Report(
 ) *dagger.File {
 	reportPath := "/work/report"
 
-	cmd := m.Command
+	var args []string
 
 	if format != "" {
+		args = append(args, "--format", format)
 		reportPath += "." + string(format)
-
-		cmd.Format = format
 	}
 
-	cmd.Output = reportPath
+	args = append(args, "--output", reportPath)
 
-	return m.Container.
-		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
-		WithExec(cmd.args()).
-		File(reportPath)
-}
-
-type ScanCommand struct {
-	Command string
-
-	Format string
-	Output string
-
-	Args []string
-}
-
-func (c *ScanCommand) args() []string {
-	args := []string{"trivy", c.Command}
-
-	if c.Format != "" {
-		args = append(args, "--format", c.Format)
-	}
-
-	if c.Output != "" {
-		args = append(args, "--output", c.Output)
-	}
-
-	args = append(args, c.Args...)
-
-	return args
+	return m.container(args).File(reportPath)
 }
 
 // Scan a container image.
@@ -209,18 +230,11 @@ func (m *Trivy) Image(
 	// +optional
 	config *dagger.File,
 ) *Scan {
-	cmd := &ScanCommand{
-		Command: "image",
-		Args:    []string{image},
-	}
-
-	ctr := m.Ctr.
-		With(withConfigFunc(config)).
-		WithWorkdir("/work")
-
 	return &Scan{
-		Container: ctr,
-		Command:   cmd,
+		Container: m.Ctr,
+		Config:    config,
+		Kind:      Image,
+		Target:    image,
 	}
 }
 
@@ -229,7 +243,7 @@ func (m *Trivy) Image(
 // See https://aquasecurity.github.io/trivy/latest/docs/target/container_image/ for more information.
 func (m *Trivy) ImageFile(
 	// Input file to the image (to use instead of pulling).
-	input *dagger.File,
+	image *dagger.File,
 
 	// Trivy configuration file.
 	//
@@ -238,21 +252,14 @@ func (m *Trivy) ImageFile(
 ) *Scan {
 	const inputName = "image.tar"
 
-	cmd := &ScanCommand{
-		Command: "image",
-		Args:    []string{"--input", inputName},
-	}
-
-	const workDir = "/work/source"
-
-	ctr := m.Ctr.
-		With(withConfigFunc(config)).
-		WithMountedFile(workDir+"/"+inputName, input).
-		WithWorkdir(workDir)
+	source := dag.Directory().WithFile(inputName, image)
 
 	return &Scan{
-		Container: ctr,
-		Command:   cmd,
+		Container: m.Ctr,
+		Config:    config,
+		Kind:      Image,
+		Source:    source,
+		Args:      []string{"--input", inputName},
 	}
 }
 
@@ -308,22 +315,18 @@ func (m *Trivy) HelmChart(
 	// +optional
 	config *dagger.File,
 ) (*Scan, error) {
-	const workDir = "/work/source"
 	const input = "chart.tgz"
 
-	cmd := &ScanCommand{
-		Command: "config",
-		Args:    []string{input},
-	}
+	source := dag.Directory().WithFile(input, chart)
 
-	ctr := m.Ctr
+	var args []string
 
 	if len(set) > 0 {
-		cmd.Args = append(cmd.Args, "--helm-set", strings.Join(set, ","))
+		args = append(args, "--helm-set", strings.Join(set, ","))
 	}
 
 	if len(setString) > 0 {
-		cmd.Args = append(cmd.Args, "--helm-set-string", strings.Join(setString, ","))
+		args = append(args, "--helm-set-string", strings.Join(setString, ","))
 	}
 
 	if len(values) > 0 {
@@ -335,29 +338,27 @@ func (m *Trivy) HelmChart(
 		}
 
 		for i, v := range entries {
-			entries[i] = "/work/values/" + v
+			entries[i] = "values/" + v
 		}
 
-		cmd.Args = append(cmd.Args, "--helm-values", strings.Join(entries, ","))
-		ctr = ctr.WithMountedDirectory("/work/values", dir)
+		args = append(args, "--helm-values", strings.Join(entries, ","))
+		source = source.WithDirectory("values", dir)
 	}
 
 	if kubeVersion != "" {
-		cmd.Args = append(cmd.Args, "--helm-kube-version", kubeVersion)
+		args = append(args, "--helm-kube-version", kubeVersion)
 	}
 
 	if len(apiVersions) > 0 {
-		cmd.Args = append(cmd.Args, "--helm-api-versions", strings.Join(apiVersions, ","))
+		args = append(args, "--helm-api-versions", strings.Join(apiVersions, ","))
 	}
 
-	ctr = ctr.
-		With(withConfigFunc(config)).
-		WithMountedFile(workDir+"/"+input, chart).
-		WithWorkdir(workDir)
-
 	return &Scan{
-		Container: ctr,
-		Command:   cmd,
+		Container: m.Ctr,
+		Config:    config,
+		Kind:      Config,
+		Source:    source,
+		Target:    input,
 	}, nil
 }
 
@@ -379,21 +380,12 @@ func (m *Trivy) Filesystem(
 	// +optional
 	config *dagger.File,
 ) *Scan {
-	const workDir = "/work/source"
-
-	cmd := &ScanCommand{
-		Command: "filesystem",
-		Args:    []string{target},
-	}
-
-	ctr := m.Ctr.
-		With(withConfigFunc(config)).
-		WithMountedDirectory(workDir, directory).
-		WithWorkdir(workDir)
-
 	return &Scan{
-		Container: ctr,
-		Command:   cmd,
+		Container: m.Ctr,
+		Config:    config,
+		Kind:      Filesystem,
+		Source:    directory,
+		Target:    target,
 	}
 }
 
@@ -415,21 +407,12 @@ func (m *Trivy) Rootfs(
 	// +optional
 	config *dagger.File,
 ) *Scan {
-	const workDir = "/work/source"
-
-	cmd := &ScanCommand{
-		Command: "rootfs",
-		Args:    []string{target},
-	}
-
-	ctr := m.Ctr.
-		With(withConfigFunc(config)).
-		WithMountedDirectory(workDir, directory).
-		WithWorkdir(workDir)
-
 	return &Scan{
-		Container: ctr,
-		Command:   cmd,
+		Container: m.Ctr,
+		Config:    config,
+		Kind:      Rootfs,
+		Source:    directory,
+		Target:    target,
 	}
 }
 
