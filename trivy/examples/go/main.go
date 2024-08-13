@@ -9,8 +9,22 @@ import (
 	"github.com/sourcegraph/conc/pool"
 )
 
-// TODO: initialize trivy module once
-type Examples struct{}
+type Examples struct {
+	// +private
+	Trivy *dagger.Trivy
+}
+
+func New() *Examples {
+	return &Examples{
+		Trivy: dag.Trivy(dagger.TrivyOpts{
+			// Persist cache between runs
+			Cache: dag.CacheVolume("trivy"),
+
+			// Preheat vulnerability database cache
+			WarmDatabaseCache: true,
+		}),
+	}
+}
 
 func (m *Examples) All(ctx context.Context) error {
 	p := pool.New().WithErrors().WithContext(ctx)
@@ -26,19 +40,18 @@ func (m *Examples) All(ctx context.Context) error {
 	return p.Wait()
 }
 
+func output(ctx context.Context, scan *dagger.TrivyScan) error {
+	_, err := scan.Output(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // This example showcases how to initialize the Trivy module.
 func (m *Examples) Trivy_New() {
 	dag.Trivy(dagger.TrivyOpts{
-		// Persist cache between runs
-		Cache: dag.CacheVolume("trivy"),
-
-		// Preheat vulnerability database cache
-		WarmDatabaseCache: true,
-	})
-}
-
-func (m *Examples) trivy() *dagger.Trivy {
-	return dag.Trivy(dagger.TrivyOpts{
 		// Persist cache between runs
 		Cache: dag.CacheVolume("trivy"),
 
@@ -51,7 +64,7 @@ func (m *Examples) trivy() *dagger.Trivy {
 func (m *Examples) Trivy_Output(ctx context.Context) error {
 	// Initialize Trivy module
 	// See "New" example.
-	trivy := m.trivy()
+	trivy := m.Trivy
 
 	// Scan resources
 	scans := []*dagger.TrivyScan{
@@ -89,43 +102,33 @@ func (m *Examples) Trivy_Output(ctx context.Context) error {
 func (m *Examples) Trivy_Image(ctx context.Context) error {
 	// Initialize Trivy module
 	// See "New" example.
-	trivy := m.trivy()
+	trivy := m.Trivy
 
 	// Scan the image
 	scan := trivy.Image("alpine:latest")
 
 	// See "Output" example.
-	_, err := scan.Output(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return output(ctx, scan)
 }
 
 // This example showcases how to scan an image archive with Trivy.
 func (m *Examples) Trivy_ImageFile(ctx context.Context) error {
 	// Initialize Trivy module
 	// See "New" example.
-	trivy := m.trivy()
+	trivy := m.Trivy
 
 	// Scan the image file (using a container here for simplicity, but any image file will do)
 	scan := trivy.ImageFile(dag.Container().From("alpine:latest").AsTarball())
 
 	// See "Output" example.
-	_, err := scan.Output(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return output(ctx, scan)
 }
 
 // This example showcases how to scan a container with Trivy.
 func (m *Examples) Trivy_Container(ctx context.Context) error {
 	// Initialize Trivy module
 	// See "New" example.
-	trivy := m.trivy()
+	trivy := m.Trivy
 
 	// Grab or build a container
 	container := dag.Container().From("alpine:latest")
@@ -134,19 +137,14 @@ func (m *Examples) Trivy_Container(ctx context.Context) error {
 	scan := trivy.Container(container)
 
 	// See "Output" example.
-	_, err := scan.Output(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return output(ctx, scan)
 }
 
 // This example showcases how to scan a Helm chart with Trivy.
 func (m *Examples) Trivy_Helm(ctx context.Context) error {
 	// Initialize Trivy module
 	// See "New" example.
-	trivy := m.trivy()
+	trivy := m.Trivy
 
 	// Grab or build a Helm chart package
 	chart := dag.Helm().Create("foo").Package()
@@ -155,19 +153,14 @@ func (m *Examples) Trivy_Helm(ctx context.Context) error {
 	scan := trivy.HelmChart(chart.File())
 
 	// See "Output" example.
-	_, err := scan.Output(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return output(ctx, scan)
 }
 
 // This example showcases how to scan a rootfs with Trivy.
 func (m *Examples) Trivy_Rootfs(ctx context.Context) error {
 	// Initialize Trivy module
 	// See "New" example.
-	trivy := m.trivy()
+	trivy := m.Trivy
 
 	// Grab the rootfs of a container
 	rootfs := dag.Container().From("alpine:latest").Rootfs()
@@ -176,19 +169,14 @@ func (m *Examples) Trivy_Rootfs(ctx context.Context) error {
 	scan := trivy.Rootfs(rootfs)
 
 	// See "Output" example.
-	_, err := scan.Output(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return output(ctx, scan)
 }
 
 // This example showcases how to scan a binary with Trivy.
 func (m *Examples) Trivy_Binary(ctx context.Context) error {
 	// Initialize Trivy module
 	// See "New" example.
-	trivy := m.trivy()
+	trivy := m.Trivy
 
 	// Grab a binary file
 	binary := dag.Container().From("alpine:latest").File("/usr/bin/env")
@@ -197,10 +185,5 @@ func (m *Examples) Trivy_Binary(ctx context.Context) error {
 	scan := trivy.Binary(binary)
 
 	// See "Output" example.
-	_, err := scan.Output(ctx)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return output(ctx, scan)
 }
