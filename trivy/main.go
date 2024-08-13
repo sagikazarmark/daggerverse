@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"dagger/trivy/internal/dagger"
+	"errors"
 	"strings"
 	"time"
 )
@@ -113,6 +114,7 @@ const (
 	Filesystem ScanKind = "filesystem"
 	Rootfs     ScanKind = "rootfs"
 	Config     ScanKind = "config"
+	SBOM       ScanKind = "sbom"
 )
 
 type Scan struct {
@@ -425,14 +427,14 @@ func (m *Trivy) Binary(
 	ctx context.Context,
 
 	// Binary to scan.
-	file *dagger.File,
+	binary *dagger.File,
 
 	// Trivy configuration file.
 	//
 	// +optional
 	config *dagger.File,
 ) (*Scan, error) {
-	name, err := file.Name(ctx)
+	name, err := binary.Name(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -442,7 +444,41 @@ func (m *Trivy) Binary(
 		name = "binary"
 	}
 
-	dir := dag.Directory().WithFile(name, file)
+	dir := dag.Directory().WithFile(name, binary)
 
 	return m.Rootfs(dir, name, config), nil
+}
+
+// Scan an SBOM.
+//
+// See https://aquasecurity.github.io/trivy/latest/docs/target/sbom/ for more information.
+func (m *Trivy) Sbom(
+	ctx context.Context,
+
+	// SBOM to scan.
+	sbom *dagger.File,
+
+	// Trivy configuration file.
+	//
+	// +optional
+	config *dagger.File,
+) (*Scan, error) {
+	name, err := sbom.Name(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if name == "" {
+		return nil, errors.New("sbom file has no name")
+	}
+
+	source := dag.Directory().WithFile(name, sbom)
+
+	return &Scan{
+		Container: m.Ctr,
+		Config:    config,
+		Kind:      SBOM,
+		Source:    source,
+		Target:    name,
+	}, nil
 }
