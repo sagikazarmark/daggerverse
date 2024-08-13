@@ -207,18 +207,20 @@ func (m *Trivy) Container(
 	// +optional
 	config *dagger.File,
 ) *Scan {
-	imagePath := "/work/image.tar"
+	const workDir = "/work/source"
+	const input = "image.tar"
 
 	cmd := &ScanCommand{
 		Command: "image",
 		Args: []string{
-			"--input", imagePath,
+			"--input", input,
 		},
 	}
 
 	ctr := m.Ctr.
 		With(withConfigFunc(config)).
-		WithMountedFile(imagePath, container.AsTarball())
+		WithMountedFile(workDir+"/"+input, container.AsTarball()).
+		WithWorkdir(workDir)
 
 	return &Scan{
 		Container: ctr,
@@ -263,15 +265,15 @@ func (m *Trivy) HelmChart(
 	// +optional
 	config *dagger.File,
 ) (*Scan, error) {
-	chartPath := "/work/chart.tgz"
-
-	ctr := m.Ctr
+	const workDir = "/work/source"
+	const input = "chart.tgz"
 
 	cmd := &ScanCommand{
 		Command: "config",
+		Args:    []string{input},
 	}
 
-	cmd.Args = append(cmd.Args, chartPath)
+	ctr := m.Ctr
 
 	if len(set) > 0 {
 		cmd.Args = append(cmd.Args, "--helm-set", strings.Join(set, ","))
@@ -307,7 +309,8 @@ func (m *Trivy) HelmChart(
 
 	ctr = ctr.
 		With(withConfigFunc(config)).
-		WithMountedFile(chartPath, chart)
+		WithMountedFile(workDir+"/"+input, chart).
+		WithWorkdir(workDir)
 
 	return &Scan{
 		Container: ctr,
