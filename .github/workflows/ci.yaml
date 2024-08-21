@@ -69,6 +69,7 @@ jobs:
       matrix:
         module:
           - helm
+          - svix
           - trivy
 
     steps:
