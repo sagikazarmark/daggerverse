@@ -78,6 +78,19 @@ func (m *Go) WithEnvVariable(
 	}
 }
 
+// Establish a runtime dependency on a service.
+func (m *Go) WithServiceBinding(
+	// A name that can be used to reach the service from the container.
+	alias string,
+
+	// Identifier of the service container.
+	service *dagger.Service,
+) *Go {
+	m.Container = m.Container.WithServiceBinding(alias, service)
+
+	return m
+}
+
 // Set GOOS, GOARCH and GOARM environment variables.
 func (m *Go) WithPlatform(
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
@@ -282,6 +295,19 @@ func (m *WithSource) WithEnvVariable(
 	expand bool,
 ) *WithSource {
 	return &WithSource{m.Go.WithEnvVariable(name, value, expand)}
+}
+
+// Establish a runtime dependency on a service.
+func (m *WithSource) WithServiceBinding(
+	// A name that can be used to reach the service from the container.
+	alias string,
+
+	// Identifier of the service container.
+	service *dagger.Service,
+) *WithSource {
+	m.Go.Container = m.Go.Container.WithServiceBinding(alias, service)
+
+	return m
 }
 
 // Set GOOS, GOARCH and GOARM environment variables.
