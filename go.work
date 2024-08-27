@@ -38,8 +38,10 @@ use (
 	./python/tests
 	./quarto
 	./quarto/tests
+	./registry
 	./registry-config
 	./registry-config/tests
+	./registry/tests
 	./slsa-verifier
 	./slsa-verifier/tests
 	./spectral
