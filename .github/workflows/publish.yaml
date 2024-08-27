@@ -31,6 +31,7 @@ jobs:
           - psql
           - python
           - quarto
+          - registry
           - registry-config
           - slsa-verifier
           - spectral
