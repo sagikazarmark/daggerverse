@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/containerd/containerd/platforms"
+	"github.com/containerd/platforms"
 	mod "golang.org/x/mod/module"
 )
 

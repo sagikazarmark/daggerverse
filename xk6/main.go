@@ -5,7 +5,7 @@ import (
 	"dagger/xk6/internal/dagger"
 	"fmt"
 
-	"github.com/containerd/containerd/platforms"
+	"github.com/containerd/platforms"
 )
 
 // defaultImageRepository is used when no image is specified.

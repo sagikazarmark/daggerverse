@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containerd/containerd/platforms"
+	"github.com/containerd/platforms"
 )
 
 // defaultImageRepository is used when no image is specified.
