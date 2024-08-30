@@ -17,7 +17,9 @@ const defaultImageRepository = "alpine/helm"
 type Helm struct {
 	Container *dagger.Container
 
-	// +private
+	// DO NOT USE
+	// Made public until https://github.com/dagger/dagger/pull/8149 is fixed.
+	// private
 	RegistryConfig *dagger.RegistryConfig
 }
 
