@@ -125,7 +125,9 @@ type SecretMount struct {
 	// Permission given to the mounted secret (e.g., 0600).
 	Mode int
 
-	// +private
+	// DO NOT USE
+	// Made public until https://github.com/dagger/dagger/pull/8149 is fixed.
+	// private
 	RegistryConfig *RegistryConfig
 }
 
