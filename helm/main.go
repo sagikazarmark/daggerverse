@@ -63,7 +63,11 @@ func New(
 
 // use container for actions that need registry credentials
 func (m *Helm) container() *dagger.Container {
-	return m.Container.With(m.RegistryConfig.SecretMount("/root/.config/helm/registry/config.json").Mount)
+	return m.Container.With(func(c *dagger.Container) *dagger.Container {
+		return c.WithMountedSecret("/root/.config/helm/registry/config.json", m.RegistryConfig.Secret())
+	})
+
+	// return m.Container.With(m.RegistryConfig.SecretMount("/root/.config/helm/registry/config.json").Mount)
 }
 
 // Add credentials for a registry.
