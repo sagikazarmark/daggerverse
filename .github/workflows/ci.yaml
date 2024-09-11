@@ -56,7 +56,7 @@ jobs:
           module: github.com/${{ github.repository }}/${{ matrix.module }}/tests@${{ github.ref }}
           args: ${{ steps.constructor-args.outputs.value }} all
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.12.0"
+          version: "0.13.0"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -85,6 +85,6 @@ jobs:
           module: github.com/${{ github.repository }}/${{ matrix.module }}/examples/go@${{ github.ref }}
           args: ${{ steps.constructor-args.outputs.value }} all
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.12.0"
+          version: "0.13.0"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
