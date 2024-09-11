@@ -19,7 +19,9 @@ import (
 )
 
 type RegistryConfig struct {
-	// +private
+	// DO NOT USE
+	// Made public until https://github.com/dagger/dagger/pull/8149 is fixed.
+	// private
 	Auths []Auth
 }
 
