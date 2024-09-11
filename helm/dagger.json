@@ -8,12 +8,7 @@
     "../go.work.sum",
     "tests"
   ],
-  "dependencies": [
-    {
-      "name": "registry-config",
-      "source": "../registry-config"
-    }
-  ],
+  "dependencies": [],
   "source": ".",
   "engineVersion": "v0.13.0"
 }

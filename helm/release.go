@@ -614,7 +614,7 @@ func install(
 type Release struct {
 	Name string
 
-	// +private
+	// private
 	Container *dagger.Container
 }
 

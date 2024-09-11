@@ -17,8 +17,8 @@ const defaultImageRepository = "alpine/helm"
 type Helm struct {
 	Container *dagger.Container
 
-	// +private
-	RegistryConfig *dagger.RegistryConfig
+	// private
+	RegistryConfig *RegistryConfig
 }
 
 func New(
@@ -57,14 +57,16 @@ func New(
 
 	return &Helm{
 		Container:      container,
-		RegistryConfig: dag.RegistryConfig(),
+		RegistryConfig: &RegistryConfig{},
 	}
 }
 
 // use container for actions that need registry credentials
 func (m *Helm) container() *dagger.Container {
+	s, _ := m.RegistryConfig.Secret(context.Background(), "")
+
 	return m.Container.With(func(c *dagger.Container) *dagger.Container {
-		return c.WithMountedSecret("/root/.config/helm/registry/config.json", m.RegistryConfig.Secret())
+		return c.WithMountedSecret("/root/.config/helm/registry/config.json", s)
 	})
 
 	// return m.Container.With(m.RegistryConfig.SecretMount("/root/.config/helm/registry/config.json").Mount)
