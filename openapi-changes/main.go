@@ -189,12 +189,18 @@ type Run struct {
 	Args []string
 }
 
+// Return a summary of the changes.
+//
+// See https://pb33f.io/openapi-changes/summary/ for more information.
 func (r *Run) Summary(ctx context.Context) (string, error) {
 	args := append([]string{"openapi-changes", "summary"}, r.Args...)
 
 	return r.Container.WithExec([]string{"sh", "-c", strings.Join(args, " ") + " || exit 0"}).Stdout(ctx)
 }
 
+// Return a summary of the changes in Markdown format.
+//
+// See https://pb33f.io/openapi-changes/summary/ for more information.
 func (r *Run) Markdown(ctx context.Context) (*dagger.File, error) {
 	args := append([]string{"openapi-changes", "summary", "--markdown"}, r.Args...)
 
@@ -206,6 +212,9 @@ func (r *Run) Markdown(ctx context.Context) (*dagger.File, error) {
 	return dag.Directory().WithNewFile("summary.md", output).File("summary.md"), nil
 }
 
+// Return a JSON report of the changes.
+//
+// See https://pb33f.io/openapi-changes/report/ for more information.
 func (r *Run) Json(ctx context.Context) (*dagger.File, error) {
 	args := append([]string{"openapi-changes", "report"}, r.Args...)
 
@@ -217,10 +226,36 @@ func (r *Run) Json(ctx context.Context) (*dagger.File, error) {
 	return dag.Directory().WithNewFile("report.json", output).File("report.json"), nil
 }
 
-func (r *Run) HTML() *dagger.File {
+// Return a HTML report of the changes.
+//
+// See https://pb33f.io/openapi-changes/html-report/ for more information.
+func (r *Run) HTML() *HtmlReport {
 	args := append([]string{"openapi-changes", "html-report"}, r.Args...)
 
-	return r.Container.WithExec([]string{"sh", "-c", strings.Join(args, " ") + " || exit 0"}).File("report.html")
+	return &HtmlReport{
+		File: r.Container.WithExec([]string{"sh", "-c", strings.Join(args, " ") + " || exit 0"}).File("report.html"),
+	}
+}
+
+type HtmlReport struct {
+	File *dagger.File
+}
+
+// Serve the HTML report on a local server.
+func (r *HtmlReport) Serve(
+	// The port to serve the HTML report on.
+	//
+	// +optional
+	// +default=8080
+	port int,
+) *dagger.Service {
+	return dag.Container().
+		From("caddy:2-alpine").
+		WithExposedPort(port).
+		WithMountedFile("/var/www/index.html", r.File).
+		WithWorkdir("/var/www").
+		WithExec([]string{"caddy", "file-server", "--listen", fmt.Sprintf(":%d", port)}).
+		AsService()
 }
 
 type cmdArgs struct {
