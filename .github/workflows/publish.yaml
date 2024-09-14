@@ -26,6 +26,7 @@ jobs:
           - helm-docs
           - kafka
           - kustomize
+          - openapi-changes
           - openssh-server
           - postgres
           - psql
