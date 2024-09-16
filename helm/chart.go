@@ -85,6 +85,20 @@ func (p *Package) WithoutRegistryAuth(address string) *Package {
 	return p
 }
 
+// Mount a file as the kubeconfig file.
+func (p *Package) WithKubeconfigFile(file *dagger.File) *Package {
+	p.Helm = p.Helm.WithKubeconfigFile(file)
+
+	return p
+}
+
+// Mount a secret as the kubeconfig file.
+func (p *Package) WithKubeconfigSecret(secret *dagger.Secret) *Package {
+	p.Helm = p.Helm.WithKubeconfigSecret(secret)
+
+	return p
+}
+
 // Publishes this Helm chart package to an OCI registry.
 func (p *Package) Publish(
 	ctx context.Context,
