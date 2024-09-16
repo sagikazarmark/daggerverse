@@ -182,10 +182,7 @@ func (m *Tests) ChartInstall(ctx context.Context) error {
 		return err
 	}
 
-	helm := dag.Helm(dagger.HelmOpts{
-		Container: newHelm().Container().
-			WithMountedFile("/root/.kube/config", k8s.Config(false)),
-	})
+	helm := newHelm().WithKubeconfigFile(k8s.Config(false))
 
 	release := helm.Create("foo").Install("foo", dagger.HelmChartInstallOpts{
 		Wait: true,
@@ -209,10 +206,7 @@ func (m *Tests) PackageInstall(ctx context.Context) error {
 		return err
 	}
 
-	helm := dag.Helm(dagger.HelmOpts{
-		Container: newHelm().Container().
-			WithMountedFile("/root/.kube/config", k8s.Config(false)),
-	})
+	helm := newHelm().WithKubeconfigFile(k8s.Config(false))
 
 	release := helm.Create("foo").Package().Install("foo", dagger.HelmPackageInstallOpts{
 		Wait: true,

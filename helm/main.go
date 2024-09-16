@@ -86,6 +86,24 @@ func (m *Helm) WithoutRegistryAuth(address string) *Helm {
 	return m
 }
 
+// Mount a file as the kubeconfig file.
+func (m *Helm) WithKubeconfigFile(file *dagger.File) *Helm {
+	m.Container = m.Container.
+		WithoutEnvVariable("KUBECONFIG").
+		WithMountedFile("/root/.kube/config", file)
+
+	return m
+}
+
+// Mount a secret as the kubeconfig file.
+func (m *Helm) WithKubeconfigSecret(secret *dagger.Secret) *Helm {
+	m.Container = m.Container.
+		WithoutEnvVariable("KUBECONFIG").
+		WithMountedSecret("/root/.kube/config", secret)
+
+	return m
+}
+
 // Create a new chart directory along with the common files and directories used in a chart.
 func (m *Helm) Create(name string) *Chart {
 	const workdir = "/work"
