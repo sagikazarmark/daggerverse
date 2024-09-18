@@ -33,6 +33,7 @@ func (m *Examples) Svix_Postgres(ctx context.Context) error {
 	postgres := dag.Postgres(dagger.PostgresOpts{
 		User:     dag.SetSecret("postgres-user", "postgres"),
 		Password: dag.SetSecret("postgres-password", "postgres"),
+		Database: "svix",
 	})
 
 	svix := dag.Svix(dagger.SvixOpts{
