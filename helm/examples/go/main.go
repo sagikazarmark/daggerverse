@@ -1,4 +1,4 @@
-// Examples for Helm module
+// Examples for Helm module.
 
 package main
 
