@@ -8,7 +8,6 @@ package main
 
 import (
 	"context"
-	"crypto/sha1"
 	"dagger/postgres/internal/dagger"
 	"fmt"
 	"strings"
@@ -52,7 +51,7 @@ func New(
 	// +optional
 	user *dagger.Secret,
 
-	// Superuser password. (defaults to a generated password)
+	// Superuser password. (defaults "postgres")
 	//
 	// +optional
 	password *dagger.Secret,
@@ -90,23 +89,9 @@ func New(
 		user = dag.SetSecret("postgres-default-user", "postgres")
 	}
 
-	// Generate a random password.
+	// Password defaults to "postgres".
 	if password == nil {
-		randomPassword, err := generateRandomPassword(20)
-		if err != nil {
-			return nil, err
-		}
-
-		h := sha1.New()
-
-		_, err = h.Write([]byte(randomPassword))
-		if err != nil {
-			return nil, err
-		}
-
-		name := fmt.Sprintf("postgres-generated-password-%x", h.Sum(nil))
-
-		password = dag.SetSecret(name, randomPassword)
+		password = dag.SetSecret("postgres-default-password", "postgres")
 	}
 
 	// Database defaults to the user name.
