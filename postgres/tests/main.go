@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"dagger/postgres/tests/internal/dagger"
+	"errors"
+	"slices"
 
 	"github.com/sourcegraph/conc/pool"
 )
@@ -33,6 +35,39 @@ func (m *Tests) Basic(ctx context.Context) error {
 	_, err = client.RunCommand(ctx, "SELECT 1;")
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Tests) WithDatabase(ctx context.Context) error {
+	postgres := dag.Postgres(dagger.PostgresOpts{
+		Version: postgresVersion,
+	}).WithDatabase("test")
+
+	client, err := client(ctx, postgres)
+	if err != nil {
+		return err
+	}
+
+	databases, err := client.List(ctx)
+	if err != nil {
+		return err
+	}
+
+	databaseNames := make([]string, 0, len(databases))
+
+	for _, database := range databases {
+		name, err := database.Name(ctx)
+		if err != nil {
+			return err
+		}
+
+		databaseNames = append(databaseNames, name)
+	}
+
+	if !slices.Contains(databaseNames, "test") {
+		return errors.New("expected to find test database")
 	}
 
 	return nil

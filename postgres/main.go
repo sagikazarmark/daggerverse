@@ -29,6 +29,9 @@ type Postgres struct {
 
 	// +private
 	Container *dagger.Container
+
+	// +private
+	InitScripts *dagger.Directory
 }
 
 func New(
@@ -132,6 +135,10 @@ func New(
 		}
 	}
 
+	if initScripts == nil {
+		initScripts = dag.Directory()
+	}
+
 	container = container.
 		WithExposedPort(5432).
 		WithSecretVariable("POSTGRES_USER", user).
@@ -140,10 +147,6 @@ func New(
 		With(func(c *dagger.Container) *dagger.Container {
 			if dataVolume != nil {
 				c = c.WithMountedCache(pgdata, dataVolume)
-			}
-
-			if initScripts != nil {
-				c = c.WithMountedDirectory("/docker-entrypoint-initdb.d", initScripts)
 			}
 
 			if len(initdbArgs) > 0 {
@@ -158,11 +161,45 @@ func New(
 		Password: password,
 		Database: database,
 
-		Container: container,
+		Container:   container,
+		InitScripts: initScripts,
 	}, nil
+}
+
+func (m *Postgres) container() *dagger.Container {
+	return m.Container.
+		WithMountedDirectory("/docker-entrypoint-initdb.d", m.InitScripts)
+}
+
+// Add an additional initialization script to run when the service first starts.
+func (m *Postgres) WithInitScript(file *dagger.File) *Postgres {
+	m.InitScripts = m.InitScripts.WithFile("", file)
+
+	return m
+}
+
+// Creates an additional database with the given name (with the default user as the owner) when the service first starts.
+//
+// Under the hood, this method adds a SQL script to the init scripts that creates the database.
+func (m *Postgres) WithDatabase(
+	ctx context.Context,
+
+	// Database to create.
+	name string,
+) (*Postgres, error) {
+	user, err := m.User.Plaintext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	sql := fmt.Sprintf(`CREATE DATABASE %s; GRANT ALL PRIVILEGES ON DATABASE %s TO %s;`, name, name, user)
+
+	m.InitScripts = m.InitScripts.WithNewFile(fmt.Sprintf("create-database-%s.sql", name), sql)
+
+	return m, nil
 }
 
 // The Postgres service.
 func (m *Postgres) Service() *dagger.Service {
-	return m.Container.AsService()
+	return m.container().AsService()
 }
