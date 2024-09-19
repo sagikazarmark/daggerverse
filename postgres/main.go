@@ -75,6 +75,11 @@ func New(
 	//
 	// +optional
 	initdbArgs []string,
+
+	// Instance name (allowing to spawn multiple services with the same parameters).
+	//
+	// +optional
+	name string,
 ) (*Postgres, error) {
 	if container == nil {
 		if version == "" {
@@ -136,6 +141,10 @@ func New(
 
 			if len(initdbArgs) > 0 {
 				c = c.WithEnvVariable("POSTGRES_INITDB_ARGS", strings.Join(initdbArgs, " "))
+			}
+
+			if name != "" {
+				c = c.WithLabel("io.dagger.postgres.instance", name)
 			}
 
 			return c
