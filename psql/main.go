@@ -10,6 +10,7 @@ import (
 	"context"
 	"dagger/psql/internal/dagger"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jszwec/csvutil"
@@ -27,23 +28,27 @@ type SSLMode string
 
 const (
 	// Only try a non-SSL connection.
-	Disable SSLMode = "disable"
+	SSLModeDisable SSLMode = "disable"
 
 	// First try a non-SSL connection; if that fails, try an SSL connection.
-	Allow SSLMode = "allow"
+	SSLModeAllow SSLMode = "allow"
 
 	// First try an SSL connection; if that fails, try a non-SSL connection.
-	Prefer SSLMode = "prefer"
+	SSLModePrefer SSLMode = "prefer"
 
 	// Only try an SSL connection. If a root CA file is present, verify the certificate in the same way as if verify-ca was specified.
-	Require SSLMode = "require"
+	SSLModeRequire SSLMode = "require"
 
 	// Only try an SSL connection, and verify that the server certificate is issued by a trusted certificate authority (CA).
-	VerifyCA SSLMode = "verifyca"
+	SSLModeVerifyCA SSLMode = "verify_ca"
 
 	// Only try an SSL connection, verify that the server certificate is issued by a trusted CA and that the requested server host name matches that in the certificate.
-	VerifyFull SSLMode = "verifyfull"
+	SSLModeVerifyFull SSLMode = "verify_full"
 )
+
+func (s SSLMode) String() string {
+	return strings.ReplaceAll(string(s), "_", "-")
+}
 
 func New(
 	// Version (image tag) to use from the official image repository as a base container.
@@ -90,7 +95,7 @@ func New(
 	// This option determines whether or with what priority a secure SSL TCP/IP connection will be negotiated with the server.
 	//
 	// +optional
-	sslmode string,
+	sslmode SSLMode,
 ) (*Psql, error) {
 	if container == nil {
 		if version == "" {
@@ -135,7 +140,7 @@ func New(
 			}
 
 			if sslmode != "" {
-				c = c.WithEnvVariable("PGSSLMODE", sslmode)
+				c = c.WithEnvVariable("PGSSLMODE", sslmode.String())
 			}
 
 			return c
