@@ -166,20 +166,23 @@ func (m *Scan) container(extraArgs []string) *dagger.Container {
 		WithExec(args)
 }
 
-// TODO: enabled report format enum once it's fixed
-// type ReportFormat string
-//
-// const (
-// 	Table      ReportFormat = "table"
-// 	JSON       ReportFormat = "json"
-// 	Template   ReportFormat = "template"
-// 	SARIF      ReportFormat = "sarif"
-// 	CycloneDX  ReportFormat = "cyclonedx"
-// 	SPDX       ReportFormat = "spdx"
-// 	SPDXJSON   ReportFormat = "spdx_json"
-// 	GitHub     ReportFormat = "github"
-// 	CosignVuln ReportFormat = "cosign_vuln"
-// )
+type ReportFormat string
+
+const (
+	ReportFormatTable      ReportFormat = "table"
+	ReportFormatJSON       ReportFormat = "json"
+	ReportFormatTemplate   ReportFormat = "template"
+	ReportFormatSARIF      ReportFormat = "sarif"
+	ReportFormatCycloneDX  ReportFormat = "cyclonedx"
+	ReportFormatSPDX       ReportFormat = "spdx"
+	ReportFormatSPDXJSON   ReportFormat = "spdx_json"
+	ReportFormatGitHub     ReportFormat = "github"
+	ReportFormatCosignVuln ReportFormat = "cosign_vuln"
+)
+
+func (f ReportFormat) String() string {
+	return strings.ReplaceAll(string(f), "_", "-")
+}
 
 // Get the scan results.
 func (m *Scan) Output(
@@ -188,12 +191,12 @@ func (m *Scan) Output(
 	// Trivy report format.
 	//
 	// +optional
-	format string,
+	format ReportFormat,
 ) (string, error) {
 	var args []string
 
 	if format != "" {
-		args = append(args, "--format", format)
+		args = append(args, "--format", format.String())
 	}
 
 	return m.container(args).Stdout(ctx)
@@ -204,15 +207,15 @@ func (m *Scan) Report(
 	ctx context.Context,
 
 	// Trivy report format.
-	format string,
+	format ReportFormat,
 ) *dagger.File {
 	reportPath := "/work/report"
 
 	var args []string
 
 	if format != "" {
-		args = append(args, "--format", format)
-		reportPath += "." + string(format)
+		args = append(args, "--format", format.String())
+		reportPath += "." + format.String()
 	}
 
 	args = append(args, "--output", reportPath)
