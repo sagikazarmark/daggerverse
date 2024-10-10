@@ -1,0 +1,92 @@
+name: Nightly
+
+on:
+  schedule:
+    - cron: "20 */12 * * *"
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - apko
+          - arc
+          - archivist
+          - bats
+          - borgo
+          - checksum
+          - gh
+          - go
+          - golangci-lint
+          - helm
+          - helm-docs
+          - kafka
+          - kustomize
+          - openapi-changes
+          - openssh-server
+          - postgres
+          - psql
+          - python
+          - quarto
+          - registry
+          - registry-config
+          - slsa-verifier
+          - spectral
+          - ssh-keygen
+          - stainless
+          - trivy
+          - xcaddy
+          - xk6
+
+    steps:
+      - uses: dkershner6/switch-case-action@v1
+        id: constructor-args
+        with:
+          default: ""
+          conditionals-with-values: |
+            ${{ matrix.module == 'gh' }} => --github-token env:GITHUB_TOKEN
+
+      - name: Run pipeline
+        uses: jedevc/dagger-for-github@4f282f703ae68fc0a83b9b635b2d9b17743c57c6
+        with:
+          verb: call
+          module: github.com/${{ github.repository }}/${{ matrix.module }}/tests@${{ github.ref }}
+          args: ${{ steps.constructor-args.outputs.value }} all
+          # cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: "head"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  examples:
+    name: Examples
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - helm
+          - svix
+          - trivy
+
+    steps:
+      - uses: dkershner6/switch-case-action@v1
+        id: constructor-args
+        with:
+          default: ""
+          conditionals-with-values: |
+            ${{ matrix.module == 'gh' }} => --github-token env:GITHUB_TOKEN
+
+      - name: Run pipeline
+        uses: jedevc/dagger-for-github@4f282f703ae68fc0a83b9b635b2d9b17743c57c6
+        with:
+          verb: call
+          module: github.com/${{ github.repository }}/${{ matrix.module }}/examples/go@${{ github.ref }}
+          args: ${{ steps.constructor-args.outputs.value }} all
+          # cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          version: "head"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
