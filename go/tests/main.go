@@ -353,3 +353,21 @@ func (m *Tests) Source(ctx context.Context) error {
 
 	return nil
 }
+
+func (m *Tests) Generate(ctx context.Context) error {
+	out, err := dag.Go().
+		WithSource(dag.CurrentModule().Source().Directory("./testdata")).
+		Generate(dagger.GoWithSourceGenerateOpts{Packages: []string{"./..."}}).
+		Source().
+		File("world").
+		Contents(ctx)
+	if err != nil {
+		return err
+	}
+
+	if !strings.Contains(out, "hello") {
+		return fmt.Errorf("unexpected output to contain \"hello\", got %q", out)
+	}
+
+	return nil
+}
