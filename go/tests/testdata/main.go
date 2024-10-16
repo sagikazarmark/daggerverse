@@ -1,5 +1,7 @@
 package main
 
+//go:generate sh -c "echo hello > world"
+
 import "os"
 
 var version = "unknown"

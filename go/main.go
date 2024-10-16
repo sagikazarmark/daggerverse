@@ -12,6 +12,8 @@ import (
 // defaultImageRepository is used when no image is specified.
 const defaultImageRepository = "golang"
 
+const workdir = "/work/src"
+
 type Go struct {
 	Container *dagger.Container
 }
@@ -208,6 +210,37 @@ func (m *Go) Exec(
 	return m.Container.WithExec(args)
 }
 
+// Run "go generate" command.
+//
+// Consult "go help generate" for more information.
+func (m *Go) Generate(
+	// Source directory to mount.
+	source *dagger.Directory,
+
+	// Packages (or files) to run "go generate" on.
+	//
+	// +optional
+	packages []string,
+
+	// A regular expression to select directives whose full original source text (excluding any trailing spaces and final newline) matches the expression.
+	//
+	// +optional
+	run string,
+
+	// A regular expression to suppress directives whose full original source text (excluding any trailing spaces and final newline) matches the expression.
+	//
+	// +optional
+	skip string,
+
+	// TODO: add -v, -n and -x flags
+) *dagger.Directory {
+	return m.WithSource(source).Generate(
+		packages,
+		run,
+		skip,
+	).Source
+}
+
 // Build a binary.
 func (m *Go) Build(
 	// Source directory to mount.
@@ -264,25 +297,23 @@ func (m *Go) WithSource(
 	// Source directory to mount.
 	source *dagger.Directory,
 ) *WithSource {
-	const workdir = "/work/src"
-
-	child := *m
-	child.Container = m.Container.
-		WithWorkdir(workdir).
-		WithMountedDirectory(workdir, source)
-
 	return &WithSource{
-		Go: &child,
+		Source: source,
+		Go:     m,
 	}
 }
 
 type WithSource struct {
+	Source *dagger.Directory
+
 	// +private
 	Go *Go
 }
 
 func (m *WithSource) Container() *dagger.Container {
-	return m.Go.Container
+	return m.Go.Container.
+		WithWorkdir(workdir).
+		WithMountedDirectory(workdir, m.Source)
 }
 
 // Set an environment variable.
@@ -380,6 +411,18 @@ func (m *WithSource) WithBuildCache(
 }
 
 // Run a Go command.
+func (m *WithSource) WithExec(
+	// Arguments to pass to the Go command.
+	args []string,
+
+	// TODO: add back the platform argument, but make sure it's not persisted across calls
+) *WithSource {
+	m.Source = m.Exec(args, dagger.Platform("")).Directory(workdir)
+
+	return m
+}
+
+// Run a Go command.
 func (m *WithSource) Exec(
 	// Arguments to pass to the Go command.
 	args []string,
@@ -393,7 +436,45 @@ func (m *WithSource) Exec(
 		m = m.WithPlatform(platform)
 	}
 
-	return m.Go.Container.WithExec(args)
+	return m.Container().WithExec(args)
+}
+
+// Run "go generate" command.
+//
+// Consult "go help generate" for more information.
+func (m *WithSource) Generate(
+	// Packages (or files) to run "go generate" on.
+	//
+	// +optional
+	packages []string,
+
+	// A regular expression to select directives whose full original source text (excluding any trailing spaces and final newline) matches the expression.
+	//
+	// +optional
+	run string,
+
+	// A regular expression to suppress directives whose full original source text (excluding any trailing spaces and final newline) matches the expression.
+	//
+	// +optional
+	skip string,
+
+	// TODO: add -v, -n and -x flags
+) *WithSource {
+	args := []string{"go", "generate"}
+
+	if run != "" {
+		args = append(args, "-run", run)
+	}
+
+	if skip != "" {
+		args = append(args, "-skip", skip)
+	}
+
+	if len(packages) > 0 {
+		args = append(args, packages...)
+	}
+
+	return m.WithExec(args)
 }
 
 // Compile the packages into a binary.
