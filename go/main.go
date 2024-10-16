@@ -264,25 +264,25 @@ func (m *Go) WithSource(
 	// Source directory to mount.
 	source *dagger.Directory,
 ) *WithSource {
-	const workdir = "/work/src"
-
-	child := *m
-	child.Container = m.Container.
-		WithWorkdir(workdir).
-		WithMountedDirectory(workdir, source)
-
 	return &WithSource{
-		Go: &child,
+		Source: source,
+		Go:     m,
 	}
 }
 
 type WithSource struct {
+	Source *dagger.Directory
+
 	// +private
 	Go *Go
 }
 
 func (m *WithSource) Container() *dagger.Container {
-	return m.Go.Container
+	const workdir = "/work/src"
+
+	return m.Go.Container.
+		WithWorkdir(workdir).
+		WithMountedDirectory(workdir, m.Source)
 }
 
 // Set an environment variable.
@@ -393,7 +393,7 @@ func (m *WithSource) Exec(
 		m = m.WithPlatform(platform)
 	}
 
-	return m.Go.Container.WithExec(args)
+	return m.Container().WithExec(args)
 }
 
 // Compile the packages into a binary.
