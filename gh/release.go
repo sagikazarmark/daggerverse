@@ -19,9 +19,9 @@ type Release struct {
 type Latest string
 
 const (
-	LatestTrue  Latest = "true"
-	LatestFalse Latest = "false"
-	LatestAuto  Latest = "auto"
+	LatestTrue  Latest = "LATEST_TRUE"
+	LatestFalse Latest = "LATEST_FALSE"
+	LatestAuto  Latest = "LATEST_AUTO"
 )
 
 // Create a new GitHub Release for a repository.
@@ -82,7 +82,7 @@ func (m *Release) Create(
 	// Mark this release as "Latest" (default: automatic based on date and version).
 	//
 	// +optional
-	// +default="auto"
+	// +default="LATEST_AUTO"
 	latest Latest,
 
 	// Abort in case the git tag doesn't already exist in the remote repository.
