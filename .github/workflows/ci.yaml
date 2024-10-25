@@ -51,7 +51,7 @@ jobs:
             ${{ matrix.module == 'gh' }} => --github-token env:GITHUB_TOKEN
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@6b6e9832f7dffd6cd9cdd989a577bb2cbfc45432 # v6.13.0
+        uses: dagger/dagger-for-github@ad6a4e308a42fb2cf9be8b060f9aba9d57d4c9aa # v6.14.0
         with:
           verb: call
           module: github.com/${{ github.repository }}/${{ matrix.module }}/tests@${{ github.ref }}
@@ -81,7 +81,7 @@ jobs:
             ${{ matrix.module == 'gh' }} => --github-token env:GITHUB_TOKEN
 
       - name: Run pipeline
-        uses: dagger/dagger-for-github@6b6e9832f7dffd6cd9cdd989a577bb2cbfc45432 # v6.13.0
+        uses: dagger/dagger-for-github@ad6a4e308a42fb2cf9be8b060f9aba9d57d4c9aa # v6.14.0
         with:
           verb: call
           module: github.com/${{ github.repository }}/${{ matrix.module }}/examples/go@${{ github.ref }}
