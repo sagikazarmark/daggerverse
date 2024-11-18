@@ -59,3 +59,5 @@ init module:
 # run `dagger develop` for all modules
 develop:
     for dir in */; do dagger develop -m $dir; done
+    for dir in */; do if [ -d "${dir%/}/tests" ]; then dagger develop -m "${dir%/}/tests"; fi done
+    for dir in */; do if [ -d "${dir%/}/examples/go" ]; then dagger develop -m "${dir%/}/examples/go"; fi done
