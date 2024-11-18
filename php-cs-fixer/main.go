@@ -1,19 +1,17 @@
-// PHP Static Analysis Tool - discover bugs in your code without running it!
+// A tool to automatically fix PHP Coding Standards issues.
 
 package main
 
 import (
-	"dagger/phpstan/internal/dagger"
+	"dagger/php-cs-fixer/internal/dagger"
 )
 
 // defaultImageRepository is used when no image is specified.
-const defaultImageRepository = "ghcr.io/phpstan/phpstan"
+const defaultImageRepository = "ghcr.io/php-cs-fixer/php-cs-fixer"
 
-type Phpstan struct {
+type PhpCsFixer struct {
 	Container *dagger.Container
 }
-
-// TODO: add support for custom cache
 
 func New(
 	// Version (image tag) to use from the official image repository as a base container.
@@ -31,7 +29,7 @@ func New(
 	//
 	// +optional
 	container *dagger.Container,
-) *Phpstan {
+) *PhpCsFixer {
 	if container == nil {
 		if version == "" {
 			version = "latest"
@@ -44,15 +42,13 @@ func New(
 		container = dag.Container().From(defaultImageRepository + ":" + version)
 	}
 
-	return &Phpstan{
+	return &PhpCsFixer{
 		Container: container,
 	}
 }
 
-// TODO: add support for custom config
-
-// Analyse source code.
-func (m *Phpstan) Analyse(
+// Check if configured files/directories comply with configured rules.
+func (m *PhpCsFixer) Check(
 	source *dagger.Directory,
 
 	// Paths with source code to run analysis on.
@@ -60,7 +56,7 @@ func (m *Phpstan) Analyse(
 	// +optional
 	paths []string,
 ) *dagger.Container {
-	args := []string{"phpstan", "analyse", "--no-progress"}
+	args := []string{"php-cs-fixer", "check", "--show-progress", "none", "--no-interaction"}
 
 	if len(paths) > 0 {
 		args = append(args, paths...)
@@ -70,26 +66,4 @@ func (m *Phpstan) Analyse(
 		WithWorkdir("/work/src").
 		WithMountedDirectory("/work/src", source).
 		WithExec(args)
-}
-
-// Generate baseline file.
-func (m *Phpstan) GenerateBaseline(
-	source *dagger.Directory,
-
-	// Paths with source code to run analysis on.
-	//
-	// +optional
-	paths []string,
-) *dagger.File {
-	args := []string{"phpstan", "analyse", "--no-progress", "--generate-baseline"}
-
-	if len(paths) > 0 {
-		args = append(args, paths...)
-	}
-
-	return m.Container.
-		WithWorkdir("/work/src").
-		WithMountedDirectory("/work/src", source).
-		WithExec(args).
-		File("phpstan-baseline.neon")
 }
