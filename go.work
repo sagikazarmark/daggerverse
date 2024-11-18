@@ -32,6 +32,9 @@ use (
 	./openapi-changes/tests
 	./openssh-server
 	./openssh-server/tests
+	./php
+	./php/examples/go
+	./php/tests
 	./phpstan
 	./phpstan/tests
 	./postgres
