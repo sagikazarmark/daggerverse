@@ -60,7 +60,7 @@ func (m *Phpstan) Analyse(
 	// +optional
 	paths []string,
 ) *dagger.Container {
-	args := []string{"phpstan", "analyse"}
+	args := []string{"phpstan", "analyse", "--no-progress"}
 
 	if len(paths) > 0 {
 		args = append(args, paths...)
@@ -81,7 +81,7 @@ func (m *Phpstan) GenerateBaseline(
 	// +optional
 	paths []string,
 ) *dagger.File {
-	args := []string{"phpstan", "analyse", "--generate-baseline"}
+	args := []string{"phpstan", "analyse", "--no-progress", "--generate-baseline"}
 
 	if len(paths) > 0 {
 		args = append(args, paths...)
