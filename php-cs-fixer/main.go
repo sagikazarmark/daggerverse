@@ -17,7 +17,7 @@ func New(
 	// Version (image tag) to use from the official image repository as a base container.
 	//
 	// +optional
-	// +default="latest"
+	// +default="3"
 	version string,
 
 	// Customize PHP version (currently supported: any minor version from the 8.x branch).
@@ -32,7 +32,7 @@ func New(
 ) *PhpCsFixer {
 	if container == nil {
 		if version == "" {
-			version = "latest"
+			version = "3"
 		}
 
 		if phpVersion != "" {
