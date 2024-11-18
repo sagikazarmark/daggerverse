@@ -28,6 +28,7 @@ jobs:
           - kustomize
           - openapi-changes
           - openssh-server
+          - phpstan
           - postgres
           - psql
           - python
