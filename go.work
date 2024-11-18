@@ -33,6 +33,8 @@ use (
 	./openssh-server
 	./openssh-server/tests
 	./php
+	./php-cs-fixer
+	./php-cs-fixer/tests
 	./php/examples/go
 	./php/tests
 	./phpstan
