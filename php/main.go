@@ -245,3 +245,49 @@ func (m Php) Container() *dagger.Container {
 			return c
 		})
 }
+
+const workdir = "/work/src"
+
+// Mount a source directory.
+func (m Php) WithSource(
+	// Source directory to mount.
+	source *dagger.Directory,
+) *WithSource {
+	return &WithSource{
+		Source: source,
+		Php:    m,
+	}
+}
+
+type WithSource struct {
+	Source *dagger.Directory
+
+	// +private
+	Php Php
+}
+
+func (m *WithSource) Container() *dagger.Container {
+	return m.Php.Container().
+		WithWorkdir(workdir).
+		WithMountedDirectory(workdir, m.Source)
+}
+
+// Run a command.
+func (m WithSource) WithExec(
+	// Arguments to pass to the command.
+	args []string,
+) WithSource {
+	// TODO: save container to preserve cache even when no cache volume is set?
+	m.Source = m.Container().WithExec(args).Directory(workdir)
+
+	return m
+}
+
+// Make sure Composer dependencies are installed.
+func (m WithSource) WithComposerInstall() WithSource {
+	if !m.Php.ComposerInstalled {
+		m.Php = m.Php.withComposer()
+	}
+
+	return m.WithExec([]string{"composer", "install"})
+}
