@@ -28,6 +28,7 @@ jobs:
           - kustomize
           - openapi-changes
           - openssh-server
+          - php
           - phpstan
           - postgres
           - psql
@@ -70,6 +71,7 @@ jobs:
       matrix:
         module:
           - helm
+          - php
           - svix
           - trivy
 
