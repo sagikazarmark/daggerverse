@@ -39,7 +39,7 @@ func New(
 	// +default="latest"
 	version string,
 
-	// Custom container to use as a base container.
+	// Custom container to use as a base container. Takes precedence over version.
 	//
 	// +optional
 	container *dagger.Container,
@@ -70,7 +70,7 @@ func (m Php) WithComposer(
 	// +default="latest"
 	version string,
 
-	// Custom binary to use (takes precedence over version).
+	// Custom binary to use. Takes precedence over version.
 	//
 	// +optional
 	binary *dagger.File,
@@ -170,7 +170,7 @@ func (m Php) WithExtensionInstaller(
 	// +default="latest"
 	version string,
 
-	// Custom binary to use (takes precedence over version).
+	// Custom binary to use. Takes precedence over version.
 	//
 	// +optional
 	binary *dagger.File,
