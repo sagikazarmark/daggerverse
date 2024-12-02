@@ -20,12 +20,12 @@ func New(
 	// +default="3"
 	version string,
 
-	// Customize PHP version (currently supported: any minor version from the 8.x branch).
+	// Customize PHP version (supported versions: https://github.com/PHP-CS-Fixer/PHP-CS-Fixer?tab=readme-ov-file#supported-php-versions).
 	//
 	// +optional
 	phpVersion string,
 
-	// Custom container to use as a base container. Takes precedence over version.
+	// Custom container to use as a base container. Takes precedence over version and phpVersion.
 	//
 	// +optional
 	container *dagger.Container,
