@@ -7,6 +7,8 @@ use (
 	./arc/tests
 	./archivist
 	./archivist/tests
+	./aws-cli
+	./aws-cli/tests
 	./bats
 	./bats/tests
 	./borgo
