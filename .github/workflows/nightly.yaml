@@ -16,6 +16,7 @@ jobs:
           - apko
           - arc
           - archivist
+          - aws-cli
           - bats
           - borgo
           - checksum
