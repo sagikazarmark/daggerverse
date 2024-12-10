@@ -138,3 +138,26 @@ func (m *Set) Namespace(namespace string) *Edit {
 func (m *Set) Namesuffix(nameSuffix string) *Edit {
 	return &Edit{m.Container.WithExec([]string{"kustomize", "edit", "set", "namesuffix", nameSuffix})}
 }
+
+func (m *Set) Secret(
+	secret string,
+	// +optional
+	fromLiteral []string,
+	// +optional
+	namespace string,
+	// +optional
+	newNamespace string,
+) *Edit {
+	args := []string{"kustomize", "edit", "set", "secret", secret}
+	for _, literal := range fromLiteral {
+		args = append(args, "--from-literal", literal)
+	}
+	if namespace != "" {
+		args = append(args, "--namespace", namespace)
+	}
+	if newNamespace != "" {
+		args = append(args, "--new-namespace", newNamespace)
+	}
+
+	return &Edit{m.Container.WithExec(args)}
+}
