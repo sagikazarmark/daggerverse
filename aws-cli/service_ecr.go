@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"dagger/aws-cli/internal/dagger"
 	"fmt"
-	"time"
 )
 
 // Amazon Elastic Container Registry (Amazon ECR) is a managed container image registry service.
@@ -38,30 +37,12 @@ func (m Ecr) GetLoginPassword(
 	//
 	// +optional
 	region string,
-
-	// A Go compatible duration string to control how long the result of this call should stay in Dagger's cache.
-	//
-	// +optional
-	// +default="12h"
-	cacheTtl string,
 ) (*dagger.Secret, error) {
 	args := []string{"get-login-password"}
 
 	if region != "" {
 		args = append(args, "--region", region)
 	}
-
-	if cacheTtl == "" { // just to be safe
-		cacheTtl = "12h"
-	}
-
-	cacheTtlDuration, err := time.ParseDuration(cacheTtl)
-	if err != nil {
-		return nil, err
-	}
-
-	// this should be safe because receivers are not pointers
-	m.Cli.Container = m.Cli.Container.WithEnvVariable("CACHE_BUSTER", time.Now().Truncate(cacheTtlDuration).Format(time.RFC3339Nano))
 
 	password, err := m.Exec(args).Stdout(ctx)
 	if err != nil {
@@ -95,12 +76,6 @@ func (m Ecr) Login(
 	//
 	// +optional
 	region string,
-
-	// A Go compatible duration string to control how long the password should stay in Dagger's cache.
-	//
-	// +optional
-	// +default="12h"
-	passwordCacheTtl string,
 ) (*EcrRegistry, error) {
 	if accountId == "" {
 		id, err := m.Cli.Sts().GetCallerIdentity(ctx)
@@ -111,7 +86,7 @@ func (m Ecr) Login(
 		accountId = id.Account
 	}
 
-	password, err := m.GetLoginPassword(ctx, region, passwordCacheTtl)
+	password, err := m.GetLoginPassword(ctx, region)
 	if err != nil {
 		return nil, err
 	}

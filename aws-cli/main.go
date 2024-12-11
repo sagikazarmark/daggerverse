@@ -8,6 +8,7 @@ package main
 import (
 	"dagger/aws-cli/internal/dagger"
 	"fmt"
+	"time"
 )
 
 // defaultImageRepository is used when no image is specified.
@@ -167,5 +168,7 @@ func (m AwsCli) Exec(
 ) *dagger.Container {
 	args = append([]string{"aws"}, args...)
 
-	return m.Container.WithExec(args)
+	return m.Container.
+		WithEnvVariable("CACHE_BUSTER", time.Now().Format(time.RFC3339Nano)).
+		WithExec(args)
 }
