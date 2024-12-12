@@ -26,5 +26,4 @@ jobs:
       - name: Prepare Nix shell
         run: nix develop --impure .#ci
 
-      - run: just list-with-tests | just as-json
-        shell: nix develop --impure .#ci -c bash {0}
+      - run: nix develop --impure .#ci -c bash "just list-with-tests | just as-json"
