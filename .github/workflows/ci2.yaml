@@ -1,0 +1,14 @@
+name: CI2
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  list-tests:
+    name: List tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: just list-with-tests
