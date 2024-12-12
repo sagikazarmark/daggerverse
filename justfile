@@ -83,3 +83,7 @@ develop:
 [group('list')]
 @list-with-examples:
     just list | while read -r dir; do if [ -d "$dir/examples/go" ]; then echo "$dir"; fi done
+
+[private]
+@as-json:
+    jq -R -s -c 'split("\n") | map(select(length > 0))'
