@@ -27,4 +27,4 @@ jobs:
         run: nix develop --impure .#ci
 
       - run: just list-with-tests | just as-json
-        shell: nix develop .#ci -c bash {0}
+        shell: nix develop --impure .#ci -c bash {0}
