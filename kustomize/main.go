@@ -138,3 +138,39 @@ func (m *Set) Namespace(namespace string) *Edit {
 func (m *Set) Namesuffix(nameSuffix string) *Edit {
 	return &Edit{m.Container.WithExec([]string{"kustomize", "edit", "set", "namesuffix", nameSuffix})}
 }
+
+// Edit the value for an existing key in an existing Secret in the kustomization.yaml file.
+func (m *Set) Secret(
+	secret string,
+
+	// Specify an existing key and a new value to update a Secret (i.e. mykey=newvalue).
+	//
+	// +optional
+	fromLiteral []string,
+
+	// Current namespace of the target Secret.
+	//
+	// +optional
+	namespace string,
+
+	// New namespace value for the target Secret.
+	//
+	// +optional
+	newNamespace string,
+) *Edit {
+	args := []string{"kustomize", "edit", "set", "secret", secret}
+	
+	for _, literal := range fromLiteral {
+		args = append(args, "--from-literal", literal)
+	}
+	
+	if namespace != "" {
+		args = append(args, "--namespace", namespace)
+	}
+	
+	if newNamespace != "" {
+		args = append(args, "--new-namespace", newNamespace)
+	}
+
+	return &Edit{m.Container.WithExec(args)}
+}
