@@ -39,8 +39,11 @@
               git
               semver-tool
               jq
-              yq-go
               moreutils
+              fd
+
+              # is this still necessary?
+              yq-go
             ];
 
             # https://github.com/cachix/devenv/issues/528#issuecomment-1556108767
