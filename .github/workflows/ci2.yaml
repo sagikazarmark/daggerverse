@@ -31,7 +31,7 @@ jobs:
 
       - name: List tests
         id: tests
-        run: echo "tests=$(nix develop --impure .#ci -c bash -c 'just list-with-tests | just as-json')"
+        run: echo "tests=$(nix develop --impure .#ci -c bash -c 'just list-with-tests | just as-json')" >> $GITHUB_OUTPUT
 
   test:
     name: Test
