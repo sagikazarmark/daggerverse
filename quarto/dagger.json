@@ -5,8 +5,7 @@
     "../.direnv",
     "../.devenv",
     "../go.work",
-    "../go.work.sum",
-    "tests"
+    "../go.work.sum"
   ],
   "source": ".",
   "engineVersion": "v0.13.1"
