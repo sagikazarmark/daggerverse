@@ -1,5 +1,6 @@
 {
   "name": "borgo",
+  "engineVersion": "v0.15.1",
   "sdk": "go",
   "exclude": [
     "../.direnv",
@@ -7,6 +8,5 @@
     "../go.work",
     "../go.work.sum"
   ],
-  "source": ".",
-  "engineVersion": "v0.13.1"
+  "source": "."
 }
