@@ -132,5 +132,7 @@ type Postgres interface {
 }
 
 func (m *Svix) Service() *dagger.Service {
-	return m.Container.AsService()
+	return m.Container.AsService(dagger.ContainerAsServiceOpts{
+		UseEntrypoint: true,
+	})
 }

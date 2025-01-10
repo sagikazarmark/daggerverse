@@ -4,7 +4,6 @@ import (
 	"context"
 	"dagger/apko/tests/internal/dagger"
 	"fmt"
-	"strings"
 
 	"github.com/sourcegraph/conc/pool"
 )
@@ -31,10 +30,7 @@ func (m *Tests) Build(ctx context.Context) error {
 }
 
 func (m *Tests) Publish(ctx context.Context) error {
-	registry, ca, err := registryService(ctx)
-	if err != nil {
-		return err
-	}
+	registry, ca := registryService()
 
 	password := dag.SetSecret("registry-password", "password")
 
@@ -78,9 +74,9 @@ func (m *Tests) Alpine(ctx context.Context) error {
 	return nil
 }
 
-func registryService(ctx context.Context) (*dagger.Service, *dagger.File, error) {
-	const zotRepositoryTemplate = "ghcr.io/project-zot/zot-%s-%s"
-	const zotVersion = "v2.1.0"
+func registryService() (*dagger.Service, *dagger.File) {
+	const zotRepository = "ghcr.io/project-zot/zot"
+	const zotVersion = "v2.1.1"
 
 	mkcert := dag.Container().
 		From("cgr.dev/chainguard/wolfi-base").
@@ -89,22 +85,11 @@ func registryService(ctx context.Context) (*dagger.Service, *dagger.File, error)
 		WithWorkdir("/work").
 		WithExec([]string{"mkcert", "zot"})
 
-	platform, err := dag.DefaultPlatform(ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	platformArgs := strings.Split(string(platform), "/")
-
-	zotRepository := fmt.Sprintf(zotRepositoryTemplate, platformArgs[0], platformArgs[1])
-
 	return dag.Container().
-		From(fmt.Sprintf("%s:%s", zotRepository, zotVersion)).
-		WithExposedPort(8080).
-		WithMountedDirectory("/etc/zot", dag.CurrentModule().Source().Directory("./testdata/zot")).
-		WithMountedDirectory("/etc/zot/tls", mkcert.Directory("/work")).
-		WithExec([]string{"serve", "/etc/zot/config.json"}, dagger.ContainerWithExecOpts{
-			UseEntrypoint: true,
-		}).
-		AsService(), mkcert.File("/root/.local/share/mkcert/rootCA.pem"), nil
+			From(fmt.Sprintf("%s:%s", zotRepository, zotVersion)).
+			WithExposedPort(8080).
+			WithMountedDirectory("/etc/zot", dag.CurrentModule().Source().Directory("./testdata/zot")).
+			WithMountedDirectory("/etc/zot/tls", mkcert.Directory("/work")).
+			AsService(dagger.ContainerAsServiceOpts{UseEntrypoint: true}),
+		mkcert.File("/root/.local/share/mkcert/rootCA.pem")
 }

@@ -123,7 +123,7 @@ func (m *OpensshServer) WithPort(port int) (*OpensshServer, error) {
 // Return a service that runs the OpenSSH server.
 func (m *OpensshServer) Service() *dagger.Service {
 	return m.Container.
-		WithExec([]string{"/usr/sbin/sshd", "-D", "-e", "-p", fmt.Sprintf("%d", m.Port)}).
+		WithDefaultArgs([]string{"/usr/sbin/sshd", "-D", "-e", "-p", fmt.Sprintf("%d", m.Port)}).
 		WithExposedPort(m.Port).
 		AsService()
 }
