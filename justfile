@@ -9,7 +9,7 @@ init module:
 
     mkdir -p {{module}}
     cd {{module}} && dagger init --sdk go --name {{module}} --source .
-    jq '.exclude = ["../.direnv", "../.devenv", "../go.work", "../go.work.sum", "tests"]' {{module}}/dagger.json | sponge {{module}}/dagger.json
+    jq '.exclude = ["../.direnv", "../.devenv", "../go.work", "../go.work.sum"]' {{module}}/dagger.json | sponge {{module}}/dagger.json
     dagger develop -m {{module}}
 
     mkdir -p {{module}}/tests
