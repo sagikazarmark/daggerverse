@@ -1,6 +1,7 @@
-go 1.23.1
+go 1.23.2
 
 use (
+	./.dagger
 	./apko
 	./apko/tests
 	./arc
@@ -15,6 +16,8 @@ use (
 	./borgo/tests
 	./checksum
 	./checksum/tests
+	./daggerverse-tool
+	./daggerverse-tool/tests
 	./gh
 	./gh/tests
 	./go
