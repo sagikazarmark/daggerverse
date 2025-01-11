@@ -248,5 +248,7 @@ func (m *Node) Service() *dagger.Service {
 
 			return c
 		}).
-		AsService()
+		AsService(dagger.ContainerAsServiceOpts{
+			UseEntrypoint: true,
+		})
 }

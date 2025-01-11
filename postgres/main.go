@@ -195,5 +195,7 @@ func (m *Postgres) WithDatabase(
 
 // The Postgres service.
 func (m *Postgres) Service() *dagger.Service {
-	return m.container().AsService()
+	return m.container().AsService(dagger.ContainerAsServiceOpts{
+		UseEntrypoint: true,
+	})
 }

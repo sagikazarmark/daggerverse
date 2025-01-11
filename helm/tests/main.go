@@ -5,7 +5,6 @@ import (
 	"dagger/helm/tests/internal/dagger"
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/sourcegraph/conc/pool"
 )
@@ -65,14 +64,11 @@ func (m *Tests) Lint(ctx context.Context) error {
 
 // TODO: improve this test
 func (m *Tests) Login(ctx context.Context) error {
-	registry, err := registryService(ctx)
-	if err != nil {
-		return err
-	}
+	registry := registryService()
 
 	password := dag.SetSecret("registry-password", "password")
 
-	_, err = dag.Helm(dagger.HelmOpts{
+	_, err := dag.Helm(dagger.HelmOpts{
 		Container: newHelm().Container().
 			WithServiceBinding("zot", registry),
 	}).
@@ -94,10 +90,7 @@ func (m *Tests) Package(ctx context.Context) error {
 
 // TODO: improve this test
 func (m *Tests) Push(ctx context.Context) error {
-	registry, err := registryService(ctx)
-	if err != nil {
-		return err
-	}
+	registry := registryService()
 
 	pkg := newHelm().Package(dag.CurrentModule().Source().Directory("./testdata/charts/package"))
 
@@ -135,10 +128,7 @@ func (m *Tests) ChartPackage(ctx context.Context) error {
 
 // TODO: improve this test
 func (m *Tests) ChartPublish(ctx context.Context) error {
-	registry, err := registryService(ctx)
-	if err != nil {
-		return err
-	}
+	registry := registryService()
 
 	password := dag.SetSecret("registry-password", "password")
 
@@ -153,25 +143,15 @@ func (m *Tests) ChartPublish(ctx context.Context) error {
 		})
 }
 
-func registryService(ctx context.Context) (*dagger.Service, error) {
-	const zotRepositoryTemplate = "ghcr.io/project-zot/zot-%s-%s"
-	const zotVersion = "v2.0.0"
-
-	platform, err := dag.DefaultPlatform(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	platformArgs := strings.Split(string(platform), "/")
-
-	zotRepository := fmt.Sprintf(zotRepositoryTemplate, platformArgs[0], platformArgs[1])
+func registryService() *dagger.Service {
+	const zotRepositoryTemplate = "ghcr.io/project-zot/zot"
+	const zotVersion = "v2.1.1"
 
 	return dag.Container().
-		From(fmt.Sprintf("%s:%s", zotRepository, zotVersion)).
+		From(fmt.Sprintf("%s:%s", zotRepositoryTemplate, zotVersion)).
 		WithExposedPort(8080).
 		WithMountedDirectory("/etc/zot", dag.CurrentModule().Source().Directory("./testdata/zot")).
-		WithExec([]string{"serve", "/etc/zot/config.json"}, dagger.ContainerWithExecOpts{UseEntrypoint: true}).
-		AsService(), nil
+		AsService(dagger.ContainerAsServiceOpts{UseEntrypoint: true})
 }
 
 func (m *Tests) ChartInstall(ctx context.Context) error {

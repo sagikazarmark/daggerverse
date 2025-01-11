@@ -1,5 +1,6 @@
 {
   "name": "gh",
+  "engineVersion": "v0.15.1",
   "sdk": "go",
   "exclude": [
     "../.direnv",
@@ -13,6 +14,5 @@
       "source": "../apko"
     }
   ],
-  "source": ".",
-  "engineVersion": "v0.13.1"
+  "source": "."
 }
