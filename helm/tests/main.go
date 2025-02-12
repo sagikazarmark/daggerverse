@@ -9,7 +9,7 @@ import (
 	"github.com/sourcegraph/conc/pool"
 )
 
-const helmVersion = "3.13.2"
+const helmVersion = "3.17.0"
 
 func newHelm() *dagger.Helm {
 	return dag.Helm(dagger.HelmOpts{
@@ -34,6 +34,7 @@ func (m *Tests) All(ctx context.Context) error {
 
 	p.Go(m.ChartInstall)
 	p.Go(m.PackageInstall)
+	p.Go(m.InstallNamespace)
 
 	return p.Wait()
 }
@@ -190,6 +191,32 @@ func (m *Tests) PackageInstall(ctx context.Context) error {
 
 	release := helm.Create("foo").Package().Install("foo", dagger.HelmPackageInstallOpts{
 		Wait: true,
+	})
+
+	_, err = release.Test(ctx, dagger.HelmReleaseTestOpts{
+		Logs: true,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Tests) InstallNamespace(ctx context.Context) error {
+	k8s := dag.K3S("daggerverse-helm-install-namespace")
+
+	_, err := k8s.Server().Start(ctx)
+	if err != nil {
+		return err
+	}
+
+	helm := newHelm().WithKubeconfigFile(k8s.Config(false))
+
+	release := helm.Create("foo").Install("foo", dagger.HelmChartInstallOpts{
+		CreateNamespace: true,
+		Namespace:       "foo",
+		Wait:            true,
 	})
 
 	_, err = release.Test(ctx, dagger.HelmReleaseTestOpts{

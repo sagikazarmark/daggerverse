@@ -169,6 +169,13 @@ func (c *Chart) Install(
 	//
 	// +optional
 	waitForJobs bool,
+
+	// Global options
+
+	// Namespace scope for this request.
+	//
+	// +optional
+	namespace string,
 ) (*Release, error) {
 	chartMetadata, err := getChartMetadata(ctx, c.Directory)
 	if err != nil {
@@ -217,6 +224,7 @@ func (c *Chart) Install(
 		verify,
 		wait,
 		waitForJobs,
+		namespace,
 	)
 }
 
@@ -380,6 +388,13 @@ func (p *Package) Install(
 	//
 	// +optional
 	waitForJobs bool,
+
+	// Global options
+
+	// Namespace scope for this request.
+	//
+	// +optional
+	namespace string,
 ) (*Release, error) {
 	if p.Chart == nil {
 		return nil, errors.New("chart is unavailable")
@@ -431,6 +446,7 @@ func (p *Package) Install(
 		verify,
 		wait,
 		waitForJobs,
+		namespace,
 	)
 }
 
@@ -482,6 +498,8 @@ func install(
 	verify bool,
 	wait bool,
 	waitForJobs bool,
+
+	namespace string,
 ) (*Release, error) {
 	args := []string{"helm", "install", name, chartPath}
 
@@ -600,6 +618,10 @@ func install(
 		}
 	}
 
+	if namespace != "" {
+		args = append(args, "--namespace", namespace)
+	}
+
 	container, err := container.WithExec(args).Sync(ctx)
 	if err != nil {
 		return nil, err
@@ -607,12 +629,14 @@ func install(
 
 	return &Release{
 		Name:      name,
+		Namespace: namespace,
 		Container: helm.container(),
 	}, nil
 }
 
 type Release struct {
-	Name string
+	Name      string
+	Namespace string
 
 	// +private
 	Container *dagger.Container
@@ -654,6 +678,10 @@ func (r *Release) Test(
 		}
 
 		args = append(args, "--timeout", timeout)
+	}
+
+	if r.Namespace != "" {
+		args = append(args, "--namespace", r.Namespace)
 	}
 
 	return r.Container.WithExec(args).Stdout(ctx)
