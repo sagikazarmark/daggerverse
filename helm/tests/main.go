@@ -9,7 +9,7 @@ import (
 	"github.com/sourcegraph/conc/pool"
 )
 
-const helmVersion = "3.13.2"
+const helmVersion = "3.17.0"
 
 func newHelm() *dagger.Helm {
 	return dag.Helm(dagger.HelmOpts{
