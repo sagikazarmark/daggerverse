@@ -4,6 +4,9 @@ on:
   push:
     tags: ["**/v[0-9]+.[0-9]+.[0-9]+"]
 
+env:
+  DAGGER_VERSION: 0.16.1
+
 jobs:
   publish:
     name: Publish
@@ -25,4 +28,4 @@ jobs:
           module: ${{ steps.module.outputs.name }}
           verb: publish
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.15.2"
+          version: ${{ env.DAGGER_VERSION }}

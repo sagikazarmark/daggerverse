@@ -1,12 +1,14 @@
 {
   "name": "examples",
-  "engineVersion": "v0.15.2",
-  "sdk": "go",
-  "exclude": [
-    "../../../.direnv",
-    "../../../.devenv",
-    "../../../go.work",
-    "../../../go.work.sum"
+  "engineVersion": "v0.16.1",
+  "sdk": {
+    "source": "go"
+  },
+  "include": [
+    "!../../../.direnv",
+    "!../../../.devenv",
+    "!../../../go.work",
+    "!../../../go.work.sum"
   ],
   "dependencies": [
     {
@@ -18,6 +20,5 @@
       "source": "github.com/marcosnils/daggerverse/k3s@e0bd6b9f5519c49db4b6eb0689927214720976f9",
       "pin": "e0bd6b9f5519c49db4b6eb0689927214720976f9"
     }
-  ],
-  "source": "."
+  ]
 }

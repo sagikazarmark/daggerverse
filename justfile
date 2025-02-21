@@ -9,12 +9,12 @@ init module:
 
     mkdir -p {{module}}
     cd {{module}} && dagger init --sdk go --name {{module}} --source .
-    jq '.exclude = ["../.direnv", "../.devenv", "../go.work", "../go.work.sum"]' {{module}}/dagger.json | sponge {{module}}/dagger.json
+    jq '.include = ["!../.direnv", "!../.devenv", "!../go.work", "!../go.work.sum"]' {{module}}/dagger.json | sponge {{module}}/dagger.json
     dagger develop -m {{module}}
 
     mkdir -p {{module}}/tests
     cd {{module}}/tests && dagger init --sdk go --name tests --source .
-    jq '.exclude = ["../../.direnv", "../../.devenv", "../../go.work", "../../go.work.sum"]' {{module}}/tests/dagger.json | sponge {{module}}/tests/dagger.json
+    jq '.include = ["!../../.direnv", "!../../.devenv", "!../../go.work", "!../../go.work.sum"]' {{module}}/tests/dagger.json | sponge {{module}}/tests/dagger.json
     go mod edit -module dagger/{{module}}/tests {{module}}/tests/go.mod
     cp -r .just/templates/tests/main.go {{module}}/tests/main.go
     cd {{module}}/tests && dagger install ..

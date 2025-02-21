@@ -1,18 +1,19 @@
 {
   "name": "tests",
-  "engineVersion": "v0.15.2",
-  "sdk": "go",
-  "exclude": [
-    "../../.direnv",
-    "../../.devenv",
-    "../../go.work",
-    "../../go.work.sum"
+  "engineVersion": "v0.16.1",
+  "sdk": {
+    "source": "go"
+  },
+  "include": [
+    "!../../.direnv",
+    "!../../.devenv",
+    "!../../go.work",
+    "!../../go.work.sum"
   ],
   "dependencies": [
     {
       "name": "stainless",
       "source": ".."
     }
-  ],
-  "source": "."
+  ]
 }
