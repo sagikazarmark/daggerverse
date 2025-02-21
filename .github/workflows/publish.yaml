@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
 
+env:
+  DAGGER_VERSION: 0.16.1
+
 jobs:
   prepare-modules:
     name: Prepare modules
@@ -51,4 +54,4 @@ jobs:
           module: ${{ matrix.module }}
           verb: publish
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: "0.15.2"
+          version: ${{ env.DAGGER_VERSION }}
