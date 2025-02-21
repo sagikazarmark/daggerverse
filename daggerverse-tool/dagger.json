@@ -1,0 +1,27 @@
+{
+  "name": "daggerverse-tool",
+  "engineVersion": "v0.15.2",
+  "sdk": "go",
+  "exclude": [
+    "../.direnv",
+    "../.devenv",
+    "../go.work",
+    "../go.work.sum"
+  ],
+  "dependencies": [
+    {
+      "name": "apko",
+      "source": "../apko"
+    },
+    {
+      "name": "arc",
+      "source": "../arc"
+    },
+    {
+      "name": "dagger-cli",
+      "source": "github.com/dagger/dagger/cmd/dagger@v0.15.1",
+      "pin": "196f232a4d6b2d1d3db5f5e040cf20b6a76a76c5"
+    }
+  ],
+  "source": "."
+}
