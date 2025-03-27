@@ -69,6 +69,13 @@ develop:
     for dir in $(just list-with-tests); do dagger develop -m "$dir/tests"; done
     for dir in $(just list-with-examples); do dagger develop -m "$dir/examples/go"; done
 
+# run `go mod tidy` for all modules
+[group('dev')]
+tidy:
+    for dir in $(just list); do $(cd $dir; go mod tidy); done
+    for dir in $(just list-with-tests); do $(cd "$dir/tests"; go mod tidy); done
+    for dir in $(just list-with-examples); do $(cd "$dir/examples/go"; go mod tidy); done
+
 # list modules (directories with a `dagger.json` file)
 [group('list')]
 @list:

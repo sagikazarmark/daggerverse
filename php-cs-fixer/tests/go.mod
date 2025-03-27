@@ -1,6 +1,6 @@
 module dagger/php-cs-fixer/tests
 
-go 1.23.1
+go 1.23.6
 
 require (
 	github.com/99designs/gqlgen v0.17.68
@@ -21,10 +21,7 @@ require (
 	google.golang.org/grpc v1.71.0
 )
 
-require (
-	go.uber.org/atomic v1.7.0 // indirect
-	go.uber.org/multierr v1.9.0 // indirect
-)
+require go.uber.org/multierr v1.11.0 // indirect
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
