@@ -179,7 +179,7 @@ func (m *ArchiveDirectory) test(ctx context.Context, callback func(*dagger.ArcAr
 		return err
 	}
 
-	if !slices.Equal(entries, []string{"foo", "hello"}) {
+	if !slices.Equal(entries, []string{"foo/", "hello"}) {
 		return fmt.Errorf("unexpected entries: %v", entries)
 	}
 

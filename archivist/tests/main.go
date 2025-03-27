@@ -80,7 +80,7 @@ func test(ctx context.Context, a archiver) error {
 		return err
 	}
 
-	if !slices.Equal(entries, []string{"foo", "hello"}) {
+	if !slices.Equal(entries, []string{"foo/", "hello"}) {
 		return fmt.Errorf("unexpected entries: %v", entries)
 	}
 
