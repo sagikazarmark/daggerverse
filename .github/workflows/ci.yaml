@@ -6,7 +6,7 @@ on:
   pull_request:
 
 env:
-  DAGGER_VERSION: 0.17.1
+  DAGGER_VERSION: 0.17.2
 
 jobs:
   prepare-tests:
