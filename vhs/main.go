@@ -122,7 +122,7 @@ func (m *WithSource) Render(
 	result := m.Vhs.Container.
 		WithWorkdir("/work").
 		WithMountedDirectory(".", source).
-		WithExec(args).
+		WithExec(args, dagger.ContainerWithExecOpts{ExperimentalPrivilegedNesting: true}).
 		Directory(".")
 
 	// Diffing is necessary because there is no way to control the output directory
