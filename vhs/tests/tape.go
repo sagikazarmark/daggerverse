@@ -3,7 +3,37 @@ package main
 import (
 	"context"
 	"dagger/vhs/tests/internal/dagger"
+
+	"github.com/sourcegraph/conc/pool"
 )
+
+// Tape tests
+func (m *Tests) Tape() *Tape {
+	return &Tape{}
+}
+
+type Tape struct{}
+
+// All executes all tests.
+func (m *Tape) All(ctx context.Context) error {
+	p := pool.New().WithErrors().WithContext(ctx)
+
+	p.Go(m.Output)
+	p.Go(m.Require)
+	p.Go(m.Set)
+	p.Go(m.SetBlock)
+	p.Go(m.Type)
+	p.Go(m.Keys)
+	p.Go(m.Wait)
+	p.Go(m.Sleep)
+	p.Go(m.ShowHide)
+	p.Go(m.Screenshot)
+	p.Go(m.CopyPaste)
+	p.Go(m.Env)
+	p.Go(m.Source)
+
+	return p.Wait()
+}
 
 func testTape(ctx context.Context, tape *dagger.VhsTape, expected string) error {
 	_, err := dag.Container().
@@ -17,7 +47,7 @@ func testTape(ctx context.Context, tape *dagger.VhsTape, expected string) error 
 	return err
 }
 
-func (m *Tests) Output(ctx context.Context) error {
+func (m *Tape) Output(ctx context.Context) error {
 	vhs := dag.Vhs()
 
 	tape := vhs.Edit().
@@ -31,7 +61,7 @@ func (m *Tests) Output(ctx context.Context) error {
 	return testTape(ctx, tape, "output.tape")
 }
 
-func (m *Tests) Require(ctx context.Context) error {
+func (m *Tape) Require(ctx context.Context) error {
 	vhs := dag.Vhs()
 
 	tape := vhs.Edit().
@@ -42,7 +72,7 @@ func (m *Tests) Require(ctx context.Context) error {
 	return testTape(ctx, tape, "require.tape")
 }
 
-func (m *Tests) Set(ctx context.Context) error {
+func (m *Tape) Set(ctx context.Context) error {
 	vhs := dag.Vhs()
 
 	tape := vhs.Edit().
@@ -94,7 +124,7 @@ func (m *Tests) Set(ctx context.Context) error {
 	return testTape(ctx, tape, "set.tape")
 }
 
-func (m *Tests) SetBlock(ctx context.Context) error {
+func (m *Tape) SetBlock(ctx context.Context) error {
 	vhs := dag.Vhs()
 
 	tape := vhs.Edit().
@@ -148,7 +178,7 @@ func (m *Tests) SetBlock(ctx context.Context) error {
 	return testTape(ctx, tape, "set.tape")
 }
 
-func (m *Tests) Type(ctx context.Context) error {
+func (m *Tape) Type(ctx context.Context) error {
 	vhs := dag.Vhs()
 
 	tape := vhs.Edit().
@@ -163,7 +193,7 @@ func (m *Tests) Type(ctx context.Context) error {
 	return testTape(ctx, tape, "type.tape")
 }
 
-func (m *Tests) Keys(ctx context.Context) error {
+func (m *Tape) Keys(ctx context.Context) error {
 	vhs := dag.Vhs()
 
 	tape := vhs.Edit().
@@ -192,7 +222,7 @@ func (m *Tests) Keys(ctx context.Context) error {
 	return testTape(ctx, tape, "keys.tape")
 }
 
-func (m *Tests) Wait(ctx context.Context) error {
+func (m *Tape) Wait(ctx context.Context) error {
 	vhs := dag.Vhs()
 
 	tape := vhs.Edit().
@@ -206,7 +236,7 @@ func (m *Tests) Wait(ctx context.Context) error {
 	return testTape(ctx, tape, "wait.tape")
 }
 
-func (m *Tests) Sleep(ctx context.Context) error {
+func (m *Tape) Sleep(ctx context.Context) error {
 	vhs := dag.Vhs()
 
 	tape := vhs.Edit().
@@ -218,7 +248,7 @@ func (m *Tests) Sleep(ctx context.Context) error {
 	return testTape(ctx, tape, "sleep.tape")
 }
 
-func (m *Tests) ShowHide(ctx context.Context) error {
+func (m *Tape) ShowHide(ctx context.Context) error {
 	vhs := dag.Vhs()
 
 	tape := vhs.Edit().
@@ -230,7 +260,7 @@ func (m *Tests) ShowHide(ctx context.Context) error {
 	return testTape(ctx, tape, "show-hide.tape")
 }
 
-func (m *Tests) Screenshot(ctx context.Context) error {
+func (m *Tape) Screenshot(ctx context.Context) error {
 	vhs := dag.Vhs()
 
 	tape := vhs.Edit().
@@ -240,7 +270,7 @@ func (m *Tests) Screenshot(ctx context.Context) error {
 	return testTape(ctx, tape, "screenshot.tape")
 }
 
-func (m *Tests) CopyPaste(ctx context.Context) error {
+func (m *Tape) CopyPaste(ctx context.Context) error {
 	vhs := dag.Vhs()
 
 	tape := vhs.Edit().
@@ -252,7 +282,7 @@ func (m *Tests) CopyPaste(ctx context.Context) error {
 	return testTape(ctx, tape, "copy-paste.tape")
 }
 
-func (m *Tests) Env(ctx context.Context) error {
+func (m *Tape) Env(ctx context.Context) error {
 	vhs := dag.Vhs()
 
 	tape := vhs.Edit().
@@ -265,7 +295,7 @@ func (m *Tests) Env(ctx context.Context) error {
 	return testTape(ctx, tape, "env.tape")
 }
 
-func (m *Tests) Source(ctx context.Context) error {
+func (m *Tape) Source(ctx context.Context) error {
 	vhs := dag.Vhs()
 
 	tape := vhs.Edit().

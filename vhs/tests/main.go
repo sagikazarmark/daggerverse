@@ -11,7 +11,15 @@ import (
 type Tests struct{}
 
 // All executes all tests.
-func (m *Tests) All(ctx context.Context) error {
+func (m *Tests) All(
+	ctx context.Context,
+
+	// Do not run tape tests (sometimes they are slow)
+	//
+	// +optional
+	// +default=false
+	withoutTape bool,
+) error {
 	p := pool.New().WithErrors().WithContext(ctx)
 
 	p.Go(m.Render)
@@ -19,20 +27,9 @@ func (m *Tests) All(ctx context.Context) error {
 	p.Go(m.WithSource_Render)
 	p.Go(m.WithSource_Render_Advanced)
 
-	// Tape
-	p.Go(m.Output)
-	p.Go(m.Require)
-	p.Go(m.Set)
-	p.Go(m.SetBlock)
-	p.Go(m.Type)
-	p.Go(m.Keys)
-	p.Go(m.Wait)
-	p.Go(m.Sleep)
-	p.Go(m.ShowHide)
-	p.Go(m.Screenshot)
-	p.Go(m.CopyPaste)
-	p.Go(m.Env)
-	p.Go(m.Source)
+	if !withoutTape {
+		p.Go(m.Tape().All)
+	}
 
 	return p.Wait()
 }
