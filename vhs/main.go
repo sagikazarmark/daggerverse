@@ -62,48 +62,17 @@ func (m *Vhs) Render(
 	// Tape file to render.
 	tape *dagger.File,
 
-	// File name(s) of video output.
-	//
-	// +optional
-	// output []string,
-
 	// Publish your GIF to vhs.charm.sh and get a shareable URL.
 	//
 	// +optional
 	// +default=false
 	publish bool,
 ) *dagger.Directory {
-	args := []string{"vhs", "cassette.tape"}
+	const tapeName = "cassette.tape"
 
-	// Does not seem to work at the moment
-	// TODO: make sure outputs cannot escape the working directory
-	// for _, o := range output {
-	// 	args = append(args, "--output", o)
-	// }
+	source := dag.Directory().WithFile(tapeName, tape)
 
-	if publish {
-		args = append(args, "--publish")
-	}
-
-	source := dag.Directory().
-		WithFile("cassette.tape", tape)
-
-	// This is necessary due to the way Diff works with directories
-	//
-	// Otherwise we get an error:
-	// cannot diff with different relative paths: "/" != "/work"
-	sourceRoot := dag.Directory().WithDirectory("work", source)
-	source = sourceRoot.Directory("work")
-
-	result := m.Container.
-		WithWorkdir("/work").
-		WithMountedDirectory(".", source).
-		WithExec(args).
-		Directory(".")
-
-	// Diffing is necessary because there is no way to control the output directory
-	// https://github.com/charmbracelet/vhs/issues/121
-	return source.Diff(result)
+	return m.WithSource(source).Render(tapeName, publish)
 }
 
 // Mount a source directory. Useful when you have source commands in your tape files.
