@@ -88,12 +88,22 @@ func (m *Vhs) Render(
 	source := dag.Directory().
 		WithFile("cassette.tape", tape)
 
-	return m.Container.
+	// This is necessary due to the way Diff works with directories
+	//
+	// Otherwise we get an error:
+	// cannot diff with different relative paths: "/" != "/work"
+	sourceRoot := dag.Directory().WithDirectory("work", source)
+	source = sourceRoot.Directory("work")
+
+	result := m.Container.
 		WithWorkdir("/work").
 		WithMountedDirectory(".", source).
 		WithExec(args).
-		Directory(".").
-		Diff(source)
+		Directory(".")
+
+	// Diffing is necessary because there is no way to control the output directory
+	// https://github.com/charmbracelet/vhs/issues/121
+	return source.Diff(result)
 }
 
 // Mount a source directory. Useful when you have source commands in your tape files.
@@ -132,10 +142,21 @@ func (m *WithSource) Render(
 		args = append(args, "--publish")
 	}
 
-	return m.Vhs.Container.
+	// This is necessary due to the way Diff works with directories
+	//
+	// Otherwise we get an error:
+	// cannot diff with different relative paths: "/" != "/work"
+	source := m.Source
+	sourceRoot := dag.Directory().WithDirectory("work", source)
+	source = sourceRoot.Directory("work")
+
+	result := m.Vhs.Container.
 		WithWorkdir("/work").
-		WithMountedDirectory(".", m.Source).
+		WithMountedDirectory(".", source).
 		WithExec(args).
-		Directory(".").
-		Diff(m.Source)
+		Directory(".")
+
+	// Diffing is necessary because there is no way to control the output directory
+	// https://github.com/charmbracelet/vhs/issues/121
+	return source.Diff(result)
 }
