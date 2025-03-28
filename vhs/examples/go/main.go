@@ -14,7 +14,7 @@ func (m *Examples) All(ctx context.Context) error {
 
 	p.Go(m.VhsRender)
 	// p.Go(m.VhsRender_Output)
-	p.Go(m.VhsEdit)
+	p.Go(m.VhsTape)
 	p.Go(m.VhsWithSource)
 
 	return p.Wait()
@@ -37,29 +37,11 @@ func (m *Examples) VhsRender(ctx context.Context) error {
 	return nil
 }
 
-// Does not seem to work at the moment
-// func (m *Examples) VhsRender_Output(ctx context.Context) error {
-// 	vhs := dag.Vhs()
-
-// 	// Create a new tape (or load an existing one)
-// 	tape := vhs.NewTape()
-
-// 	_, err := vhs.Render(tape, dagger.VhsRenderOpts{
-// 		// Customize output options
-// 		Output: []string{"cassette.ascii"},
-// 	}).File("cassette.ascii").Contents(ctx)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
-
-func (m *Examples) VhsEdit(ctx context.Context) error {
+func (m *Examples) VhsTape(ctx context.Context) error {
 	vhs := dag.Vhs()
 
 	// Create a new tape
-	tape := vhs.Edit().
+	tape := vhs.Tape().
 		Comment("Hello world").
 		EmptyLine().
 
@@ -104,13 +86,13 @@ func (m *Examples) VhsWithSource(ctx context.Context) error {
 	vhs := dag.Vhs()
 
 	// Create some tapes
-	config := vhs.Edit().
+	config := vhs.Tape().
 		SetBlock().
 		FontSize(16).
 		FontFamily("Iosevka").
 		EndSet()
 
-	tape := vhs.Edit().
+	tape := vhs.Tape().
 		Source("config.tape").
 		Type("echo Hello world").
 		Enter()

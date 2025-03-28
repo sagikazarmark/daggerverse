@@ -50,7 +50,7 @@ func testTape(ctx context.Context, tape *dagger.VhsTape, expected string) error 
 func (m *Tape) Output(ctx context.Context) error {
 	vhs := dag.Vhs()
 
-	tape := vhs.Edit().
+	tape := vhs.Tape().
 		Output("out.gif").
 		Output("out.mp4").
 		Output("out.webm").
@@ -64,7 +64,7 @@ func (m *Tape) Output(ctx context.Context) error {
 func (m *Tape) Require(ctx context.Context) error {
 	vhs := dag.Vhs()
 
-	tape := vhs.Edit().
+	tape := vhs.Tape().
 		Comment("A tape file that requires gum and glow to be in the $PATH").
 		Require("gum").
 		Require("glow")
@@ -75,7 +75,7 @@ func (m *Tape) Require(ctx context.Context) error {
 func (m *Tape) Set(ctx context.Context) error {
 	vhs := dag.Vhs()
 
-	tape := vhs.Edit().
+	tape := vhs.Tape().
 		Set().Shell("fish").
 		EmptyLine().
 		Set().FontSize(10).
@@ -127,7 +127,7 @@ func (m *Tape) Set(ctx context.Context) error {
 func (m *Tape) SetBlock(ctx context.Context) error {
 	vhs := dag.Vhs()
 
-	tape := vhs.Edit().
+	tape := vhs.Tape().
 		SetBlock().
 		Shell("fish").
 		EmptyLine().
@@ -181,7 +181,7 @@ func (m *Tape) SetBlock(ctx context.Context) error {
 func (m *Tape) Type(ctx context.Context) error {
 	vhs := dag.Vhs()
 
-	tape := vhs.Edit().
+	tape := vhs.Tape().
 		Comment("Type something").
 		Type("Whatever you want").
 		EmptyLine().
@@ -196,7 +196,7 @@ func (m *Tape) Type(ctx context.Context) error {
 func (m *Tape) Keys(ctx context.Context) error {
 	vhs := dag.Vhs()
 
-	tape := vhs.Edit().
+	tape := vhs.Tape().
 		Backspace(dagger.VhsTapeBackspaceOpts{Count: 18}).
 		EmptyLine().
 		Ctrl("R").
@@ -225,7 +225,7 @@ func (m *Tape) Keys(ctx context.Context) error {
 func (m *Tape) Wait(ctx context.Context) error {
 	vhs := dag.Vhs()
 
-	tape := vhs.Edit().
+	tape := vhs.Tape().
 		Wait().
 		Wait(dagger.VhsTapeWaitOpts{Regexp: "World"}).
 		Wait(dagger.VhsTapeWaitOpts{Scope: dagger.VhsWaitScopeScreen, Regexp: "World"}).
@@ -239,7 +239,7 @@ func (m *Tape) Wait(ctx context.Context) error {
 func (m *Tape) Sleep(ctx context.Context) error {
 	vhs := dag.Vhs()
 
-	tape := vhs.Edit().
+	tape := vhs.Tape().
 		Sleep("0.5", dagger.VhsTapeSleepOpts{Comment: "500ms"}).
 		Sleep("2", dagger.VhsTapeSleepOpts{Comment: "2s"}).
 		Sleep("100ms", dagger.VhsTapeSleepOpts{Comment: "100ms"}).
@@ -251,7 +251,7 @@ func (m *Tape) Sleep(ctx context.Context) error {
 func (m *Tape) ShowHide(ctx context.Context) error {
 	vhs := dag.Vhs()
 
-	tape := vhs.Edit().
+	tape := vhs.Tape().
 		Hide().
 		Type("You won't see this being typed.").
 		Show().
@@ -263,7 +263,7 @@ func (m *Tape) ShowHide(ctx context.Context) error {
 func (m *Tape) Screenshot(ctx context.Context) error {
 	vhs := dag.Vhs()
 
-	tape := vhs.Edit().
+	tape := vhs.Tape().
 		Comment("At any point...").
 		Screenshot("examples/screenshot.png")
 
@@ -273,7 +273,7 @@ func (m *Tape) Screenshot(ctx context.Context) error {
 func (m *Tape) CopyPaste(ctx context.Context) error {
 	vhs := dag.Vhs()
 
-	tape := vhs.Edit().
+	tape := vhs.Tape().
 		Copy("https://github.com/charmbracelet").
 		Type("open ").
 		Sleep("500ms").
@@ -285,7 +285,7 @@ func (m *Tape) CopyPaste(ctx context.Context) error {
 func (m *Tape) Env(ctx context.Context) error {
 	vhs := dag.Vhs()
 
-	tape := vhs.Edit().
+	tape := vhs.Tape().
 		Env("HELLO", "WORLD").
 		EmptyLine().
 		Type("echo $HELLO").
@@ -298,7 +298,7 @@ func (m *Tape) Env(ctx context.Context) error {
 func (m *Tape) Source(ctx context.Context) error {
 	vhs := dag.Vhs()
 
-	tape := vhs.Edit().
+	tape := vhs.Tape().
 		Source("config.tape")
 
 	return testTape(ctx, tape, "source.tape")

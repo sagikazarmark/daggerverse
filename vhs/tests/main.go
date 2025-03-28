@@ -54,7 +54,7 @@ func (m *Tests) Render(ctx context.Context) error {
 func (m *Tests) Render_Advanced(ctx context.Context) error {
 	vhs := dag.Vhs()
 
-	out := vhs.Edit().
+	out := vhs.Tape().
 		Output("cassette.webm").
 		Output("dir/cassette.gif").
 		Type("echo Hello").
@@ -106,14 +106,14 @@ func (m *Tests) WithSource_Render(ctx context.Context) error {
 func (m *Tests) WithSource_Render_Advanced(ctx context.Context) error {
 	vhs := dag.Vhs()
 
-	tape1 := vhs.Edit().
+	tape1 := vhs.Tape().
 		Output("cassette.gif").
 		Output("dir/cassette.gif").
 		Type("echo Hello").
 		Enter().
 		File()
 
-	tape2 := vhs.Edit().
+	tape2 := vhs.Tape().
 		Output("cassette.webm").
 		Output("dir/cassette.gif").
 		Type("echo Hello").
