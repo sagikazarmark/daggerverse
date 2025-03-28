@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-// Manually edit/build a new tape.
-func (m *Vhs) Edit() Tape {
+// Create a new tape manually.
+func (m *Vhs) Tape() Tape {
 	return Tape{
 		Vhs: m,
 	}
@@ -63,8 +63,6 @@ func (t *Tape) append(lines ...string) {
 }
 
 // Append a raw line to the tape.
-//
-// Use it with care!
 func (t Tape) raw(line string) Tape {
 	t = t.clone()
 	t.append(line)
@@ -72,6 +70,7 @@ func (t Tape) raw(line string) Tape {
 	return t
 }
 
+// quote a string according to tape file syntax.
 func quote(s string) string {
 	if strings.Contains(s, `"`) {
 		return fmt.Sprintf("`%s`", s)
