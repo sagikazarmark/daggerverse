@@ -24,7 +24,7 @@ func New(
 	//
 	// +optional
 	container *dagger.Container,
-) *Vhs {
+) Vhs {
 	if container == nil {
 		if version == "" {
 			version = "latest"
@@ -33,13 +33,13 @@ func New(
 		container = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
 	}
 
-	return &Vhs{
+	return Vhs{
 		Container: container,
 	}
 }
 
 // Create a new tape file with example tape file contents and documentation.
-func (m *Vhs) NewTape(
+func (m Vhs) NewTape(
 	// Name of the tape file to create.
 	//
 	// +optional
@@ -58,7 +58,7 @@ func (m *Vhs) NewTape(
 // Runs a given tape file and generates its outputs.
 //
 // If you have source commands in your tape file, use withSource instead.
-func (m *Vhs) Render(
+func (m Vhs) Render(
 	// Tape file to render.
 	tape *dagger.File,
 
@@ -76,11 +76,11 @@ func (m *Vhs) Render(
 }
 
 // Mount a source directory. Useful when you have source commands in your tape files.
-func (m *Vhs) WithSource(
+func (m Vhs) WithSource(
 	// Source directory to mount.
 	source *dagger.Directory,
-) *WithSource {
-	return &WithSource{
+) WithSource {
+	return WithSource{
 		Source: source,
 		Vhs:    m,
 	}
@@ -90,11 +90,11 @@ type WithSource struct {
 	Source *dagger.Directory
 
 	// +private
-	Vhs *Vhs
+	Vhs Vhs
 }
 
 // Runs a given tape file and generates its outputs.
-func (m *WithSource) Render(
+func (m WithSource) Render(
 	// Tape file to render. Must be relative to the source directory.
 	tape string,
 

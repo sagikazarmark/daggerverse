@@ -8,7 +8,7 @@ import (
 )
 
 // Create a new tape manually.
-func (m *Vhs) Tape() Tape {
+func (m Vhs) Tape() Tape {
 	return Tape{
 		Vhs: m,
 	}
@@ -19,7 +19,7 @@ type Tape struct {
 	Entries []string
 
 	// +private
-	Vhs *Vhs
+	Vhs Vhs
 }
 
 // Get the final tape file.
