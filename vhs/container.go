@@ -60,6 +60,19 @@ func (m Vhs) WithoutSecretVariable(
 	return m
 }
 
+// Establish a runtime dependency on a service.
+func (m Vhs) WithServiceBinding(
+	// A name that can be used to reach the service from the container.
+	alias string,
+
+	// Identifier of the service container.
+	service *dagger.Service,
+) Vhs {
+	m.Container = m.Container.WithServiceBinding(alias, service)
+
+	return m
+}
+
 // Set an environment variable.
 func (m WithSource) WithEnvVariable(
 	// The name of the environment variable (e.g., "HOST").
@@ -108,6 +121,19 @@ func (m WithSource) WithoutSecretVariable(
 	name string,
 ) WithSource {
 	m.Vhs = m.Vhs.WithoutSecretVariable(name)
+
+	return m
+}
+
+// Establish a runtime dependency on a service.
+func (m WithSource) WithServiceBinding(
+	// A name that can be used to reach the service from the container.
+	alias string,
+
+	// Identifier of the service container.
+	service *dagger.Service,
+) WithSource {
+	m.Vhs = m.Vhs.WithServiceBinding(alias, service)
 
 	return m
 }
