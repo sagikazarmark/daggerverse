@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 env:
-  DAGGER_VERSION: 0.17.2
+  DAGGER_VERSION: 0.18.0
 
 jobs:
   prepare-modules:
