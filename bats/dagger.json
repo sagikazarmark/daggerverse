@@ -1,6 +1,6 @@
 {
   "name": "bats",
-  "engineVersion": "v0.17.2",
+  "engineVersion": "v0.18.0",
   "sdk": {
     "source": "go"
   },
