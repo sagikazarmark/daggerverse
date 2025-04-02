@@ -64,7 +64,7 @@ func New(
 		DisableCache: disableCache || disableGoCache,
 	}).Container().
 		WithFile("/usr/local/bin/golangci-lint", container.File("/usr/bin/golangci-lint")).
-		WithoutEnvVariable("GOLANGCI_LINT_CACHE"). // Make sure golangci-lint cache location is not overridden
+		WithEnvVariable("GOLANGCI_LINT_CACHE", linterCachePath). // Make sure golangci-lint cache location is not overridden
 		With(func(c *dagger.Container) *dagger.Container {
 			if !disableCache {
 				return c.WithMountedCache(linterCachePath, dag.CacheVolume("golangci-lint"))
@@ -83,7 +83,7 @@ func (m *GolangciLint) Container() *dagger.Container {
 	return m.Go.Container()
 }
 
-const linterCachePath = "/root/.cache/golangci-lint"
+const linterCachePath = "/var/cache/golangci-lint"
 
 // Mount a cache volume for golangci-lint cache.
 func (m *GolangciLint) WithLinterCache(
