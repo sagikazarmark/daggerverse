@@ -16,47 +16,46 @@ type GolangciLint struct {
 
 func New(
 	// Version (image tag) to use from the official image repository as a golangci-lint binary source.
+	//
 	// +optional
 	version string,
 
 	// Custom image reference in "repository:tag" format to use as a golangci-lint binary source.
-	// +optional
-	image string,
-
-	// Custom image reference in "repository:tag" format to use as a golangci-lint binary source.
+	//
 	// +optional
 	container *dagger.Container,
 
 	// Disable mounting cache volumes.
+	//
 	// +optional
 	disableCache bool,
 
 	// Linter cache volume to mount at ~/.cache/golangci-lint.
+	//
 	// +optional
 	linterCache *dagger.CacheVolume,
 
 	// Version (image tag) to use from the official image repository as a Go base container.
+	//
 	// +optional
 	goVersion string,
 
 	// Custom container to use as a Go base container.
+	//
 	// +optional
 	goContainer *dagger.Container,
 
 	// Disable mounting Go cache volumes.
+	//
 	// +optional
 	disableGoCache bool,
 ) *GolangciLint {
-	var golangciLint *dagger.Container
+	if container == nil {
+		if version == "" {
+			version = "latest"
+		}
 
-	if version != "" {
-		golangciLint = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
-	} else if image != "" {
-		golangciLint = dag.Container().From(image)
-	} else if container != nil {
-		golangciLint = container
-	} else {
-		golangciLint = dag.Container().From(defaultImageRepository)
+		container = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
 	}
 
 	ctr := dag.Go(dagger.GoOpts{
@@ -64,38 +63,45 @@ func New(
 		Container:    goContainer,
 		DisableCache: disableCache || disableGoCache,
 	}).Container().
-		WithFile("/usr/local/bin/golangci-lint", golangciLint.File("/usr/bin/golangci-lint")).
-		WithoutEnvVariable("GOLANGCI_LINT_CACHE"). // Make sure golangci-lint cache location is not overridden
+		WithFile("/usr/local/bin/golangci-lint", container.File("/usr/bin/golangci-lint")).
+		WithEnvVariable("GOLANGCI_LINT_CACHE", linterCachePath). // Make sure golangci-lint cache location is not overridden
 		With(func(c *dagger.Container) *dagger.Container {
 			if !disableCache {
-				return c.WithMountedCache("/root/.cache/golangci-lint", dag.CacheVolume("golangci-lint"))
+				return c.WithMountedCache(linterCachePath, dag.CacheVolume("golangci-lint"))
 			}
 
 			return c
 		})
 
-	return &GolangciLint{dag.Go(dagger.GoOpts{Container: ctr})}
+	return &GolangciLint{dag.Go(dagger.GoOpts{
+		Container:    ctr,
+		DisableCache: disableCache || disableGoCache,
+	})}
 }
 
 func (m *GolangciLint) Container() *dagger.Container {
 	return m.Go.Container()
 }
 
+const linterCachePath = "/var/cache/golangci-lint"
+
 // Mount a cache volume for golangci-lint cache.
 func (m *GolangciLint) WithLinterCache(
 	cache *dagger.CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
+	//
 	// +optional
 	source *dagger.Directory,
 
 	// Sharing mode of the cache volume.
+	//
 	// +optional
 	sharing dagger.CacheSharingMode,
 ) *GolangciLint {
 	return &GolangciLint{
 		dag.Go(dagger.GoOpts{
-			Container: m.Go.Container().WithMountedCache("/root/.cache/golangci-lint", cache, dagger.ContainerWithMountedCacheOpts{
+			Container: m.Go.Container().WithMountedCache(linterCachePath, cache, dagger.ContainerWithMountedCacheOpts{
 				Source:  source,
 				Sharing: sharing,
 			}),
@@ -108,10 +114,12 @@ func (m *GolangciLint) WithModuleCache(
 	cache *dagger.CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
+	//
 	// +optional
 	source *dagger.Directory,
 
 	// Sharing mode of the cache volume.
+	//
 	// +optional
 	sharing dagger.CacheSharingMode,
 ) *GolangciLint {
@@ -126,10 +134,12 @@ func (m *GolangciLint) WithBuildCache(
 	cache *dagger.CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
+	//
 	// +optional
 	source *dagger.Directory,
 
 	// Sharing mode of the cache volume.
+	//
 	// +optional
 	sharing dagger.CacheSharingMode,
 ) *GolangciLint {
@@ -139,22 +149,27 @@ func (m *GolangciLint) WithBuildCache(
 	})}
 }
 
+// Run the linters.
 func (m *GolangciLint) Run(
 	source *dagger.Directory,
 
 	// Read custom configuration file.
+	//
 	// +optional
 	config *dagger.File,
 
-	// Timeout for total work
+	// Timeout for total work.
+	//
 	// +optional
 	timeout string,
 
-	// Verbose output
+	// Verbose output.
+	//
 	// +optional
 	verbose bool,
 
 	// Additional arguments to pass to the command.
+	//
 	// +optional
 	rawArgs []string,
 ) *dagger.Container {
@@ -178,7 +193,7 @@ func (m *GolangciLint) Run(
 
 	return m.Go.Container().
 		WithWorkdir("/work/src").
-		WithMountedDirectory("/work/src", source).
+		WithMountedDirectory(".", source).
 		With(func(c *dagger.Container) *dagger.Container {
 			if config != nil {
 				c = c.WithMountedFile("/work/config", config)
@@ -187,4 +202,42 @@ func (m *GolangciLint) Run(
 			return c
 		}).
 		WithExec(args)
+}
+
+// Format Go source files.
+func (m *GolangciLint) Fmt(
+	source *dagger.Directory,
+
+	// Read custom configuration file.
+	//
+	// +optional
+	config *dagger.File,
+
+	// Additional arguments to pass to the command.
+	//
+	// +optional
+	rawArgs []string,
+) *dagger.Directory {
+	args := []string{"golangci-lint", "fmt"}
+
+	if config != nil {
+		args = append(args, "--config", "/work/config")
+	}
+
+	if len(rawArgs) > 0 {
+		args = append(args, rawArgs...)
+	}
+
+	return m.Go.Container().
+		WithWorkdir("/work/src").
+		WithMountedDirectory(".", source).
+		With(func(c *dagger.Container) *dagger.Container {
+			if config != nil {
+				c = c.WithMountedFile("/work/config", config)
+			}
+
+			return c
+		}).
+		WithExec(args).
+		Directory(".")
 }
