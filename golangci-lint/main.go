@@ -149,6 +149,7 @@ func (m *GolangciLint) WithBuildCache(
 	})}
 }
 
+// Run the linters.
 func (m *GolangciLint) Run(
 	source *dagger.Directory,
 
@@ -201,4 +202,42 @@ func (m *GolangciLint) Run(
 			return c
 		}).
 		WithExec(args)
+}
+
+// Format Go source files.
+func (m *GolangciLint) Fmt(
+	source *dagger.Directory,
+
+	// Read custom configuration file.
+	//
+	// +optional
+	config *dagger.File,
+
+	// Additional arguments to pass to the command.
+	//
+	// +optional
+	rawArgs []string,
+) *dagger.Directory {
+	args := []string{"golangci-lint", "fmt"}
+
+	if config != nil {
+		args = append(args, "--config", "/work/config")
+	}
+
+	if len(rawArgs) > 0 {
+		args = append(args, rawArgs...)
+	}
+
+	return m.Go.Container().
+		WithWorkdir("/work/src").
+		WithMountedDirectory(".", source).
+		With(func(c *dagger.Container) *dagger.Container {
+			if config != nil {
+				c = c.WithMountedFile("/work/config", config)
+			}
+
+			return c
+		}).
+		WithExec(args).
+		Directory(".")
 }
