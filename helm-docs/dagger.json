@@ -1,6 +1,6 @@
 {
   "name": "helm-docs",
-  "engineVersion": "v0.18.0",
+  "engineVersion": "v0.18.1",
   "sdk": {
     "source": "go"
   },
