@@ -10,9 +10,11 @@ import (
 const defaultImageRepository = "golangci/golangci-lint"
 
 type GolangciLint struct {
-	// +private
-	Go *dagger.Go
+	Binary    *dagger.File
+	Container *dagger.Container
 }
+
+const cachePath = "/var/cache/golangci-lint"
 
 func New(
 	// Version (image tag) to use from the official image repository as a golangci-lint binary source.
@@ -20,20 +22,25 @@ func New(
 	// +optional
 	version string,
 
-	// Custom image reference in "repository:tag" format to use as a golangci-lint binary source.
+	// Custom container to use as a golangci-lint binary source.
 	//
 	// +optional
 	container *dagger.Container,
 
-	// Disable mounting cache volumes.
+	// golangci-lint binary.
+	//
+	// +optional
+	binary *dagger.File,
+
+	// Disable mounting default cache volumes.
 	//
 	// +optional
 	disableCache bool,
 
-	// Linter cache volume to mount at ~/.cache/golangci-lint.
+	// Linter cache volume to mount (takes precedence over disableCache).
 	//
 	// +optional
-	linterCache *dagger.CacheVolume,
+	cache *dagger.CacheVolume,
 
 	// Version (image tag) to use from the official image repository as a Go base container.
 	//
@@ -45,48 +52,49 @@ func New(
 	// +optional
 	goContainer *dagger.Container,
 
-	// Disable mounting Go cache volumes.
+	// Disable mounting default Go cache volumes.
 	//
 	// +optional
 	disableGoCache bool,
 ) *GolangciLint {
-	if container == nil {
-		if version == "" {
-			version = "latest"
+	if binary == nil {
+		if container == nil {
+			if version == "" {
+				version = "latest"
+			}
+
+			container = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
 		}
 
-		container = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
+		binary = container.File("/usr/bin/golangci-lint")
 	}
 
-	ctr := dag.Go(dagger.GoOpts{
+	if !disableCache && cache == nil {
+		cache = dag.CacheVolume("golangci-lint")
+	}
+
+	container = dag.Go(dagger.GoOpts{
 		Version:      goVersion,
 		Container:    goContainer,
 		DisableCache: disableCache || disableGoCache,
 	}).Container().
-		WithFile("/usr/local/bin/golangci-lint", container.File("/usr/bin/golangci-lint")).
-		WithEnvVariable("GOLANGCI_LINT_CACHE", linterCachePath). // Make sure golangci-lint cache location is not overridden
-		With(func(c *dagger.Container) *dagger.Container {
-			if !disableCache {
-				return c.WithMountedCache(linterCachePath, dag.CacheVolume("golangci-lint"))
-			}
+		WithEnvVariable("GOLANGCI_LINT_CACHE", cachePath). // Make sure golangci-lint cache location is not overridden
+		WithFile("/usr/local/bin/golangci-lint", binary)
 
-			return c
-		})
+	m := &GolangciLint{
+		Binary:    binary,
+		Container: container,
+	}
 
-	return &GolangciLint{dag.Go(dagger.GoOpts{
-		Container:    ctr,
-		DisableCache: disableCache || disableGoCache,
-	})}
+	if cache != nil {
+		m = m.WithCache(cache, nil, "")
+	}
+
+	return m
 }
-
-func (m *GolangciLint) Container() *dagger.Container {
-	return m.Go.Container()
-}
-
-const linterCachePath = "/var/cache/golangci-lint"
 
 // Mount a cache volume for golangci-lint cache.
-func (m *GolangciLint) WithLinterCache(
+func (m *GolangciLint) WithCache(
 	cache *dagger.CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
@@ -99,54 +107,12 @@ func (m *GolangciLint) WithLinterCache(
 	// +optional
 	sharing dagger.CacheSharingMode,
 ) *GolangciLint {
-	return &GolangciLint{
-		dag.Go(dagger.GoOpts{
-			Container: m.Go.Container().WithMountedCache(linterCachePath, cache, dagger.ContainerWithMountedCacheOpts{
-				Source:  source,
-				Sharing: sharing,
-			}),
-		}),
-	}
-}
-
-// Mount a cache volume for Go module cache.
-func (m *GolangciLint) WithModuleCache(
-	cache *dagger.CacheVolume,
-
-	// Identifier of the directory to use as the cache volume's root.
-	//
-	// +optional
-	source *dagger.Directory,
-
-	// Sharing mode of the cache volume.
-	//
-	// +optional
-	sharing dagger.CacheSharingMode,
-) *GolangciLint {
-	return &GolangciLint{m.Go.WithModuleCache(cache, dagger.GoWithModuleCacheOpts{
+	m.Container = m.Container.WithMountedCache(cachePath, cache, dagger.ContainerWithMountedCacheOpts{
 		Source:  source,
 		Sharing: sharing,
-	})}
-}
+	})
 
-// Mount a cache volume for Go build cache.
-func (m *GolangciLint) WithBuildCache(
-	cache *dagger.CacheVolume,
-
-	// Identifier of the directory to use as the cache volume's root.
-	//
-	// +optional
-	source *dagger.Directory,
-
-	// Sharing mode of the cache volume.
-	//
-	// +optional
-	sharing dagger.CacheSharingMode,
-) *GolangciLint {
-	return &GolangciLint{m.Go.WithBuildCache(cache, dagger.GoWithBuildCacheOpts{
-		Source:  source,
-		Sharing: sharing,
-	})}
+	return m
 }
 
 // Run the linters.
@@ -191,7 +157,7 @@ func (m *GolangciLint) Run(
 		args = append(args, rawArgs...)
 	}
 
-	return m.Go.Container().
+	return m.Container.
 		WithWorkdir("/work/src").
 		WithMountedDirectory(".", source).
 		With(func(c *dagger.Container) *dagger.Container {
@@ -228,7 +194,7 @@ func (m *GolangciLint) Fmt(
 		args = append(args, rawArgs...)
 	}
 
-	return m.Go.Container().
+	return m.Container.
 		WithWorkdir("/work/src").
 		WithMountedDirectory(".", source).
 		With(func(c *dagger.Container) *dagger.Container {
