@@ -22,11 +22,6 @@ func New(
 	// +optional
 	version string,
 
-	// Custom container to use as a golangci-lint binary source.
-	//
-	// +optional
-	container *dagger.Container,
-
 	// golangci-lint binary.
 	//
 	// +optional
@@ -47,39 +42,47 @@ func New(
 	// +optional
 	goVersion string,
 
-	// Custom container to use as a Go base container.
+	// Custom container to use as a base container. MUST include Go and any other dependencies required to build the project.
+	// Takes precedence over goVersion.
 	//
 	// +optional
-	goContainer *dagger.Container,
-
-	// Disable mounting default Go cache volumes.
-	//
-	// +optional
-	disableGoCache bool,
+	container *dagger.Container,
 ) *GolangciLint {
 	if binary == nil {
-		if container == nil {
-			if version == "" {
-				version = "latest"
-			}
-
-			container = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
+		if version == "" {
+			version = "latest"
 		}
 
-		binary = container.File("/usr/bin/golangci-lint")
+		binary = dag.Container().
+			From(fmt.Sprintf("%s:%s", defaultImageRepository, version)).
+			File("/usr/bin/golangci-lint")
 	}
 
 	if !disableCache && cache == nil {
 		cache = dag.CacheVolume("golangci-lint")
 	}
 
-	container = dag.Go(dagger.GoOpts{
-		Version:      goVersion,
-		Container:    goContainer,
-		DisableCache: disableCache || disableGoCache,
-	}).Container().
+	if container == nil {
+		container = dag.Go(dagger.GoOpts{
+			Version:      goVersion,
+			DisableCache: disableCache,
+		}).
+			With(func(m *dagger.Go) *dagger.Go {
+				// Make sure default Go cache volumes do not overlap with golangci-lint cache
+				if !disableCache {
+					m = m.
+						WithModuleCache(dag.CacheVolume("go-mod-golangci-lint")).
+						WithBuildCache(dag.CacheVolume("go-build-golangci-lint"))
+				}
+
+				return m
+			}).
+			Container()
+	}
+
+	container = container.
 		WithEnvVariable("GOLANGCI_LINT_CACHE", cachePath). // Make sure golangci-lint cache location is not overridden
-		WithFile("/usr/local/bin/golangci-lint", binary)
+		WithFile("/usr/local/bin/golangci-lint", binary, dagger.ContainerWithFileOpts{Permissions: 0755})
 
 	m := &GolangciLint{
 		Binary:    binary,
