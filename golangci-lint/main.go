@@ -58,10 +58,6 @@ func New(
 			File("/usr/bin/golangci-lint")
 	}
 
-	if !disableCache && cache == nil {
-		cache = dag.CacheVolume("golangci-lint")
-	}
-
 	if container == nil {
 		container = dag.Go(dagger.GoOpts{
 			Version:      goVersion,
@@ -76,6 +72,10 @@ func New(
 	m := &GolangciLint{
 		Binary:    binary,
 		Container: container,
+	}
+
+	if !disableCache && cache == nil {
+		cache = dag.CacheVolume("golangci-lint")
 	}
 
 	if cache != nil {
