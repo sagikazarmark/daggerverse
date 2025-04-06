@@ -66,18 +66,7 @@ func New(
 		container = dag.Go(dagger.GoOpts{
 			Version:      goVersion,
 			DisableCache: disableCache,
-		}).
-			With(func(m *dagger.Go) *dagger.Go {
-				// Make sure default Go cache volumes do not overlap with golangci-lint cache
-				if !disableCache {
-					m = m.
-						WithModuleCache(dag.CacheVolume("go-mod-golangci-lint")).
-						WithBuildCache(dag.CacheVolume("go-build-golangci-lint"))
-				}
-
-				return m
-			}).
-			Container()
+		}).Container()
 	}
 
 	container = container.
