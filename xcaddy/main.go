@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"dagger/xcaddy/internal/dagger"
 	"fmt"
 	"runtime"
@@ -15,7 +16,9 @@ import (
 const defaultGoImageRepository = "golang"
 
 type Xcaddy struct {
-	// +private
+	// Xcaddy binary.
+	Binary *dagger.File
+
 	Container *dagger.Container
 }
 
@@ -25,34 +28,33 @@ func New(
 	// +optional
 	version string,
 
-	// Custom container to use as an xcaddy (and Go) base container.
+	// xcaddy binary (takes precedence over version).
 	//
 	// +optional
-	container *dagger.Container,
+	binary *dagger.File,
 
 	// Version (image tag) to use from the official image repository as a Go base container.
 	//
 	// +optional
 	goVersion string,
 
-	// Custom container to use as a Go base container.
+	// Custom container to use as a base container. MUST include Go and any other dependencies required to build the project.
+	// Takes precedence over goVersion.
 	//
 	// +optional
-	goContainer *dagger.Container,
+	container *dagger.Container,
 ) *Xcaddy {
 	if container == nil {
-		if goContainer == nil {
-			if goVersion == "" {
-				goVersion = "latest"
-			}
-
-			goContainer = dag.Container().From(fmt.Sprintf("%s:%s", defaultGoImageRepository, goVersion))
+		if goVersion == "" {
+			goVersion = "latest"
 		}
 
-		var binary *dagger.File
+		container = dag.Container().From(fmt.Sprintf("%s:%s", defaultGoImageRepository, goVersion))
+	}
 
+	if binary == nil {
 		if version == "" {
-			binary = goContainer.
+			binary = container.
 				WithEnvVariable("GOBIN", "/work").
 				WithExec([]string{"go", "install", "github.com/caddyserver/xcaddy/cmd/xcaddy@latest"}).
 				File("/work/xcaddy")
@@ -64,15 +66,14 @@ func New(
 				).WithName(fileName),
 			).File("xcaddy_0/xcaddy")
 		}
-
-		container = goContainer.
-			With(resetEnvVariables).
-			WithFile("/usr/local/bin/xcaddy", binary)
-	} else {
-		container = resetEnvVariables(container)
 	}
 
+	container = container.
+		With(resetEnvVariables).
+		WithFile("/usr/local/bin/xcaddy", binary, dagger.ContainerWithFileOpts{Permissions: 0755})
+
 	return &Xcaddy{
+		Binary:    binary,
 		Container: container,
 	}
 }
@@ -324,26 +325,37 @@ func (b *Build) Binary(
 
 // Return a Caddy container.
 func (b *Build) Container(
-	// Use the specified base image.
+	ctx context.Context,
+
+	// Use the specified base image (takes precedence over platform).
 	//
 	// +optional
-	// +default="caddy"
-	base string,
+	base *dagger.Container,
 
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	//
 	// +optional
 	platform dagger.Platform,
-) *dagger.Container {
-	var opts dagger.ContainerOpts
+) (*dagger.Container, error) {
+	if base == nil {
+		var opts dagger.ContainerOpts
 
-	if platform != "" {
-		opts.Platform = platform
+		if platform != "" {
+			opts.Platform = platform
+		}
+
+		base = dag.Container(opts).From("caddy")
+	} else {
+		p, err := base.Platform(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		platform = p
 	}
 
-	return dag.Container(opts).
-		From(base).
-		WithFile("/usr/bin/caddy", b.Binary(platform))
+	return base.
+		WithFile("/usr/bin/caddy", b.Binary(platform)), nil
 }
 
 // Open a terminal to inspect the build files.
