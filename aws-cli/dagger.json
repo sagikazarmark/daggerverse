@@ -1,6 +1,6 @@
 {
   "name": "aws-cli",
-  "engineVersion": "v0.18.3",
+  "engineVersion": "v0.18.18",
   "sdk": {
     "source": "go"
   },
