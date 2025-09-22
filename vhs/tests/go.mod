@@ -25,10 +25,7 @@ require (
 	google.golang.org/grpc v1.75.1
 )
 
-require (
-	go.uber.org/atomic v1.7.0 // indirect
-	go.uber.org/multierr v1.9.0 // indirect
-)
+require go.uber.org/multierr v1.11.0 // indirect
 
 require (
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
@@ -36,6 +33,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2 // indirect
+	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
 	github.com/sosodev/duration v1.3.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.38.0 // indirect
