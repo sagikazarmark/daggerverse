@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 env:
-  DAGGER_VERSION: 0.18.18
+  DAGGER_VERSION: 0.18.19
 
 jobs:
   prepare-modules:
@@ -32,7 +32,7 @@ jobs:
 
       - name: List modules
         id: modules
-        run: echo "modules=$(devenv shell -- just list | just as-json)" >> $GITHUB_OUTPUT
+        run: echo "modules=$(devenv shell -- bash -c 'just list | just as-json')" >> $GITHUB_OUTPUT
 
   publish:
     name: Publish

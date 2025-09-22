@@ -163,7 +163,7 @@ func (m *Tests) ChartInstall(ctx context.Context) error {
 		return err
 	}
 
-	helm := newHelm().WithKubeconfigFile(k8s.Config(false))
+	helm := newHelm().WithKubeconfigFile(k8s.Config(dagger.K3SConfigOpts{Local: false}))
 
 	release := helm.Create("foo").Install("foo", dagger.HelmChartInstallOpts{
 		Wait: true,
@@ -187,7 +187,7 @@ func (m *Tests) PackageInstall(ctx context.Context) error {
 		return err
 	}
 
-	helm := newHelm().WithKubeconfigFile(k8s.Config(false))
+	helm := newHelm().WithKubeconfigFile(k8s.Config(dagger.K3SConfigOpts{Local: false}))
 
 	release := helm.Create("foo").Package().Install("foo", dagger.HelmPackageInstallOpts{
 		Wait: true,
@@ -211,7 +211,7 @@ func (m *Tests) InstallNamespace(ctx context.Context) error {
 		return err
 	}
 
-	helm := newHelm().WithKubeconfigFile(k8s.Config(false))
+	helm := newHelm().WithKubeconfigFile(k8s.Config(dagger.K3SConfigOpts{Local: false}))
 
 	release := helm.Create("foo").Install("foo", dagger.HelmChartInstallOpts{
 		CreateNamespace: true,

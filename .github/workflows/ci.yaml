@@ -6,7 +6,7 @@ on:
   pull_request:
 
 env:
-  DAGGER_VERSION: 0.18.18
+  DAGGER_VERSION: 0.18.19
 
 jobs:
   prepare-tests:
@@ -33,7 +33,7 @@ jobs:
 
       - name: List modules
         id: modules
-        run: echo "modules=$(devenv shell -- just list-with-tests | just as-json)" >> $GITHUB_OUTPUT
+        run: echo "modules=$(devenv shell -- bash -c 'just list-with-tests | just as-json')" >> $GITHUB_OUTPUT
 
   test:
     name: Test
@@ -87,7 +87,7 @@ jobs:
 
       - name: List modules
         id: modules
-        run: echo "modules=$(devenv shell -- just list-with-examples | just as-json)" >> $GITHUB_OUTPUT
+        run: echo "modules=$(devenv shell -- bash -c 'just list-with-examples | just as-json')" >> $GITHUB_OUTPUT
 
   example:
     name: Example
