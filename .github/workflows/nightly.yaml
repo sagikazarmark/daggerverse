@@ -30,7 +30,7 @@ jobs:
 
       - name: List modules
         id: modules
-        run: echo "modules=$(devenv shell -- just list-with-tests | just as-json)" >> $GITHUB_OUTPUT
+        run: echo "modules=$(devenv shell -- bash -c 'just list-with-tests | just as-json')" >> $GITHUB_OUTPUT
 
   test:
     name: Test
@@ -84,7 +84,7 @@ jobs:
 
       - name: List modules
         id: modules
-        run: echo "modules=$(devenv shell -- just list-with-examples | just as-json)" >> $GITHUB_OUTPUT
+        run: echo "modules=$(devenv shell -- bash -c 'just list-with-examples | just as-json')" >> $GITHUB_OUTPUT
 
   example:
     name: Example
