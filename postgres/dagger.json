@@ -1,6 +1,6 @@
 {
   "name": "postgres",
-  "engineVersion": "v0.18.19",
+  "engineVersion": "v0.19.9",
   "sdk": {
     "source": "go"
   },
@@ -15,5 +15,6 @@
       "name": "psql",
       "source": "../psql"
     }
-  ]
+  ],
+  "disableDefaultFunctionCaching": true
 }

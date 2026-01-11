@@ -1,6 +1,6 @@
 {
   "name": "tests",
-  "engineVersion": "v0.18.19",
+  "engineVersion": "v0.19.9",
   "sdk": {
     "source": "go"
   },
@@ -20,5 +20,6 @@
       "source": "github.com/marcosnils/daggerverse/k3s@k3s/v0.1.10",
       "pin": "28eea1fcf3b6ecb38a628186107760acd717442f"
     }
-  ]
+  ],
+  "disableDefaultFunctionCaching": true
 }
