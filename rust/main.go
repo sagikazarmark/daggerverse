@@ -192,6 +192,31 @@ func (m *Rust) container() *dagger.Container {
 	return m.Container.WithMountedDirectory(".", m.Source)
 }
 
+// Mount a cache volume for Cargo registry cache.
+func (m *Rust) WithChef(
+	// Version of cargo-chef to install.
+	//
+	// +optional
+	version string,
+) *Rust {
+	pkg := "cargo-chef"
+	if version != "" {
+		pkg += "@" + version
+	}
+
+	recipe := m.Container.
+		WithExec([]string{"cargo", "install", pkg}).
+		WithMountedDirectory(".", m.Source).
+		WithExec([]string{"cargo", "chef", "prepare"}).
+		File("recipe.json")
+
+	m.Container = m.Container.
+		WithMountedFile("/work/recipe.json", recipe).
+		WithExec([]string{"cargo", "chef", "prepare", "--recipe-path", "/work/recipe.json"})
+
+	return m
+}
+
 func (m *Rust) cargo() []string {
 	return []string{"cargo", "--locked"}
 }

@@ -14,6 +14,7 @@ func (m *Tests) All(ctx context.Context) error {
 	p := pool.New().WithErrors().WithContext(ctx)
 
 	p.Go(m.Build)
+	p.Go(m.BuildWithChef)
 	p.Go(m.Test)
 	p.Go(m.Check)
 	p.Go(m.Format)
@@ -32,6 +33,14 @@ func (m *Tests) Build(ctx context.Context) error {
 	rust := m.module()
 
 	_, err := rust.Build().Sync(ctx)
+
+	return err
+}
+
+func (m *Tests) BuildWithChef(ctx context.Context) error {
+	rust := m.module()
+
+	_, err := rust.WithChef().Build().Sync(ctx)
 
 	return err
 }
