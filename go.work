@@ -1,4 +1,4 @@
-go 1.24.0
+go 1.25.4
 
 use (
 	./apko
@@ -52,6 +52,8 @@ use (
 	./registry
 	./registry-config
 	./registry-config/tests
+	./rust
+	./rust/tests
 	./registry/tests
 	./slsa-verifier
 	./slsa-verifier/tests
