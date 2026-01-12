@@ -1,6 +1,6 @@
 {
   "name": "examples",
-  "engineVersion": "v0.18.19",
+  "engineVersion": "v0.19.9",
   "sdk": {
     "source": "go"
   },
@@ -20,5 +20,6 @@
       "source": "github.com/marcosnils/daggerverse/k3s@e0bd6b9f5519c49db4b6eb0689927214720976f9",
       "pin": "e0bd6b9f5519c49db4b6eb0689927214720976f9"
     }
-  ]
+  ],
+  "disableDefaultFunctionCaching": true
 }

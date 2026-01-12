@@ -1,6 +1,6 @@
 {
   "name": "tests",
-  "engineVersion": "v0.18.19",
+  "engineVersion": "v0.19.9",
   "sdk": {
     "source": "go"
   },
@@ -15,5 +15,6 @@
       "name": "apko",
       "source": ".."
     }
-  ]
+  ],
+  "disableDefaultFunctionCaching": true
 }

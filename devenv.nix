@@ -5,7 +5,7 @@
 
   overlays = [
     (final: prev: {
-      dagger = inputs.dagger.packages.${final.system}.dagger;
+      dagger = inputs.dagger.packages.${final.stdenv.hostPlatform.system}.dagger;
     })
   ];
 
