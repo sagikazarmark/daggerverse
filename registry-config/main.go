@@ -30,6 +30,8 @@ type Auth struct {
 }
 
 // Add credentials for a registry.
+//
+// +cache="session"
 func (m *RegistryConfig) WithRegistryAuth(address string, username string, secret *dagger.Secret) *RegistryConfig {
 	m.Auths = append(m.Auths, Auth{
 		Address:  address,
@@ -41,6 +43,8 @@ func (m *RegistryConfig) WithRegistryAuth(address string, username string, secre
 }
 
 // Removes credentials for a registry.
+//
+// +cache="session"
 func (m *RegistryConfig) WithoutRegistryAuth(address string) *RegistryConfig {
 	m.Auths = slices.DeleteFunc(m.Auths, func(a Auth) bool {
 		return a.Address == address
@@ -50,6 +54,8 @@ func (m *RegistryConfig) WithoutRegistryAuth(address string) *RegistryConfig {
 }
 
 // Create the registry configuration.
+//
+// +cache="session"
 func (m *RegistryConfig) Secret(
 	ctx context.Context,
 
@@ -67,6 +73,8 @@ func (m *RegistryConfig) Secret(
 }
 
 // Create a SecretMount that can be used to mount the registry configuration into a container.
+//
+// +cache="session"
 func (m *RegistryConfig) SecretMount(
 	ctx context.Context,
 
@@ -131,6 +139,7 @@ type SecretMount struct {
 	RegistryConfig *RegistryConfig
 }
 
+// +cache="session"
 func (m *SecretMount) Mount(ctx context.Context, container *dagger.Container) (*dagger.Container, error) {
 	if m.SkipOnEmpty && len(m.RegistryConfig.Auths) == 0 {
 		return container, nil

@@ -10,6 +10,8 @@ import (
 )
 
 // Install a Helm chart.
+//
+// +cache="never"
 func (c *Chart) Install(
 	ctx context.Context,
 
@@ -229,6 +231,8 @@ func (c *Chart) Install(
 }
 
 // Install a Helm chart.
+//
+// +cache="never"
 func (p *Package) Install(
 	ctx context.Context,
 
