@@ -9,6 +9,5 @@
     "!../.devenv",
     "!../go.work",
     "!../go.work.sum"
-  ],
-  "disableDefaultFunctionCaching": true
+  ]
 }

@@ -25,6 +25,8 @@ type Chart struct {
 }
 
 // Lint a Helm chart.
+//
+// +cache="session"
 func (c *Chart) Lint(ctx context.Context) (*dagger.Container, error) {
 	return c.Helm.Lint(ctx, c.Directory)
 }
@@ -72,6 +74,8 @@ func (c *Chart) Package(
 }
 
 // Add credentials for a registry.
+//
+// +cache="session"
 func (p *Package) WithRegistryAuth(address string, username string, secret *dagger.Secret) *Package {
 	p.Helm = p.Helm.WithRegistryAuth(address, username, secret)
 
@@ -79,6 +83,8 @@ func (p *Package) WithRegistryAuth(address string, username string, secret *dagg
 }
 
 // Removes credentials for a registry.
+//
+// +cache="session"
 func (p *Package) WithoutRegistryAuth(address string) *Package {
 	p.Helm = p.Helm.WithoutRegistryAuth(address)
 
@@ -100,6 +106,8 @@ func (p *Package) WithKubeconfigSecret(secret *dagger.Secret) *Package {
 }
 
 // Publishes this Helm chart package to an OCI registry.
+//
+// +cache="never"
 func (p *Package) Publish(
 	ctx context.Context,
 

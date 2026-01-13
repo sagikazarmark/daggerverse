@@ -73,6 +73,8 @@ func (m *Helm) container() *dagger.Container {
 // Add credentials for a registry.
 //
 // Note: WithRegistryAuth overrides any previous or subsequent calls to Login/Logout.
+//
+// +cache="session"
 func (m *Helm) WithRegistryAuth(address string, username string, secret *dagger.Secret) *Helm {
 	m.RegistryConfig = m.RegistryConfig.WithRegistryAuth(address, username, secret)
 
@@ -80,6 +82,8 @@ func (m *Helm) WithRegistryAuth(address string, username string, secret *dagger.
 }
 
 // Removes credentials for a registry.
+//
+// +cache="session"
 func (m *Helm) WithoutRegistryAuth(address string) *Helm {
 	m.RegistryConfig = m.RegistryConfig.WithoutRegistryAuth(address)
 
@@ -119,6 +123,8 @@ func (m *Helm) Create(name string) *Chart {
 }
 
 // Lint a Helm chart directory.
+//
+// +cache="session"
 func (m *Helm) Lint(
 	ctx context.Context,
 
@@ -211,6 +217,8 @@ func (m *Helm) Package(
 // Authenticate to an OCI registry.
 //
 // Note: Login stores credentials in the filesystem in plain text. Use WithRegistryAuth as a safer alternative.
+//
+// +cache="session"
 func (m *Helm) Login(
 	ctx context.Context,
 
@@ -250,6 +258,8 @@ func (m *Helm) Login(
 }
 
 // Remove credentials stored for an OCI registry.
+//
+// +cache="session"
 func (m *Helm) Logout(host string) *Helm {
 	args := []string{
 		"registry",
@@ -263,6 +273,8 @@ func (m *Helm) Logout(host string) *Helm {
 }
 
 // Push a Helm chart package to an OCI registry.
+//
+// +cache="never"
 func (m *Helm) Push(
 	ctx context.Context,
 

@@ -15,6 +15,5 @@
       "name": "registry-config",
       "source": "../registry-config"
     }
-  ],
-  "disableDefaultFunctionCaching": true
+  ]
 }
