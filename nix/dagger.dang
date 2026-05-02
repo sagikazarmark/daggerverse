@@ -1,0 +1,267 @@
+pub description = "Nix toolbox"
+
+"""
+Output format for nix commands that support `--json` / `--raw`.
+"""
+enum OutputFormat {
+  DEFAULT
+  JSON
+  RAW
+}
+
+type Nix {
+  """
+  The configured nix container.
+  """
+  pub _container: Container!
+
+  """
+  The workspace directory (if any). Required by all flake-bound operations.
+  """
+  pub source: Directory
+
+  """
+  The nix store volume (if any).
+  """
+  pub store: CacheVolume
+
+  let seed: Directory!
+
+  new(
+    """
+    Image tag of nixos/nix image to use.
+    """
+    version: String! = "latest",
+    """
+    Override the base container. Defaults to nixos/nix:<version>.
+    """
+    container: Container! = Dagger.container.from("nixos/nix:" + version),
+    """
+    Workspace directory. Required by all flake-bound operations.
+    """
+    source: Directory = null,
+    """
+    CacheVolume backing /nix/store. Defaults to a shared `nix-store` volume.
+    Pass `null` (or call withoutStore) for an ephemeral store.
+    """
+    store: CacheVolume = cacheVolume("nix-store"),
+  ) {
+    self._container = container.withEnvVariable(
+      "NIX_CONFIG",
+      "experimental-features = nix-command flakes\nfilter-syscalls = false\nsandbox = false",
+    )
+    self.seed = container.directory("/nix/store")
+
+    self
+  }
+
+  """
+  The nix container with store and source configured.
+  """
+  pub container: Container! {
+    let container = self._container
+
+    let store = self.store
+    if (store != null) {
+      container = container.withMountedCache(
+        "/nix/store",
+        store,
+        source: self.seed,
+        sharing: CacheSharingMode.SHARED,
+      )
+    }
+
+    let source = self.source
+    if (source != null) {
+      container = container
+        .withWorkdir("/workspace")
+        .withDirectory(".", source)
+    }
+
+    container
+  }
+
+  """
+  Set or replace the workspace directory.
+  """
+  pub withSource(source: Directory!): Nix! {
+    self.source = source
+
+    self
+  }
+
+  """
+  Replace the /nix/store CacheVolume. Useful for sharing or scoping the store across modules.
+  """
+  pub withStore(volume: CacheVolume!): Nix! {
+    self.store = volume
+
+    self
+  }
+
+  """
+  Disable the persistent /nix/store cache. Subsequent operations use an ephemeral store that lives only for the container's lifetime.
+  """
+  pub withoutStore: Nix! {
+    self.store = null
+
+    self
+  }
+
+  """
+  Build the given flake attribute and return a Result facade for extracting the output.
+  """
+  pub build(
+    """
+    The flake attribute to build (e.g. "default", "packages.x86_64-linux.foo").
+    The leading `.#` is added automatically.
+    """
+    attr: String! = "default",
+  ): Result! {
+    let built = self.container.withExec([
+      "nix", "build",
+      "--print-out-paths",
+      "--no-link",
+      ".#" + attr,
+    ])
+
+    let storePath = built.stdout.trimSpace
+
+    # Copy the build result out of /nix/store into /result so it can be
+    # extracted as a Directory/File. Dagger refuses to extract paths backed
+    # by a CacheVolume mount.
+    let exported = built
+      .withExec(["mkdir", "-p", "/result"])
+      .withExec(["cp", "-RL", storePath, "/result/out"])
+      .withExec(["chmod", "-R", "u+w", "/result/out"])
+
+    Result(container: exported, storePath: storePath, exportedPath: "/result/out")
+  }
+
+  """
+  Evaluate a nix installable (flake attribute path like ".#packages.x86_64-linux.foo.version") or, with `expression: true`, a raw nix expression.
+  """
+  pub eval(
+    target: String!,
+    """
+    Output format. RAW is only valid for string-typed results.
+    """
+    output: OutputFormat! = OutputFormat.DEFAULT,
+    """
+    Interpret target as a raw nix expression (passes --expr).
+    """
+    expression: Boolean! = false,
+  ): String! {
+    let args = ["nix", "eval"]
+
+    args += case (output) {
+      OutputFormat.JSON => ["--json"]
+      OutputFormat.RAW => ["--raw"]
+      OutputFormat.DEFAULT => []
+    }
+
+    if (expression) { args += ["--expr"] }
+
+    args += [target]
+
+    self.container.withExec(args).stdout
+  }
+
+  """
+  Operations on the flake itself: show, metadata, check, update.
+  """
+  pub flake: Flake! {
+    Flake(container: self.container, source: self.source)
+  }
+}
+
+type Result {
+  """
+  The container after the build, with /nix/store populated.
+  """
+  pub container: Container!
+
+  """
+  The resolved /nix/store/<hash>-<name> path of the build result.
+  """
+  pub storePath: String!
+
+  let exportedPath: String!
+
+  new(container: Container!, storePath: String!, exportedPath: String!) {
+    self.container = container
+    self.storePath = storePath
+    self.exportedPath = exportedPath
+
+    self
+  }
+
+  """
+  The build result as a Directory.
+  """
+  pub directory: Directory! {
+    self.container.directory(self.exportedPath)
+  }
+
+  """
+  The build result as a File.
+  """
+  pub file: File! {
+    self.container.file(self.exportedPath)
+  }
+}
+
+type Flake {
+  let container: Container!
+  let source: Directory!
+
+  new(container: Container!, source: Directory) {
+    assert { source != null }
+
+    if (source != null) {
+      self.source = source
+    }
+
+    self.container = container
+
+    self
+  }
+
+  """
+  Run `nix flake show`.
+  """
+  pub show(output: OutputFormat! = OutputFormat.DEFAULT): String! {
+    let args = ["nix", "flake", "show"]
+    if (output == OutputFormat.JSON) { args += ["--json"] }
+
+    self.container.withExec(args).stdout
+  }
+
+  """
+  Run `nix flake metadata`.
+  """
+  pub metadata(output: OutputFormat! = OutputFormat.DEFAULT): String! {
+    let args = ["nix", "flake", "metadata"]
+    if (output == OutputFormat.JSON) { args += ["--json"] }
+
+    self.container.withExec(args).stdout
+  }
+
+  """
+  Run `nix flake check`.
+  """
+  pub check: Container! {
+    self.container.withExec(["nix", "flake", "check"])
+  }
+
+  """
+  Run `nix flake update` and return a Changeset describing what changed in the workspace (typically just `flake.lock`).
+  """
+  pub update: Changeset! {
+    self
+      .container
+      .withExec(["nix", "flake", "update"])
+      .directory("/workspace")
+      .changes(self.source)
+  }
+}
