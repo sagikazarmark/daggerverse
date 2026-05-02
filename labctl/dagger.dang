@@ -1,0 +1,95 @@
+type Labctl {
+  """
+  A container with labctl installed.
+  """
+  pub container: Container!
+
+  new(
+    """
+    Version (release tag) of labctl to download from GitHub. Defaults to "latest".
+    """
+    version: String! = "latest",
+    """
+    The container to use as the base for the labctl installation. Defaults to "alpine:latest".
+    """
+    container: Container! = Dagger.container.from("alpine:latest"),
+    """
+    The session ID for the labctl.
+    """
+    sessionId: Secret = null,
+    """
+    The access token for the labctl.
+    """
+    accessToken: Secret = null,
+  ) {
+    let osArch = toString(Dagger.defaultPlatform).trim("\"").replace("/", "_")
+
+    let downloadURL = if (version == "latest") {
+      "https://github.com/iximiuz/labctl/releases/latest/download/labctl_" + osArch + ".tar.gz"
+    } else {
+      "https://github.com/iximiuz/labctl/releases/download/v" + version.trimPrefix("v") + "/labctl_" + osArch + ".tar.gz"
+    }
+
+    let archive = Dagger.http(downloadURL)
+
+    let binary = Dagger
+      .container
+      .from("alpine:latest")
+      .withMountedFile("/tmp/labctl.tar.gz", archive)
+      .withExec(["tar", "xzf", "/tmp/labctl.tar.gz", "-C", "/tmp"])
+      .file("/tmp/labctl")
+
+    let config = Dagger.file(
+      "config.yaml",
+      """
+      base_url: https://labs.iximiuz.com
+      api_base_url: https://labs.iximiuz.com/api
+      plays_dir: /root/.iximiuz/labctl/plays
+      ssh_identity_file: /root/.ssh/iximiuz_labs_user
+      """,
+    )
+
+    self.container = container
+      .withFile("/usr/local/bin/labctl", binary)
+      .withEntrypoint(["/usr/local/bin/labctl"])
+      .withFile("/root/.iximiuz/labctl/config.yaml", config)
+
+    if (sessionId != null) {
+      self.container = self.setSessionId(sessionId, self.container)
+    }
+    if (accessToken != null) {
+      self.container = self.setAccessToken(accessToken, self.container)
+    }
+
+    self
+  }
+
+  let setSessionId(sessionId: Secret!, container: Container!): Container! {
+    container.withSecretVariable("IXIMIUZ_SESSION_ID", sessionId)
+  }
+
+  """
+  Sets the session ID for labctl.
+  """
+  pub withSessionId(sessionId: Secret!): Labctl! {
+    self.container = self.setSessionId(sessionId, self.container)
+
+    self
+  }
+
+  let setAccessToken(accessToken: Secret!, container: Container!): Container! {
+    container.withSecretVariable(
+      "IXIMIUZ_ACCESS_TOKEN",
+      accessToken,
+    )
+  }
+
+  """
+  Sets the access token for labctl.
+  """
+  pub withAccessToken(accessToken: Secret!): Labctl! {
+    self.container = self.setAccessToken(accessToken, self.container)
+
+    self
+  }
+}

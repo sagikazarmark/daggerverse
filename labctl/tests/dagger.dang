@@ -1,0 +1,24 @@
+type Tests {
+  """
+  labctl is installed at /usr/local/bin/labctl and runs.
+  """
+  pub basic: Container! @check {
+    labctl
+      .container
+      .withExec(["labctl", "--help"])
+  }
+
+  """
+  A pinned version is downloaded and reports the matching version.
+  """
+  pub pinnedVersion: String! @check {
+    let out = labctl(version: "v0.1.75")
+      .container
+      .withExec(["labctl", "version"])
+      .stdout
+
+    assert { out.hasPrefix("0.1.75") }
+
+    out
+  }
+}
