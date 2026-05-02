@@ -1,0 +1,99 @@
+type Tests {
+  """
+  Restate starts and the admin endpoint responds to `restate whoami`.
+  """
+  pub basic: Container! @check {
+    restate
+      .run
+      .cli
+      .withExec(["restate", "whoami"])
+  }
+
+  """
+  Restate boots cleanly with a custom config file mounted via withConfig.
+  """
+  pub withConfig: Container! @check {
+    let cfg = directory
+      .withNewFile("server.toml", "default-num-partitions = 16\n")
+      .file("server.toml")
+
+    restate
+      .withConfig(cfg)
+      .run
+      .cli
+      .withExec(["restate", "whoami"])
+  }
+
+  """
+  A config file attempting to override admin/ingress bind addresses is ignored —
+    the admin endpoint must still be reachable on :9070.
+  """
+  pub portsLocked: String! @check {
+    let badConfig = directory
+      .withNewFile("server.toml", "[admin]\nbind-address = \"127.0.0.1:9999\"\n[ingress]\nbind-address = \"127.0.0.1:9999\"\n")
+      .file("server.toml")
+
+    restate
+      .withConfig(badConfig)
+      .run
+      .cli
+      .withExec(["restate", "whoami"])
+      .stdout
+  }
+
+  """
+  A toy service can be registered against a running Restate.
+
+  cacheBuster is mounted on both the toy service (for fresh registration
+  inputs) and the final `deployments list` exec (so its output isn't
+  cached across runs); without it you can't tell whether the registration
+  actually ran on subsequent invocations.
+  """
+  pub registerDeployment(cacheBuster: String! = ""): String! @check {
+    let svc = container
+      .from("ghcr.io/sagikazarmark/restate-examples:v0.1.0")
+      .withEnvVariable("CACHE_BUSTER", cacheBuster)
+      .withExposedPort(9080)
+      .asService(useEntrypoint: true)
+
+    let started = svc.start
+
+    restate
+      .run
+      .registerDeployment(svc)
+      .cli
+      .withEnvVariable("CACHE_BUSTER", cacheBuster)
+      .withExec(["restate", "deployments", "list"])
+      .stdout
+  }
+
+  """
+  Two services can be registered against the same Restate instance and both
+  show up in the deployments list (registrations accumulate).
+  """
+  pub registerDeploymentMultiple(cacheBuster: String! = ""): String! @check {
+    let svcA = container
+      .from("ghcr.io/sagikazarmark/restate-examples:v0.1.0")
+      .withEnvVariable("CACHE_BUSTER", cacheBuster + "-a")
+      .withExposedPort(9080)
+      .asService(useEntrypoint: true)
+
+    let svcB = container
+      .from("ghcr.io/sagikazarmark/restate-examples:v0.1.0")
+      .withEnvVariable("CACHE_BUSTER", cacheBuster + "-b")
+      .withExposedPort(9080)
+      .asService(useEntrypoint: true)
+
+    let startA = svcA.start
+    let startB = svcB.start
+
+    restate
+      .run
+      .registerDeployment(svcA)
+      .registerDeployment(svcB)
+      .cli
+      .withEnvVariable("CACHE_BUSTER", cacheBuster)
+      .withExec(["restate", "deployments", "list"])
+      .stdout
+  }
+}

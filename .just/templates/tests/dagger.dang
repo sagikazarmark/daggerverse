@@ -1,0 +1,11 @@
+type Tests {
+  """All executes all tests."""
+  pub all(): String! {
+    test()
+  }
+
+  """Test does something."""
+  pub test(): String! {
+    "ok"
+  }
+}
