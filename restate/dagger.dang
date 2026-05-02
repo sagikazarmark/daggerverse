@@ -1,0 +1,97 @@
+type Restate {
+  let container: Container!
+
+  new(
+    """
+    Version (image tag) to use from the official image repository.
+    """
+    version: String! = "latest",
+  ) {
+    self.container = Dagger
+      .container
+      .from("docker.restate.dev/restatedev/restate:" + version)
+      .withEnvVariable("RESTATE_INGRESS__BIND_ADDRESS", "0.0.0.0:8080")
+      .withEnvVariable("RESTATE_ADMIN__BIND_ADDRESS", "0.0.0.0:9070")
+      .withExposedPort(8080)
+      .withExposedPort(9070)
+
+    self
+  }
+
+  """
+  Mount a Restate server config file at /etc/restate/server.toml.
+  """
+  pub withConfig(file: File!): Restate! {
+    self.container = self
+      .container
+      .withMountedFile("/etc/restate/server.toml", file)
+      .withDefaultArgs(["--config-file=/etc/restate/server.toml"])
+    self
+  }
+
+  """
+  Start the Restate service and return a RestateService for use.
+  """
+  pub run: RestateService! {
+    RestateService(self.container)
+  }
+}
+
+type RestateService {
+  let container: Container!
+
+  new(container: Container!) {
+    self.container = container
+
+    self
+  }
+
+  """
+  The Restate service (ingress on :8080, admin on :9070).
+  """
+  pub service: Service! {
+    self.container.asService(useEntrypoint: true)
+  }
+
+  """
+  A container with the Restate CLI configured to talk to this Restate's admin API.
+  """
+  pub cli: Container! {
+    self
+      .container
+      .withServiceBinding("restate", self.service)
+      .withEnvVariable("RESTATE_ADMIN_URL", "http://restate:9070")
+  }
+
+  """
+  Register a service deployment with this Restate. Returns self for chaining.
+
+  The caller is responsible for starting the deployment service (via
+  `service.start`) before passing it in, so Restate-server can resolve the
+  endpoint URL within the dagger session. No service binding required, and
+  the underlying Restate service stays content-identical across registerDeployment
+  calls so registrations accumulate against the same instance.
+  """
+  pub registerDeployment(
+    service: Service!,
+    """Allow performing incompatible changes to services, detected during discovery."""
+    breaking: Boolean! = false,
+    """Force overwriting the deployment if it already exists or if incompatible changes were detected. Implies --breaking."""
+    force: Boolean! = false,
+    """Use an HTTP1.1 client (needed for some local dev servers like `wrangler dev`)."""
+    useHttp11: Boolean! = false,
+  ): RestateService! {
+    let args = ["restate", "--yes", "deployments", "register"]
+    if (breaking) { args += ["--breaking"] }
+    if (force) { args += ["--force"] }
+    if (useHttp11) { args += ["--use-http1.1"] }
+    args += [service.endpoint(scheme: "http")]
+
+    cli
+      .withEnvVariable("CACHEBUST", Random.string)
+      .withExec(args)
+      .sync
+
+    self
+  }
+}

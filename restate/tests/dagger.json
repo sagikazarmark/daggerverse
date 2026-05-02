@@ -1,0 +1,17 @@
+{
+  "name": "tests",
+  "engineVersion": "v0.20.6",
+  "sdk": {
+    "source": "dang"
+  },
+  "include": [
+    "!../../.direnv",
+    "!../../.devenv"
+  ],
+  "dependencies": [
+    {
+      "name": "restate",
+      "source": ".."
+    }
+  ]
+}

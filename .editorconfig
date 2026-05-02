@@ -22,3 +22,6 @@ indent_size = 2
 
 [dagger.json]
 indent_size = 2
+
+[*.dang]
+indent_size = 2

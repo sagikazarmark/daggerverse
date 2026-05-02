@@ -4,25 +4,54 @@ default:
 
 # initialize a new module
 [no-exit-message]
-init module:
-    @test ! -d {{module}} || (echo "Module \"{{module}}\" already exists" && exit 1)
+init module sdk='go':
+    #!/usr/bin/env bash
+    set -euo pipefail
 
-    mkdir -p {{module}}
-    cd {{module}} && dagger init --sdk go --name {{module}} --source .
-    jq '.include = ["!../.direnv", "!../.devenv", "!../go.work", "!../go.work.sum"]' {{module}}/dagger.json | sponge {{module}}/dagger.json
-    dagger develop -m {{module}}
+    if [ -d "{{module}}" ]; then
+        echo "Module \"{{module}}\" already exists"
+        exit 1
+    fi
 
-    mkdir -p {{module}}/tests
-    cd {{module}}/tests && dagger init --sdk go --name tests --source .
-    jq '.include = ["!../../.direnv", "!../../.devenv", "!../../go.work", "!../../go.work.sum"]' {{module}}/tests/dagger.json | sponge {{module}}/tests/dagger.json
-    go mod edit -module dagger/{{module}}/tests {{module}}/tests/go.mod
-    cp -r .just/templates/tests/main.go {{module}}/tests/main.go
-    cd {{module}}/tests && dagger install ..
-    dagger develop -m {{module}}/tests
+    case "{{sdk}}" in
+        go)
+            mkdir -p "{{module}}"
+            (cd "{{module}}" && dagger init --sdk go --name "{{module}}" --source .)
+            jq '.include = ["!../.direnv", "!../.devenv", "!../go.work", "!../go.work.sum"]' "{{module}}/dagger.json" | sponge "{{module}}/dagger.json"
+            dagger develop -m "{{module}}"
 
-    @echo ""
-    @echo "Module \"{{module}}\" initialized"
-    @echo "Don't forget to add it to GitHub Actions when you are ready!"
+            mkdir -p "{{module}}/tests"
+            (cd "{{module}}/tests" && dagger init --sdk go --name tests --source .)
+            jq '.include = ["!../../.direnv", "!../../.devenv", "!../../go.work", "!../../go.work.sum"]' "{{module}}/tests/dagger.json" | sponge "{{module}}/tests/dagger.json"
+            go mod edit -module "dagger/{{module}}/tests" "{{module}}/tests/go.mod"
+            cp -r .just/templates/tests/main.go "{{module}}/tests/main.go"
+            (cd "{{module}}/tests" && dagger install ..)
+            dagger develop -m "{{module}}/tests"
+            ;;
+        dang)
+            mkdir -p "{{module}}"
+            (cd "{{module}}" && dagger init --sdk dang --name "{{module}}" --source .)
+            jq '.include = ["!../.direnv", "!../.devenv"]' "{{module}}/dagger.json" | sponge "{{module}}/dagger.json"
+            type_name=$(echo "{{module}}" | awk -F'-' '{for(i=1;i<=NF;i++) printf "%s%s", toupper(substr($i,1,1)), substr($i,2); print ""}')
+            printf 'type %s {}\n' "$type_name" > "{{module}}/dagger.dang"
+            dagger develop -m "{{module}}"
+
+            mkdir -p "{{module}}/tests"
+            (cd "{{module}}/tests" && dagger init --sdk dang --name tests --source .)
+            jq '.include = ["!../../.direnv", "!../../.devenv"]' "{{module}}/tests/dagger.json" | sponge "{{module}}/tests/dagger.json"
+            cp -r .just/templates/tests/dagger.dang "{{module}}/tests/dagger.dang"
+            (cd "{{module}}/tests" && dagger install ..)
+            dagger develop -m "{{module}}/tests"
+            ;;
+        *)
+            echo "Unsupported SDK: \"{{sdk}}\" (supported: go, dang)"
+            exit 1
+            ;;
+    esac
+
+    echo ""
+    echo "Module \"{{module}}\" initialized"
+    echo "Don't forget to add it to GitHub Actions when you are ready!"
 
 # tag and release a module
 release module bump='minor':
@@ -72,9 +101,9 @@ develop:
 # run `go mod tidy` for all modules
 [group('dev')]
 tidy:
-    for dir in $(just list); do $(cd $dir; go mod tidy); done
-    for dir in $(just list-with-tests); do $(cd "$dir/tests"; go mod tidy); done
-    for dir in $(just list-with-examples); do $(cd "$dir/examples/go"; go mod tidy); done
+    for dir in $(just list); do if [ -f "$dir/go.mod" ]; then (cd "$dir" && go mod tidy); fi; done
+    for dir in $(just list-with-tests); do if [ -f "$dir/tests/go.mod" ]; then (cd "$dir/tests" && go mod tidy); fi; done
+    for dir in $(just list-with-examples); do if [ -f "$dir/examples/go/go.mod" ]; then (cd "$dir/examples/go" && go mod tidy); fi; done
 
 # list modules (directories with a `dagger.json` file)
 [group('list')]
