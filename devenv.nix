@@ -1,18 +1,12 @@
-{ pkgs, inputs, ... }:
+{ pkgs, ... }:
 
 {
   cachix.pull = [ "sagikazarmark-dev" ];
 
-  overlays = [
-    (final: prev: {
-      dagger = inputs.dagger.packages.${final.stdenv.hostPlatform.system}.dagger;
-    })
-  ];
-
   languages = {
     go = {
       enable = true;
-      package = pkgs.go_1_25;
+      package = pkgs.go_1_26;
     };
   };
 
