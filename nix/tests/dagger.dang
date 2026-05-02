@@ -1,0 +1,116 @@
+type Tests {
+  """
+  Minimal flake fixture without nixpkgs: derivation uses /bin/sh from the
+  build sandbox (works because nix.conf sets `sandbox = false`).
+  """
+  let fixtureFlake: Directory! {
+    Dagger.directory.withNewFile(
+      "flake.nix",
+      """
+      {
+        description = "test fixture flake";
+        outputs = { self }: let
+          systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+          forAll = f: builtins.listToAttrs (map (s: { name = s; value = f s; }) systems);
+        in {
+          packages = forAll (system: {
+            default = derivation {
+              name = "hello";
+              inherit system;
+              builder = "/bin/sh";
+              args = [ "-c" "echo hi from nix > $out" ];
+            };
+          });
+        };
+      }
+      """,
+    )
+  }
+
+  """
+  Container is built, nix is on PATH, flakes are enabled.
+  """
+  pub basic: String! @check {
+    let out = nix
+      .container
+      .withExec(["nix", "--version"])
+      .stdout
+
+    assert { out.hasPrefix("nix") }
+
+    out
+  }
+
+  """
+  A trivial flake builds and the result extracts as a File with expected contents.
+  """
+  pub build: String! @check {
+    let contents = nix
+      .withSource(fixtureFlake)
+      .build
+      .file
+      .contents
+
+    assert { contents.hasPrefix("hi from nix") }
+
+    contents
+  }
+
+  """
+  Eval of a pure expression returns the JSON-encoded result.
+  """
+  pub eval: String! @check {
+    let out = nix
+      .withSource(fixtureFlake)
+      .eval("1 + 1", output: NixOutputFormat.JSON, expression: true)
+      .trimSpace
+
+    assert { out == "2" }
+
+    out
+  }
+
+  """
+  flake show outputs JSON listing the packages.
+  """
+  pub flakeShow: String! @check {
+    let out = nix
+      .withSource(fixtureFlake)
+      .flake
+      .show(output: NixOutputFormat.JSON)
+
+    assert { out.contains("packages") }
+    assert { out.contains("hello") }
+
+    out
+  }
+
+  """
+  flake update runs successfully and returns an empty Changeset
+  (the inputless fixture has nothing to update).
+  """
+  pub flakeUpdate: Boolean! @check {
+    let empty = nix
+      .withSource(fixtureFlake)
+      .flake
+      .update
+      .isEmpty
+
+    assert { empty }
+
+    empty
+  }
+
+  """
+  Two consecutive builds produce the same store path (proving cache + determinism).
+  """
+  pub cache: String! @check {
+    let n = nix.withSource(fixtureFlake)
+    let p1 = n.build.storePath
+    let p2 = n.build.storePath
+
+    assert { p1 == p2 }
+
+    p1
+  }
+}
