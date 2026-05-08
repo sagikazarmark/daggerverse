@@ -240,6 +240,6 @@ type Content {
       .container
       .withWorkdir("/work")
       .withMountedDirectory(".", dir)
-      .withExec(["labctl", "content", "push", toString(self.kind).toLower, self.name, "--force", "--dir", "."])
+      .withExec(["labctl", "content", "push", toString(self.kind).toLower.trim("\""), self.name, "--force", "--dir", "."])
   }
 }
