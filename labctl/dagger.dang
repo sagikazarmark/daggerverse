@@ -188,7 +188,7 @@ type Playground {
     Directory with the manifest file (and possibly other content files).
     """
     dir: Directory = null,
-  ): String! {
+  ): Container! {
     if (file != null and dir != null) {
       raise "only one of file or dir must be provided"
     }
@@ -206,7 +206,7 @@ type Playground {
       raise "either file or dir must be provided"
     }
 
-    container.withExec(args).combinedOutput
+    container.withExec(args)
   }
 }
 
@@ -235,12 +235,11 @@ type Content {
     Directory with content files.
     """
     dir: Directory!,
-  ): String! {
+  ): Container! {
     self
       .container
       .withWorkdir("/work")
       .withMountedDirectory(".", dir)
       .withExec(["labctl", "content", "push", toString(self.kind).toLower, self.name, "--force", "--dir", "."])
-      .combinedOutput
   }
 }
