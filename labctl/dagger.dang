@@ -153,6 +153,13 @@ type Labctl {
   pub vendor(name: String!): Content! {
     Content(self.container, ContentKind.VENDOR, name)
   }
+
+  """
+  Manage any content.
+  """
+  pub content(kind: ContentKind!, name: String!): Content! {
+    Content(self.container, kind, name)
+  }
 }
 
 type Playground {
