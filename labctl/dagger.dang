@@ -1,8 +1,8 @@
 type Labctl {
-  """
-  A container with labctl installed.
-  """
-  pub container: Container!
+  let _container: Container!
+
+  let sessionId: Secret
+  let accessToken: Secret
 
   new(
     """
@@ -22,6 +22,71 @@ type Labctl {
     """
     accessToken: Secret = null,
   ) {
+    self._container = container
+      .withFile(
+        "/usr/local/bin/labctl",
+        Dagger
+          .container
+          .from("alpine:latest")
+          .withMountedFile("/tmp/labctl.tar.gz", Dagger.http(self.downloadUrl(version)))
+          .withExec(["tar", "xzf", "/tmp/labctl.tar.gz", "-C", "/tmp"])
+          .file("/tmp/labctl"),
+      )
+      .withEntrypoint(["/usr/local/bin/labctl"])
+      .withFile(
+        "/root/.iximiuz/labctl/config.yaml",
+        Dagger.file(
+          "config.yaml",
+          """
+          base_url: https://labs.iximiuz.com
+          api_base_url: https://labs.iximiuz.com/api
+          plays_dir: /root/.iximiuz/labctl/plays
+          ssh_identity_file: /root/.ssh/iximiuz_labs_user
+          """,
+        ),
+      )
+
+    self.sessionId = sessionId
+    self.accessToken = accessToken
+
+    self
+  }
+
+  pub container: Container! {
+    let container = self._container
+
+    let sessionId = self.sessionId
+    if (sessionId != null) {
+      container = container.withSecretVariable("IXIMIUZ_SESSION_ID", sessionId)
+    }
+
+    let accessToken = self.accessToken
+    if (accessToken != null) {
+      container = container.withSecretVariable("IXIMIUZ_ACCESS_TOKEN", accessToken)
+    }
+
+    container
+  }
+
+  """
+  Sets the session ID for labctl.
+  """
+  pub withSessionId(sessionId: Secret!): Labctl! {
+    self.sessionId = sessionId
+
+    self
+  }
+
+  """
+  Sets the access token for labctl.
+  """
+  pub withAccessToken(accessToken: Secret!): Labctl! {
+    self.accessToken = accessToken
+
+    self
+  }
+
+  let downloadUrl(version: String!): String! {
     let osArch = toString(Dagger.defaultPlatform).trim("\"").replace("/", "_")
 
     let downloadURL = if (version == "latest") {
@@ -29,67 +94,5 @@ type Labctl {
     } else {
       "https://github.com/iximiuz/labctl/releases/download/v" + version.trimPrefix("v") + "/labctl_" + osArch + ".tar.gz"
     }
-
-    let archive = Dagger.http(downloadURL)
-
-    let binary = Dagger
-      .container
-      .from("alpine:latest")
-      .withMountedFile("/tmp/labctl.tar.gz", archive)
-      .withExec(["tar", "xzf", "/tmp/labctl.tar.gz", "-C", "/tmp"])
-      .file("/tmp/labctl")
-
-    let config = Dagger.file(
-      "config.yaml",
-      """
-      base_url: https://labs.iximiuz.com
-      api_base_url: https://labs.iximiuz.com/api
-      plays_dir: /root/.iximiuz/labctl/plays
-      ssh_identity_file: /root/.ssh/iximiuz_labs_user
-      """,
-    )
-
-    self.container = container
-      .withFile("/usr/local/bin/labctl", binary)
-      .withEntrypoint(["/usr/local/bin/labctl"])
-      .withFile("/root/.iximiuz/labctl/config.yaml", config)
-
-    if (sessionId != null) {
-      self.container = self.setSessionId(sessionId, self.container)
-    }
-    if (accessToken != null) {
-      self.container = self.setAccessToken(accessToken, self.container)
-    }
-
-    self
-  }
-
-  let setSessionId(sessionId: Secret!, container: Container!): Container! {
-    container.withSecretVariable("IXIMIUZ_SESSION_ID", sessionId)
-  }
-
-  """
-  Sets the session ID for labctl.
-  """
-  pub withSessionId(sessionId: Secret!): Labctl! {
-    self.container = self.setSessionId(sessionId, self.container)
-
-    self
-  }
-
-  let setAccessToken(accessToken: Secret!, container: Container!): Container! {
-    container.withSecretVariable(
-      "IXIMIUZ_ACCESS_TOKEN",
-      accessToken,
-    )
-  }
-
-  """
-  Sets the access token for labctl.
-  """
-  pub withAccessToken(accessToken: Secret!): Labctl! {
-    self.container = self.setAccessToken(accessToken, self.container)
-
-    self
   }
 }
