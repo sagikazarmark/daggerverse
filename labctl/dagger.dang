@@ -1,3 +1,14 @@
+"""
+Enum representing the kind of content.
+"""
+enum ContentKind {
+  TUTORIAL
+  CHALLENGE
+  COURSE
+  TRAINING
+  VENDOR
+}
+
 type Labctl {
   let _container: Container!
 
@@ -28,7 +39,9 @@ type Labctl {
         Dagger
           .container
           .from("alpine:latest")
-          .withMountedFile("/tmp/labctl.tar.gz", Dagger.http(self.downloadUrl(version)))
+          .withMountedFile("/tmp/labctl.tar.gz", Dagger.http(
+            self.downloadUrl(version),
+          ))
           .withExec(["tar", "xzf", "/tmp/labctl.tar.gz", "-C", "/tmp"])
           .file("/tmp/labctl"),
       )
@@ -52,6 +65,9 @@ type Labctl {
     self
   }
 
+  """
+  Returns the container with the labctl binary and configuration.
+  """
   pub container: Container! {
     let container = self._container
 
@@ -94,5 +110,130 @@ type Labctl {
     } else {
       "https://github.com/iximiuz/labctl/releases/download/v" + version.trimPrefix("v") + "/labctl_" + osArch + ".tar.gz"
     }
+  }
+
+  """
+  Manage playgrounds.
+  """
+  pub playground(name: String!): Playground! {
+    Playground(self.container, name)
+  }
+
+  """
+  Manage tutorials.
+  """
+  pub tutorial(name: String!): Content! {
+    Content(self.container, ContentKind.TUTORIAL, name)
+  }
+
+  """
+  Manage challenges.
+  """
+  pub challenge(name: String!): Content! {
+    Content(self.container, ContentKind.CHALLENGE, name)
+  }
+
+  """
+  Manage courses.
+  """
+  pub course(name: String!): Content! {
+    Content(self.container, ContentKind.COURSE, name)
+  }
+
+  """
+  Manage training content.
+  """
+  pub training(name: String!): Content! {
+    Content(self.container, ContentKind.TRAINING, name)
+  }
+
+  """
+  Manage vendor content.
+  """
+  pub vendor(name: String!): Content! {
+    Content(self.container, ContentKind.VENDOR, name)
+  }
+}
+
+type Playground {
+  let container: Container!
+  let name: String!
+
+  new(
+    container: Container!,
+    name: String!,
+  ) {
+    self.container = container
+    self.name = name
+
+    self
+  }
+
+  """
+  Update an existing playground.
+  """
+  pub push(
+    """
+    Manifest file.
+    """
+    file: File = null,
+    """
+    Directory with the manifest file (and possibly other content files).
+    """
+    dir: Directory = null,
+  ): String! {
+    if (file != null and dir != null) {
+      raise "only one of file or dir must be provided"
+    }
+
+    let args = ["labctl", "playground", "update", self.name, "--force"]
+    let container = self.container.withWorkdir("/work")
+
+    if (file != null) {
+      args += ["--file", "manifest.yaml"]
+      container = container.withMountedFile("manifest.yaml", file)
+    } else if (dir != null) {
+      args += ["--dir", "."]
+      container = container.withMountedDirectory(".", dir)
+    } else {
+      raise "either file or dir must be provided"
+    }
+
+    container.withExec(args).combinedOutput
+  }
+}
+
+type Content {
+  let container: Container!
+  let kind: ContentKind!
+  let name: String!
+
+  new(
+    container: Container!,
+    kind: ContentKind!,
+    name: String!,
+  ) {
+    self.container = container
+    self.kind = kind
+    self.name = name
+
+    self
+  }
+
+  """
+  Push content to the content repository.
+  """
+  pub push(
+    """
+    Directory with content files.
+    """
+    dir: Directory!,
+  ): String! {
+    self
+      .container
+      .withWorkdir("/work")
+      .withMountedDirectory(".", dir)
+      .withExec(["labctl", "content", "push", toString(self.kind).toLower, self.name, "--force", "--dir", "."])
+      .combinedOutput
   }
 }
