@@ -1,0 +1,7 @@
+{
+  "name": "jq",
+  "engineVersion": "v0.21.3",
+  "sdk": {
+    "source": "dang"
+  }
+}

@@ -1,0 +1,120 @@
+type Jq {
+  """
+  A container that provides the jq command-line tool for JSON processing.
+  """
+  pub container: Container!
+
+  new(
+    """
+    Version (image tag) to use from the official image repository as a base container.
+    """
+    version: String! = "latest",
+    """
+    Custom container to use as a base container.
+    """
+    container: Container! = Dagger.container.from("ghcr.io/jqlang/jq:" + version),
+  ) {
+    self.container = container
+
+    self
+  }
+
+  """
+  Evaluates a jq expression on the input JSON data.
+  """
+  pub eval(
+    """
+    Evaluates a jq expression on the input JSON data.
+    """
+    expr: String!,
+    """
+    The input JSON data to process.
+    """
+    input: File = null,
+    """
+    Use `null` as the single input value.
+    """
+    nullInput: Boolean! = false,
+    """
+    Arguments to pass to the jq expression.
+    """
+    args: [Arg!]! = [],
+    """
+    Read all inputs into an array and use it as the single input value.
+    """
+    slurp: Boolean! = false,
+  ): Result! {
+    let container = self.container
+
+    let _args = ["-r"]
+    let trailingArgs = []
+
+    if (slurp) { _args += ["-s"] }
+
+    args.each { arg => _args += ["--arg", arg.name, arg.value] }
+
+    if (nullInput) {
+      _args += ["-n"]
+
+      null
+    } else if (input != null) {
+      container = container.withMountedFile("/input.json", input)
+      trailingArgs += ["/input.json"]
+
+      null
+    } else {
+      raise "input or nullInput must be provided"
+    }
+
+    _args += [expr] + trailingArgs
+
+    let output = container
+      .withExec(
+        _args,
+        redirectStdout: "/output.json",
+        useEntrypoint: true,
+      )
+      .file("/output.json")
+
+    Result(output)
+  }
+
+  """
+  Create an arg to pass to the jq expression.
+  """
+  pub arg(name: String!, value: String!): Arg! {
+    Arg(name: name, value: value)
+  }
+}
+
+"""
+Arg to pass to the jq expression.
+"""
+type Arg {
+  """
+  The name of the argument.
+  """
+  pub name: String!
+
+  """
+  The value of the argument.
+  """
+  pub value: String!
+}
+
+"""
+The result of a jq evaluation, including the processed JSON output as a file and its contents as a string.
+"""
+type Result {
+  """
+  The processed JSON output as a file.
+  """
+  pub file: File!
+
+  """
+  The contents of the processed JSON output as a string.
+  """
+  pub contents: String! {
+    file.contents
+  }
+}

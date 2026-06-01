@@ -1,0 +1,207 @@
+type GhRelease {
+  let authHeader: Secret = null
+
+  new(
+    """
+    Authorization header secret, for example "Bearer ghp_...".
+    """
+    authHeader: Secret = null,
+  ) {
+    self.authHeader = authHeader
+
+    self
+  }
+
+  """
+  Resolve a GitHub release by version. Use "latest" or an empty string for the latest release.
+  """
+  pub resolve(
+    """
+    GitHub repository in owner/name form.
+    """
+    repository: String!,
+    """
+    Release tag, or "latest" for GitHub's latest non-draft, non-prerelease release.
+    """
+    version: String!,
+  ): Release! {
+    Release(
+      repository: repository,
+      version: version,
+      authHeader: authHeader,
+    )
+  }
+
+  """
+  Resolve GitHub's latest non-draft, non-prerelease release.
+  """
+  pub latest(
+    """
+    GitHub repository in owner/name form.
+    """
+    repository: String!,
+  ): Release! {
+    self.resolve(repository, "latest")
+  }
+}
+
+"""
+A resolved GitHub release.
+"""
+type Release {
+  let repository: String!
+  let authHeader: Secret = null
+
+  let json: File!
+
+  new(
+    repository: String!,
+    version: String!,
+    authHeader: Secret = null,
+  ) {
+    self.repository = repository
+    self.authHeader = authHeader
+    self.json = Dagger.http(releaseUrl(repository, version), "release.json", authHeader: authHeader)
+
+    self
+  }
+
+  """
+  Resolved release tag. For latest releases, this returns the actual tag name.
+  """
+  pub tag: String! {
+    field("tag_name")
+  }
+
+  """
+  Resolved release version. Alias for tag.
+  """
+  pub version: String! {
+    self.tag
+  }
+
+  """
+  Resolve a release asset by exact filename.
+  """
+  pub asset(
+    """
+    Exact release asset filename.
+    """
+    name: String!,
+  ): Asset! {
+    let asset = Dagger.json.withContents(
+      jq.eval(
+        expr: """.assets | map(select(.name == $name)) | if length == 0 then error("release asset not found: " + $name) elif length > 1 then error("multiple release assets found: " + $name) else .[0] end""",
+        input: self.json,
+        args: [jq.arg("name", name)],
+      ).contents,
+    )
+
+    Asset(
+      json: asset,
+      authHeader: self.authHeader,
+    )
+  }
+
+  let releaseUrl(repository: String!, version: String!): String! {
+    let base = "https://api.github.com/repos/" + repository + "/releases"
+
+    if (version == "latest" or version == "") {
+      base + "/latest"
+    } else {
+      base + "/tags/" + version
+    }
+  }
+
+  let field(field: String!): String! {
+    let value = self.json.asJSON.field(path: [field]).asString
+
+    if (value == null) {
+      raise "release " + field + " missing"
+    } else {
+      value
+    }
+  }
+}
+
+"""
+A resolved GitHub release asset.
+"""
+type Asset {
+  let json: JSONValue!
+  let authHeader: Secret = null
+
+  new(json: JSONValue!, authHeader: Secret = null) {
+    self.json = json
+    self.authHeader = authHeader
+
+    self
+  }
+
+  """
+  Exact release asset filename.
+  """
+  pub name: String! {
+    self.field("name")
+  }
+
+  """
+  GitHub-provided asset digest, for example sha256:...
+  """
+  pub digest: String! {
+    self.field("digest")
+  }
+
+  """
+  Browser download URL for the asset.
+  """
+  pub downloadUrl: String! {
+    self.field("browser_download_url")
+  }
+
+  """
+  Downloaded asset file with GitHub's asset digest enforced by Dagger.
+  """
+  pub file: File! {
+    Dagger.http(
+      url: self.downloadUrl,
+      name: self.name,
+      checksum: self.digest,
+      authHeader: self.authHeader,
+    )
+  }
+
+  """
+  Downloaded and extracted asset.
+  """
+  pub extracted(stripComponents: Boolean! = false): Directory! {
+    let fileName = self.file.name
+
+    let args = ["bsdtar", "--no-xattrs", "-xf", fileName, "-C", "/work/out"]
+
+    if (stripComponents) {
+      args += ["--strip-components", "1"]
+    }
+
+    Dagger
+      .container
+      .from("alpine:3.23.4")
+      .withMountedCache("/var/cache/apk", Dagger.cacheVolume("alpine-apk"))
+      .withExec(["apk", "add", "libarchive-tools"])
+      .withWorkdir("/work/src")
+      .withExec(["mkdir", "-p", "/work/out"])
+      .withMountedFile(fileName, self.file)
+      .withExec(args)
+      .directory("/work/out")
+  }
+
+  let field(field: String!): String! {
+    let value = self.json.field(path: [field]).asString
+
+    if (value == null) {
+      raise "release asset " + field + " missing"
+    }
+
+    value
+  }
+}
