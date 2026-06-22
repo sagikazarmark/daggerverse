@@ -33,7 +33,7 @@ func New(
 	//
 	// +optional
 	disableCache bool,
-) *Go {
+) Go {
 	if container == nil {
 		if version == "" {
 			version = "latest"
@@ -42,7 +42,7 @@ func New(
 		container = dag.Container().From(fmt.Sprintf("%s:%s", defaultImageRepository, version))
 	}
 
-	m := &Go{
+	m := Go{
 		Container: container,
 	}
 
@@ -56,7 +56,7 @@ func New(
 }
 
 // Set an environment variable.
-func (m *Go) WithEnvVariable(
+func (m Go) WithEnvVariable(
 	// The name of the environment variable (e.g., "HOST").
 	name string,
 
@@ -68,7 +68,7 @@ func (m *Go) WithEnvVariable(
 	//
 	// +optional
 	expand bool,
-) *Go {
+) Go {
 	m.Container = m.Container.WithEnvVariable(
 		name,
 		value,
@@ -81,23 +81,23 @@ func (m *Go) WithEnvVariable(
 }
 
 // Establish a runtime dependency on a service.
-func (m *Go) WithServiceBinding(
+func (m Go) WithServiceBinding(
 	// A name that can be used to reach the service from the container.
 	alias string,
 
 	// Identifier of the service container.
 	service *dagger.Service,
-) *Go {
+) Go {
 	m.Container = m.Container.WithServiceBinding(alias, service)
 
 	return m
 }
 
 // Set GOOS, GOARCH and GOARM environment variables.
-func (m *Go) WithPlatform(
+func (m Go) WithPlatform(
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	platform dagger.Platform,
-) *Go {
+) Go {
 	if platform == "" {
 		return m
 	}
@@ -119,21 +119,21 @@ func (m *Go) WithPlatform(
 }
 
 // Set CGO_ENABLED environment variable to 1.
-func (m *Go) WithCgoEnabled() *Go {
+func (m Go) WithCgoEnabled() Go {
 	m.Container = m.Container.WithEnvVariable("CGO_ENABLED", "1")
 
 	return m
 }
 
 // Set CGO_ENABLED environment variable to 0.
-func (m *Go) WithCgoDisabled() *Go {
+func (m Go) WithCgoDisabled() Go {
 	m.Container = m.Container.WithEnvVariable("CGO_ENABLED", "0")
 
 	return m
 }
 
 // Mount a cache volume for Go module cache.
-func (m *Go) WithModuleCache(
+func (m Go) WithModuleCache(
 	cache *dagger.CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
@@ -145,7 +145,7 @@ func (m *Go) WithModuleCache(
 	//
 	// +optional
 	sharing dagger.CacheSharingMode,
-) *Go {
+) Go {
 	m.Container = m.Container.WithMountedCache(
 		"/go/pkg/mod",
 		cache,
@@ -159,7 +159,7 @@ func (m *Go) WithModuleCache(
 }
 
 // Mount a cache volume for Go build cache.
-func (m *Go) WithBuildCache(
+func (m Go) WithBuildCache(
 	cache *dagger.CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
@@ -171,7 +171,7 @@ func (m *Go) WithBuildCache(
 	//
 	// +optional
 	sharing dagger.CacheSharingMode,
-) *Go {
+) Go {
 	m.Container = m.Container.WithMountedCache(
 		"/root/.cache/go-build",
 		cache,
@@ -185,7 +185,7 @@ func (m *Go) WithBuildCache(
 }
 
 // Run a Go command.
-func (m *Go) Exec(
+func (m Go) Exec(
 	// Arguments to pass to the Go command.
 	args []string,
 
@@ -213,7 +213,7 @@ func (m *Go) Exec(
 // Run "go generate" command.
 //
 // Consult "go help generate" for more information.
-func (m *Go) Generate(
+func (m Go) Generate(
 	// Source directory to mount.
 	source *dagger.Directory,
 
@@ -242,7 +242,7 @@ func (m *Go) Generate(
 }
 
 // Build a binary.
-func (m *Go) Build(
+func (m Go) Build(
 	// Source directory to mount.
 	source *dagger.Directory,
 
@@ -293,11 +293,11 @@ func (m *Go) Build(
 }
 
 // Mount a source directory.
-func (m *Go) WithSource(
+func (m Go) WithSource(
 	// Source directory to mount.
 	source *dagger.Directory,
-) *WithSource {
-	return &WithSource{
+) WithSource {
+	return WithSource{
 		Source: source,
 		Go:     m,
 	}
@@ -307,17 +307,17 @@ type WithSource struct {
 	Source *dagger.Directory
 
 	// +private
-	Go *Go
+	Go Go
 }
 
-func (m *WithSource) Container() *dagger.Container {
+func (m WithSource) Container() *dagger.Container {
 	return m.Go.Container.
 		WithWorkdir(workdir).
 		WithMountedDirectory(workdir, m.Source)
 }
 
 // Set an environment variable.
-func (m *WithSource) WithEnvVariable(
+func (m WithSource) WithEnvVariable(
 	// The name of the environment variable (e.g., "HOST").
 	name string,
 
@@ -329,51 +329,51 @@ func (m *WithSource) WithEnvVariable(
 	//
 	// +optional
 	expand bool,
-) *WithSource {
+) WithSource {
 	m.Go = m.Go.WithEnvVariable(name, value, expand)
 
 	return m
 }
 
 // Establish a runtime dependency on a service.
-func (m *WithSource) WithServiceBinding(
+func (m WithSource) WithServiceBinding(
 	// A name that can be used to reach the service from the container.
 	alias string,
 
 	// Identifier of the service container.
 	service *dagger.Service,
-) *WithSource {
+) WithSource {
 	m.Go = m.Go.WithServiceBinding(alias, service)
 
 	return m
 }
 
 // Set GOOS, GOARCH and GOARM environment variables.
-func (m *WithSource) WithPlatform(
+func (m WithSource) WithPlatform(
 	// Target platform in "[os]/[platform]/[version]" format (e.g., "darwin/arm64/v7", "windows/amd64", "linux/arm64").
 	platform dagger.Platform,
-) *WithSource {
+) WithSource {
 	m.Go = m.Go.WithPlatform(platform)
 
 	return m
 }
 
 // Set CGO_ENABLED environment variable to 1.
-func (m *WithSource) WithCgoEnabled() *WithSource {
+func (m WithSource) WithCgoEnabled() WithSource {
 	m.Go = m.Go.WithCgoEnabled()
 
 	return m
 }
 
 // Set CGO_ENABLED environment variable to 0.
-func (m *WithSource) WithCgoDisabled() *WithSource {
+func (m WithSource) WithCgoDisabled() WithSource {
 	m.Go = m.Go.WithCgoDisabled()
 
 	return m
 }
 
 // Mount a cache volume for Go module cache.
-func (m *WithSource) WithModuleCache(
+func (m WithSource) WithModuleCache(
 	cache *dagger.CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
@@ -385,14 +385,14 @@ func (m *WithSource) WithModuleCache(
 	//
 	// +optional
 	sharing dagger.CacheSharingMode,
-) *WithSource {
+) WithSource {
 	m.Go = m.Go.WithModuleCache(cache, source, sharing)
 
 	return m
 }
 
 // Mount a cache volume for Go build cache.
-func (m *WithSource) WithBuildCache(
+func (m WithSource) WithBuildCache(
 	cache *dagger.CacheVolume,
 
 	// Identifier of the directory to use as the cache volume's root.
@@ -404,26 +404,26 @@ func (m *WithSource) WithBuildCache(
 	//
 	// +optional
 	sharing dagger.CacheSharingMode,
-) *WithSource {
+) WithSource {
 	m.Go = m.Go.WithBuildCache(cache, source, sharing)
 
 	return m
 }
 
 // Run a Go command.
-func (m *WithSource) WithExec(
+func (m WithSource) WithExec(
 	// Arguments to pass to the Go command.
 	args []string,
 
 	// TODO: add back the platform argument, but make sure it's not persisted across calls
-) *WithSource {
+) WithSource {
 	m.Source = m.Exec(args, dagger.Platform("")).Directory(workdir)
 
 	return m
 }
 
 // Run a Go command.
-func (m *WithSource) Exec(
+func (m WithSource) Exec(
 	// Arguments to pass to the Go command.
 	args []string,
 
@@ -442,7 +442,7 @@ func (m *WithSource) Exec(
 // Run "go generate" command.
 //
 // Consult "go help generate" for more information.
-func (m *WithSource) Generate(
+func (m WithSource) Generate(
 	// Packages (or files) to run "go generate" on.
 	//
 	// +optional
@@ -459,7 +459,7 @@ func (m *WithSource) Generate(
 	skip string,
 
 	// TODO: add -v, -n and -x flags
-) *WithSource {
+) WithSource {
 	args := []string{"go", "generate"}
 
 	if run != "" {
@@ -478,7 +478,7 @@ func (m *WithSource) Generate(
 }
 
 // Compile the packages into a binary.
-func (m *WithSource) Build(
+func (m WithSource) Build(
 	// Package to compile.
 	//
 	// +optional
