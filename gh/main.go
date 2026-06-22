@@ -42,6 +42,7 @@ func New(
 	return &Gh{
 		Token:      token,
 		Repository: repo,
+		Source:     source,
 	}, nil
 }
 
@@ -173,6 +174,10 @@ func (m *Gh) base() *dagger.Container {
 		WithPackages([]string{
 			"gh",
 			"git",
+
+			// Required for extensions
+			"bash",
+			"curl",
 		}).
 		Container().
 		WithEnvVariable("GH_PROMPT_DISABLED", "true").
